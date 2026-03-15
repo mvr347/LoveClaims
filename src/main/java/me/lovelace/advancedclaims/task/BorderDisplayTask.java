@@ -28,7 +28,6 @@ public class BorderDisplayTask {
 
     // Текстуры для голов (Base64)
     private static final String GREEN_GLASS_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjMxMmUxYjkzZTM1NDRkMGVkMDFlMDQ3MTZlNWUyZjNlYThlZDc5OWFlMDI1M2U0YjE4MjRkZThiMzAwMmY2NCJ9fX0=";
-    private static final String PREVIEW_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTBmNGVmN2Q2YzVkOGRhMzYxODI3NTIyM2JkY2ExNDdjOWNmYWFjNzdkMzdlOGFlODFkNzU3YTU5MzY3NmFjMiJ9fX0=";
 
     public static void hideBorder(Player player) {
         // Удаляем ItemDisplay entities
@@ -140,83 +139,6 @@ public class BorderDisplayTask {
 
                     displays.add(display);
                 }
-            }
-        }
-
-        activeBorders.put(player.getUniqueId(), displays);
-        player.getScheduler().runDelayed(plugin, task -> hideBorder(player), null, durationTicks);
-    }
-
-    /**
-     * Показать границы при создании привата (превью).
-     */
-    public static void showPreviewBorder(AdvancedClaims plugin, Player player, BoundingBox box, long durationTicks) {
-        hideBorder(player);
-
-        List<ItemDisplay> displays = new ArrayList<>();
-
-        int minX = (int) Math.floor(box.getMinX());
-        int minY = (int) Math.floor(box.getMinY());
-        int minZ = (int) Math.floor(box.getMinZ());
-        int maxX = (int) Math.floor(box.getMaxX()) - 1;
-        int maxY = (int) Math.floor(box.getMaxY()) - 1;
-        int maxZ = (int) Math.floor(box.getMaxZ()) - 1;
-
-        List<Location> borderLocations = new ArrayList<>();
-
-        // Нижняя грань
-        for (int x = minX; x <= maxX; x++) {
-            borderLocations.add(new Location(player.getWorld(), x + 0.5, minY, minZ + 0.5));
-            borderLocations.add(new Location(player.getWorld(), x + 0.5, minY, maxZ + 0.5));
-        }
-        for (int z = minZ; z <= maxZ; z++) {
-            borderLocations.add(new Location(player.getWorld(), minX + 0.5, minY, z + 0.5));
-            borderLocations.add(new Location(player.getWorld(), maxX + 0.5, minY, z + 0.5));
-        }
-
-        // Верхняя грань
-        for (int x = minX; x <= maxX; x++) {
-            borderLocations.add(new Location(player.getWorld(), x + 0.5, maxY, minZ + 0.5));
-            borderLocations.add(new Location(player.getWorld(), x + 0.5, maxY, maxZ + 0.5));
-        }
-        for (int z = minZ; z <= maxZ; z++) {
-            borderLocations.add(new Location(player.getWorld(), minX + 0.5, maxY, z + 0.5));
-            borderLocations.add(new Location(player.getWorld(), maxX + 0.5, maxY, z + 0.5));
-        }
-
-        // Вертикальные углы
-        for (int y = minY; y <= maxY; y++) {
-            borderLocations.add(new Location(player.getWorld(), minX + 0.5, y, minZ + 0.5));
-            borderLocations.add(new Location(player.getWorld(), maxX + 0.5, y, minZ + 0.5));
-            borderLocations.add(new Location(player.getWorld(), minX + 0.5, y, maxZ + 0.5));
-            borderLocations.add(new Location(player.getWorld(), maxX + 0.5, y, maxZ + 0.5));
-        }
-
-        // Создаем ItemDisplay entities
-        for (Location loc : borderLocations) {
-            ItemDisplay display = player.getWorld().spawn(loc, ItemDisplay.class);
-            if (display != null) {
-                display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.HEAD);
-                setHeadTexture(display, PREVIEW_TEXTURE);
-
-                display.setBillboard(Display.Billboard.FIXED);
-
-                Transformation transform = display.getTransformation();
-                transform.getLeftRotation().set(0, 0, 0, 1);
-                transform.getRightRotation().set(0, 0, 0, 1);
-                display.setTransformation(transform);
-
-                display.setGlowing(true);
-                display.setBrightness(new Display.Brightness(15, 15));
-
-                Transformation finalTransform = display.getTransformation();
-                finalTransform.getScale().set(0.8f, 0.8f, 0.8f);
-                display.setTransformation(finalTransform);
-
-                display.setInterpolationDuration(1);
-                display.setTeleportDuration(1);
-
-                displays.add(display);
             }
         }
 

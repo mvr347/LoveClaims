@@ -45,10 +45,10 @@ public class RentalPaymentGUI extends AbstractGUI {
         event.setCancelled(true);
         Player player = (Player) event.getWhoClicked();
 
-        if (event.getSlot() == 0) {
+        if (event.getSlot() == 4) {
             player.closeInventory();
             plugin.getConfigManager().playSound(player, "gui-click");
-        } else if (event.getSlot() == 4) {
+        } else if (event.getSlot() == 0) {
             long ownedCount = plugin.getClaimManager().getAllClaims().stream()
                     .filter(Claim::isRentalPlot)
                     .filter(c -> c.getOwnerUuid() != null && c.getOwnerUuid().equals(player.getUniqueId()))

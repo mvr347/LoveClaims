@@ -155,9 +155,6 @@ public class AnchorListener implements Listener {
         BlockPreviewTask previewTask = new BlockPreviewTask(plugin, player, newBox, tier, () -> pendingClaims.remove(player.getUniqueId()));
 
         pendingClaims.put(player.getUniqueId(), new PendingClaim(targetLoc, tier, previewTask, System.currentTimeMillis()));
-        
-        // Показываем превью границ при создании
-        me.lovelace.advancedclaims.task.BorderDisplayTask.showPreviewBorder(plugin, player, newBox, 200L);
 
         String titleTitle = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(plugin.getConfigManager().getMessage("claim-preview-title"));
         String titleSub = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(plugin.getConfigManager().getMessage("claim-preview-subtitle"));
