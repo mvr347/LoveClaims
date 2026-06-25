@@ -153,7 +153,7 @@ public class SQLiteStorage {
                     claim.setLastTaxTime(rs.getLong("last_tax_time"));
                 } else {
                     claim.setClaimType(Claim.ClaimType.valueOf(rs.getString("claim_type")));
-                    claim.setClanTerritory(rs.getBoolean("is_clan_territory"));
+                    claim.setClanTerritory(rs.getBoolean("is_clan_territory") || claim.getClaimType() == Claim.ClaimType.CLAN);
                     claim.setUnderSiege(rs.getBoolean("is_under_siege"));
                 }
 
@@ -232,7 +232,7 @@ public class SQLiteStorage {
                         claim.setLastTaxTime(rs.getLong("last_tax_time"));
                     } else {
                         claim.setClaimType(Claim.ClaimType.valueOf(rs.getString("claim_type")));
-                        claim.setClanTerritory(rs.getBoolean("is_clan_territory"));
+                        claim.setClanTerritory(rs.getBoolean("is_clan_territory") || claim.getClaimType() == Claim.ClaimType.CLAN);
                         claim.setUnderSiege(rs.getBoolean("is_under_siege"));
                     }
                 }

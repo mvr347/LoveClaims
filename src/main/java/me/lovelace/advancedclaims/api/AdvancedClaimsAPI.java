@@ -145,7 +145,7 @@ public final class AdvancedClaimsAPI {
      */
     public Claim createClaim(World world, BoundingBox box, UUID owner, Location anchorLocation) {
         Claim claim = new Claim(UUID.randomUUID(), world, box, owner, anchorLocation);
-        claim.setClaimType(Claim.ClaimType.PLAYER); // Отмечаем как клановую территорию
+        claim.setClaimType(Claim.ClaimType.PLAYER); // Отмечаем как приват игрока
         plugin.getClaimManager().addClaimToCache(claim);
         plugin.getStorage().saveClaimAsync(claim);
         return claim;
@@ -161,7 +161,12 @@ public final class AdvancedClaimsAPI {
      */
     public Claim createClanClaim(World world, BoundingBox box, UUID clanId, Location anchorLocation) {
         Claim claim = new Claim(UUID.randomUUID(), world, box, clanId, anchorLocation);
+        // clanId не является UUID игрока, поэтому конструктор Claim ошибочно
+        // генерирует имя "Приват null" через Bukkit.getOfflinePlayer(clanId).
+        // Сбрасываем его, чтобы отображалось дефолтное название клановой территории.
+        claim.setName(null);
         claim.setClaimType(Claim.ClaimType.CLAN);
+        claim.setClanTerritory(true);
         plugin.getClaimManager().addClaimToCache(claim);
         plugin.getStorage().saveClaimAsync(claim);
         return claim;
