@@ -94,6 +94,11 @@ public class AnchorListener implements Listener {
                     clickedBlock.getY() == anchorLoc.getBlockY() &&
                     clickedBlock.getZ() == anchorLoc.getBlockZ()) {
 
+                // Клановая территория управляется через LoveClans, а не через GUI приватов LoveClaims
+                if (claim.isClanTerritory()) {
+                    return;
+                }
+
                 // Если приват в режиме осады и игрок НЕ является лидером клана, не открываем GUI
                 if (claim.isUnderSiege() && !player.getUniqueId().equals(claim.getOwnerUuid())) {
                     event.setCancelled(true);
