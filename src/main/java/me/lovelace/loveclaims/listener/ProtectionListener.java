@@ -257,8 +257,12 @@ public class ProtectionListener implements Listener {
                         deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("siege-interact-deny"));
                     }
                 } else {
-                    // Если не в осаде, то на клановой территории взаимодействовать запрещено всем, без сообщения
-                    event.setCancelled(true);
+                    // Не в осаде: клик по баннеру (якорю) должен обрабатывать LoveClans
+                    // (открытие меню клановой территории), поэтому его НЕ отменяем.
+                    // Любое другое взаимодействие на клановой территории запрещено, без сообщения.
+                    if (!block.getLocation().equals(claim.getAnchorLocation())) {
+                        event.setCancelled(true);
+                    }
                     // deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact")); // Убрано сообщение
                 }
                 return;
