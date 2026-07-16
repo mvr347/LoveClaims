@@ -352,6 +352,50 @@ public class ClaimManager {
     }
 
     /**
+     * Синхронизировать кэш claimsByPlayer при выдаче доверия игроку (приглашение принято,
+     * повышение роли и т.д.). Должен вызываться каждый раз, когда members-карта привата
+     * получает нового игрока через Claim#setTrust, чтобы getClaimsByPlayer оставался
+     * консистентным без полной перезагрузки.
+     * @param claim Приват, в который добавляется игрок
+     * @param playerUuid UUID игрока, получившего доверие
+     */
+    public void syncTrustGranted(Claim claim, UUID playerUuid) {
+        if (claim == null || playerUuid == null) return;
+        lock.writeLock().lock();
+        try {
+            List<Claim> list = claimsByPlayer.computeIfAbsent(playerUuid, k -> new CopyOnWriteArrayList<>());
+            if (!list.contains(claim)) {
+                list.add(claim);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Синхронизировать кэш claimsByPlayer при отзыве доверия у игрока (кик, выход из
+     * привата, понижение до NONE и т.д.). Должен вызываться каждый раз, когда игрок
+     * удаляется из members-карты привата через Claim#removePlayer или members.remove(...).
+     * @param claim Приват, из которого удаляется игрок
+     * @param playerUuid UUID игрока, у которого отозвано доверие
+     */
+    public void syncTrustRevoked(Claim claim, UUID playerUuid) {
+        if (claim == null || playerUuid == null) return;
+        lock.writeLock().lock();
+        try {
+            List<Claim> list = claimsByPlayer.get(playerUuid);
+            if (list != null) {
+                list.remove(claim);
+                if (list.isEmpty()) {
+                    claimsByPlayer.remove(playerUuid);
+                }
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
      * Получить все арендные плоты.
      * @return Список арендных приватов
      */

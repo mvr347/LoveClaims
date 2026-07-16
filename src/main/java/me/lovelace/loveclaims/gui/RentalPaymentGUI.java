@@ -67,6 +67,7 @@ public class RentalPaymentGUI extends AbstractGUI {
                     plot.setOwnerUuid(player.getUniqueId());
                     plot.setRentalEndTime(System.currentTimeMillis() + plugin.getRentalManager().getTaxDays() * 86400000L);
                     plot.setTrust(player.getUniqueId(), TrustLevel.OWNER);
+                    plugin.getClaimManager().syncTrustGranted(plot, player.getUniqueId());
                     plugin.getStorage().saveClaimAsync(plot);
                     plugin.getRentalManager().updateIndicator(plot);
 

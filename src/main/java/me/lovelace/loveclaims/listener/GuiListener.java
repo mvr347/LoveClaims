@@ -65,6 +65,7 @@ public class GuiListener implements Listener {
 
             claim.setRentalEndTime(System.currentTimeMillis() + 86400000L);
             claim.setTrust(player.getUniqueId(), TrustLevel.OWNER);
+            plugin.getClaimManager().syncTrustGranted(claim, player.getUniqueId());
             plugin.getStorage().saveClaimAsync(claim);
             plugin.getRentalManager().updateIndicator(claim);
 

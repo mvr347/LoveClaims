@@ -53,7 +53,10 @@ public class SQLiteStorage {
 
     public SQLiteStorage(LoveClaims plugin) {
         this.plugin = plugin;
-        this.dbExecutor = Executors.newCachedThreadPool();
+        // Один shared Connection на файл БД не потокобезопасен для конкурентных запросов -
+        // сериализуем все обращения к БД через единственный поток, чтобы избежать
+        // "database is locked" и повреждения запросов при параллельных сохранениях.
+        this.dbExecutor = Executors.newSingleThreadExecutor();
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")

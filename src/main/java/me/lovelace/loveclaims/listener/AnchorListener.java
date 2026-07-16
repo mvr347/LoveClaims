@@ -137,6 +137,12 @@ public class AnchorListener implements Listener {
             }
         }
 
+        // Проверка на пересечение с существующими приватами других игроков (и рентой)
+        if (plugin.getClaimManager().checkOverlap(targetLoc.getWorld(), newBox)) {
+            player.sendMessage(plugin.getConfigManager().getMessage("claim-overlap"));
+            return;
+        }
+
         String worldName = targetLoc.getWorld().getName();
         boolean isWorldAllowed = plugin.getConfigManager().getConfig()
                 .getBoolean("limits.allowed-worlds." + worldName + ".enabled", true);

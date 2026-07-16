@@ -61,6 +61,9 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
             player.closeInventory();
             plot.setRentalEndTime(0);
             plot.setOwnerUuid(plot.getParentClaimId());
+            for (java.util.UUID oldMember : new java.util.ArrayList<>(plot.getMembers().keySet())) {
+                plugin.getClaimManager().syncTrustRevoked(plot, oldMember);
+            }
             plot.getMembers().clear();
             plugin.getStorage().saveClaimAsync(plot);
             plugin.getRentalManager().updateIndicator(plot);

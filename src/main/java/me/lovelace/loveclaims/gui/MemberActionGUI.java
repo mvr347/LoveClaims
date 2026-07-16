@@ -105,6 +105,7 @@ public class MemberActionGUI extends AbstractGUI {
         // Клик по голове по центру (Слот 13) - ВЫГОНЯЕТ ИГРОКА
         if (slot == 13) {
             claim.getMembers().remove(targetId);
+            plugin.getClaimManager().syncTrustRevoked(claim, targetId);
             plugin.getStorage().removeMemberAsync(claim.getId(), targetId);
             claim.setModified(true);
 
@@ -138,6 +139,7 @@ public class MemberActionGUI extends AbstractGUI {
 
     private void changeRole(TrustLevel newRole) {
         claim.setTrust(targetId, newRole);
+        plugin.getClaimManager().syncTrustGranted(claim, targetId);
         plugin.getStorage().saveMemberAsync(claim.getId(), targetId, newRole);
         claim.setModified(true);
         plugin.getConfigManager().playSound(viewer, "gui-click");

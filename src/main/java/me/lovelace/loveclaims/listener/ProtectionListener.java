@@ -8,7 +8,9 @@ import me.lovelace.loveclans.model.Clan;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -16,9 +18,13 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityToggleGlideEvent;
+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import java.util.Iterator;
 import java.util.Optional;
@@ -324,7 +330,17 @@ public class ProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPvp(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player victim) || !(event.getDamager() instanceof Player attacker)) return;
+        if (!(event.getEntity() instanceof Player victim)) return;
+
+        Player attacker;
+        if (event.getDamager() instanceof Player p) {
+            attacker = p;
+        } else if (event.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player shooter) {
+            // Стрелы, трезубцы, снежки и т.д. - урон наносит снаряд, но реальный атакующий - стрелок
+            attacker = shooter;
+        } else {
+            return;
+        }
         if (attacker.hasPermission("loveclaims.bypass") || attacker.hasPermission("loveclaims.admin")) return;
         Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(victim.getLocation());
         if (claimOpt.isPresent()) {
@@ -379,6 +395,121 @@ public class ProtectionListener implements Listener {
                 }
             }
         });
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBucketEmpty(PlayerBucketEmptyEvent event) {
+        Player player = event.getPlayer();
+        if (hasBypass(player)) return;
+
+        org.bukkit.block.Block block = event.getBlockClicked().getRelative(event.getBlockFace());
+        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(block.getLocation());
+        if (claimOpt.isPresent()) {
+            Claim claim = claimOpt.get();
+
+            if (claim.isClanTerritory()) {
+                event.setCancelled(true);
+                return;
+            }
+
+            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+                event.setCancelled(true);
+                deny(player, claim, plugin.getConfigManager().getMessage("deny-place"));
+            }
+            return;
+        }
+
+        if (isSpawnProtected(block.getLocation()) && !plugin.getConfigManager().getSpawnFlag("place-blocks")) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBucketFill(PlayerBucketFillEvent event) {
+        Player player = event.getPlayer();
+        if (hasBypass(player)) return;
+
+        org.bukkit.block.Block block = event.getBlockClicked();
+        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(block.getLocation());
+        if (claimOpt.isPresent()) {
+            Claim claim = claimOpt.get();
+
+            if (claim.isClanTerritory()) {
+                event.setCancelled(true);
+                return;
+            }
+
+            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+                event.setCancelled(true);
+                deny(player, claim, plugin.getConfigManager().getMessage("deny-break"));
+            }
+            return;
+        }
+
+        if (isSpawnProtected(block.getLocation()) && !plugin.getConfigManager().getSpawnFlag("break-blocks")) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onHangingBreak(HangingBreakByEntityEvent event) {
+        Entity remover = event.getRemover();
+        Player player = null;
+        if (remover instanceof Player p) {
+            player = p;
+        } else if (remover instanceof Projectile projectile && projectile.getShooter() instanceof Player shooter) {
+            player = shooter;
+        }
+
+        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(event.getEntity().getLocation());
+        if (claimOpt.isEmpty()) return;
+        Claim claim = claimOpt.get();
+
+        if (player != null) {
+            if (hasBypass(player)) return;
+
+            if (claim.isClanTerritory()) {
+                event.setCancelled(true);
+                return;
+            }
+
+            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+                event.setCancelled(true);
+                deny(player, claim, plugin.getConfigManager().getMessage("deny-break"));
+            }
+            return;
+        }
+
+        // Не игрок (например, взрыв) - используем ту же логику, что и для взрывов
+        if (claim.isClanTerritory() || !claim.getFlag(ClaimFlag.EXPLOSIONS)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(event.getBlock().getLocation());
+        if (claimOpt.isEmpty()) return;
+        Claim claim = claimOpt.get();
+
+        if (event.getEntity() instanceof Player player) {
+            if (hasBypass(player)) return;
+
+            if (claim.isClanTerritory()) {
+                event.setCancelled(true);
+                return;
+            }
+
+            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+                event.setCancelled(true);
+            }
+            return;
+        }
+
+        // Грифинг со стороны существ (эндермены, зомби ломающие двери и т.д.)
+        if (claim.isClanTerritory() || !claim.getFlag(ClaimFlag.MOB_GRIEFING)) {
+            event.setCancelled(true);
+        }
     }
 
     private boolean hasBypass(Player player) {
