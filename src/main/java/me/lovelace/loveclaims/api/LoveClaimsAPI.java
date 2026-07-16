@@ -191,6 +191,7 @@ public final class LoveClaimsAPI {
      */
     public void addPlayerToClaim(Claim claim, OfflinePlayer player, TrustLevel trustLevel) {
         claim.setTrust(player.getUniqueId(), trustLevel);
+        plugin.getClaimManager().syncTrustGranted(claim, player.getUniqueId());
         plugin.getStorage().saveMemberAsync(claim.getId(), player.getUniqueId(), trustLevel);
     }
 
@@ -201,6 +202,7 @@ public final class LoveClaimsAPI {
      */
     public void removePlayerFromClaim(Claim claim, OfflinePlayer player) {
         claim.removePlayer(player.getUniqueId());
+        plugin.getClaimManager().syncTrustRevoked(claim, player.getUniqueId());
         plugin.getStorage().removeMemberAsync(claim.getId(), player.getUniqueId());
     }
 
@@ -212,6 +214,7 @@ public final class LoveClaimsAPI {
     public void removeClanMemberFromClaim(UUID claimId, UUID playerUuid) {
         plugin.getClaimManager().getClaimById(claimId).ifPresent(claim -> {
             claim.removePlayer(playerUuid);
+            plugin.getClaimManager().syncTrustRevoked(claim, playerUuid);
             plugin.getStorage().removeMemberAsync(claimId, playerUuid);
         });
     }
@@ -273,21 +276,25 @@ public final class LoveClaimsAPI {
             if (!state && permission == ClaimPermission.BUILD) {
                 // Запретили строить. Понижаем до CONTAINER.
                 claim.setTrust(playerUuid, TrustLevel.CONTAINER);
+                plugin.getClaimManager().syncTrustGranted(claim, playerUuid);
                 plugin.getStorage().saveMemberAsync(claim.getId(), playerUuid, TrustLevel.CONTAINER);
             } else if (state && permission == ClaimPermission.BUILD) {
                 // Разрешили строить
                 claim.setTrust(playerUuid, TrustLevel.BUILD);
+                plugin.getClaimManager().syncTrustGranted(claim, playerUuid);
                 plugin.getStorage().saveMemberAsync(claim.getId(), playerUuid, TrustLevel.BUILD);
             } else if (!state && permission == ClaimPermission.CONTAINER) {
                 // Запретили сундуки. Если строить тоже нельзя (уровень ниже BUILD) — удаляем из привата
                 if (currentLevel.ordinal() < TrustLevel.BUILD.ordinal()) {
                     claim.removePlayer(playerUuid);
+                    plugin.getClaimManager().syncTrustRevoked(claim, playerUuid);
                     plugin.getStorage().removeMemberAsync(claim.getId(), playerUuid);
                 }
             } else if (state && permission == ClaimPermission.CONTAINER) {
                 // Разрешили сундуки. Если уровень ниже CONTAINER, ставим CONTAINER
                 if (currentLevel.ordinal() < TrustLevel.CONTAINER.ordinal()) {
                     claim.setTrust(playerUuid, TrustLevel.CONTAINER);
+                    plugin.getClaimManager().syncTrustGranted(claim, playerUuid);
                     plugin.getStorage().saveMemberAsync(claim.getId(), playerUuid, TrustLevel.CONTAINER);
                 }
             }

@@ -107,8 +107,8 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                 }
 
                                 int memberCount = 0;
-                                for (me.lovelace.loveclaims.model.Claim c : plugin.getClaimManager().getAllClaims()) {
-                                    if (c.isRentalPlot() == claim.isRentalPlot() && c.getTrust(player.getUniqueId()) != me.lovelace.loveclaims.model.TrustLevel.NONE && (c.getOwnerUuid() == null || !c.getOwnerUuid().equals(player.getUniqueId()))) {
+                                for (me.lovelace.loveclaims.model.Claim c : plugin.getClaimManager().getClaimsByPlayer(player.getUniqueId())) {
+                                    if (c.isRentalPlot() == claim.isRentalPlot() && (c.getOwnerUuid() == null || !c.getOwnerUuid().equals(player.getUniqueId()))) {
                                         memberCount++;
                                     }
                                 }
@@ -120,6 +120,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                 }
 
                                 claim.setTrust(player.getUniqueId(), me.lovelace.loveclaims.model.TrustLevel.ACCESS);
+                                plugin.getClaimManager().syncTrustGranted(claim, player.getUniqueId());
                                 plugin.getStorage().saveMemberAsync(claim.getId(), player.getUniqueId(), me.lovelace.loveclaims.model.TrustLevel.ACCESS);
                                 player.sendMessage(net.kyori.adventure.text.Component.text("§aВы успешно присоединились к привату!"));
                                 plugin.getClaimManager().removeInvite(player.getUniqueId());
@@ -324,6 +325,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                     if (currentOpt.isPresent() && !currentOpt.get().isRentalPlot() && !currentOpt.get().isClanTerritory() && currentOpt.get().getMembers().containsKey(player.getUniqueId())) {
                                         me.lovelace.loveclaims.model.Claim claim = currentOpt.get();
                                         claim.getMembers().remove(player.getUniqueId());
+                                        plugin.getClaimManager().syncTrustRevoked(claim, player.getUniqueId());
                                         plugin.getStorage().removeMemberAsync(claim.getId(), player.getUniqueId());
                                         player.sendMessage(net.kyori.adventure.text.Component.text("§aВы успешно покинули приват!"));
                                     } else {

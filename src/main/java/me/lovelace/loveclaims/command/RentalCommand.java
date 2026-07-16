@@ -113,6 +113,7 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
             Claim plot = plugin.getClaimManager().getClaimAt(player.getLocation()).orElse(null);
             if (plot != null && plot.isRentalPlot() && plot.getMembers().containsKey(player.getUniqueId())) {
                 plot.getMembers().remove(player.getUniqueId());
+                plugin.getClaimManager().syncTrustRevoked(plot, player.getUniqueId());
                 plugin.getStorage().removeMemberAsync(plot.getId(), player.getUniqueId());
                 player.sendMessage(plugin.getConfigManager().getMessage("rental-leave-success", "name", plot.getName()));
             } else {
@@ -187,6 +188,7 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
             // Удаляем всех участников
             for (UUID memberId : new ArrayList<>(plot.getMembers().keySet())) {
                 plot.getMembers().remove(memberId);
+                plugin.getClaimManager().syncTrustRevoked(plot, memberId);
                 plugin.getStorage().removeMemberAsync(plot.getId(), memberId);
             }
 
@@ -320,8 +322,12 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
                     org.bukkit.OfflinePlayer target = org.bukkit.Bukkit.getOfflinePlayer(args[3]);
                     plot.setOwnerUuid(target.getUniqueId());
                     plot.setRentalEndTime(System.currentTimeMillis() + plugin.getRentalManager().getTaxDays() * 86400000L);
+                    for (UUID oldMember : new ArrayList<>(plot.getMembers().keySet())) {
+                        plugin.getClaimManager().syncTrustRevoked(plot, oldMember);
+                    }
                     plot.getMembers().clear();
                     plot.setTrust(target.getUniqueId(), me.lovelace.loveclaims.model.TrustLevel.OWNER);
+                    plugin.getClaimManager().syncTrustGranted(plot, target.getUniqueId());
                     plugin.getStorage().saveClaimAsync(plot);
                     plugin.getRentalManager().updateIndicator(plot);
                     player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-setowner-success", "target", target.getName()));
@@ -333,6 +339,9 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
                 if (plotId != null) plugin.getClaimManager().getClaimById(plotId).ifPresent(plot -> {
                     plot.setOwnerUuid(plot.getParentClaimId());
                     plot.setRentalEndTime(0);
+                    for (UUID oldMember : new ArrayList<>(plot.getMembers().keySet())) {
+                        plugin.getClaimManager().syncTrustRevoked(plot, oldMember);
+                    }
                     plot.getMembers().clear();
                     plugin.getStorage().saveClaimAsync(plot);
                     plugin.getRentalManager().updateIndicator(plot);
