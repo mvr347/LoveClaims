@@ -195,8 +195,8 @@ public final class LoveClaimsAPI {
      * @param newDisplayName Новое отображаемое имя
      */
     public void updateClanClaimOwnerName(UUID clanId, String newDisplayName) {
-        for (Claim claim : plugin.getClaimManager().getAllClaims()) {
-            if (claim.isClanTerritory() && clanId.equals(claim.getOwnerUuid())) {
+        for (Claim claim : plugin.getClaimManager().getAllClanClaims()) {
+            if (clanId.equals(claim.getOwnerUuid())) {
                 claim.setOwnerDisplayName(newDisplayName);
                 plugin.getStorage().saveClaimAsync(claim);
             }
