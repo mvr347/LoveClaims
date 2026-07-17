@@ -55,6 +55,15 @@ public class AnchorListener implements Listener {
 
         if (claimOpt.isEmpty()) return;
         Claim claim = claimOpt.get();
+
+        // Клановая территория управляется через LoveClans (осада/война), а не через
+        // GUI подтверждения удаления привата LoveClaims - это ветка только для приватов игроков.
+        // Без этой проверки разрушение баннера клановой территории всегда безусловно отменялось
+        // бы здесь (сравнение claim.getOwnerUuid() с player.getUniqueId() для клана никогда не
+        // совпадает, т.к. владелец клановой территории - UUID клана, а не игрока), не давая дойти
+        // до осадной логики в ProtectionListener.
+        if (claim.isClanTerritory()) return;
+
         Location anchorLoc = claim.getAnchorLocation();
 
         if (loc.getWorld().equals(anchorLoc.getWorld()) &&
