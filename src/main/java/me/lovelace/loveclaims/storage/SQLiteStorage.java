@@ -31,14 +31,14 @@ public class SQLiteStorage {
     private final ExecutorService dbExecutor;
 
     private static final String CLAIMS_UPSERT =
-            "INSERT INTO claims (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, claim_type, is_clan_territory, is_under_siege) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO claims (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, claim_type, is_clan_territory, is_under_siege, owner_display_name) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                     "ON CONFLICT(id) DO UPDATE SET " +
                     "world=excluded.world, min_x=excluded.min_x, min_y=excluded.min_y, min_z=excluded.min_z, " +
                     "max_x=excluded.max_x, max_y=excluded.max_y, max_z=excluded.max_z, " +
                     "owner_uuid=excluded.owner_uuid, name=excluded.name, description=excluded.description, " +
                     "anchor_x=excluded.anchor_x, anchor_y=excluded.anchor_y, anchor_z=excluded.anchor_z, " +
-                    "last_active=excluded.last_active, home_x=excluded.home_x, home_y=excluded.home_y, home_z=excluded.home_z, claim_type=excluded.claim_type, is_clan_territory=excluded.is_clan_territory, is_under_siege=excluded.is_under_siege";
+                    "last_active=excluded.last_active, home_x=excluded.home_x, home_y=excluded.home_y, home_z=excluded.home_z, claim_type=excluded.claim_type, is_clan_territory=excluded.is_clan_territory, is_under_siege=excluded.is_under_siege, owner_display_name=excluded.owner_display_name";
 
     private static final String RENTALS_UPSERT =
             "INSERT INTO rentals (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, rental_price, rental_end_time, parent_claim_id, indicator_type, hologram_id, last_tax_time) " +
@@ -95,7 +95,7 @@ public class SQLiteStorage {
 
     private void initClaimsTables(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS claims (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, claim_type VARCHAR(32) DEFAULT 'PLAYER', is_clan_territory BOOLEAN DEFAULT FALSE, is_under_siege BOOLEAN DEFAULT FALSE);");
+            stmt.execute("CREATE TABLE IF NOT EXISTS claims (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, claim_type VARCHAR(32) DEFAULT 'PLAYER', is_clan_territory BOOLEAN DEFAULT FALSE, is_under_siege BOOLEAN DEFAULT FALSE, owner_display_name VARCHAR(64));");
             stmt.execute("CREATE TABLE IF NOT EXISTS claim_members (claim_id VARCHAR(36), player_uuid VARCHAR(36), trust_level VARCHAR(32), PRIMARY KEY (claim_id, player_uuid), FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE);");
             stmt.execute("CREATE TABLE IF NOT EXISTS claim_flags (claim_id VARCHAR(36), flag_name VARCHAR(64), state BOOLEAN, PRIMARY KEY (claim_id, flag_name), FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE);");
 
@@ -103,6 +103,7 @@ public class SQLiteStorage {
             try { stmt.execute("ALTER TABLE claims ADD COLUMN claim_type VARCHAR(32) DEFAULT 'PLAYER';"); } catch (SQLException ignored) {}
             try { stmt.execute("ALTER TABLE claims ADD COLUMN is_clan_territory BOOLEAN DEFAULT FALSE;"); } catch (SQLException ignored) {}
             try { stmt.execute("ALTER TABLE claims ADD COLUMN is_under_siege BOOLEAN DEFAULT FALSE;"); } catch (SQLException ignored) {}
+            try { stmt.execute("ALTER TABLE claims ADD COLUMN owner_display_name VARCHAR(64);"); } catch (SQLException ignored) {}
 
             stmt.execute("CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36) PRIMARY KEY, expansion_blocks INT, bonus_members INT, bonus_slots INT, bonus_blocks INT);");
             stmt.execute("CREATE TABLE IF NOT EXISTS user_quests (uuid VARCHAR(36), quest_id VARCHAR(64), progress INT, completed BOOLEAN, PRIMARY KEY (uuid, quest_id), FOREIGN KEY(uuid) REFERENCES users(uuid) ON DELETE CASCADE);");
@@ -158,6 +159,7 @@ public class SQLiteStorage {
                     claim.setClaimType(Claim.ClaimType.valueOf(rs.getString("claim_type")));
                     claim.setClanTerritory(rs.getBoolean("is_clan_territory") || claim.getClaimType() == Claim.ClaimType.CLAN);
                     claim.setUnderSiege(rs.getBoolean("is_under_siege"));
+                    claim.setOwnerDisplayName(rs.getString("owner_display_name"));
                 }
 
                 claimsMap.put(id, claim);
@@ -237,6 +239,7 @@ public class SQLiteStorage {
                         claim.setClaimType(Claim.ClaimType.valueOf(rs.getString("claim_type")));
                         claim.setClanTerritory(rs.getBoolean("is_clan_territory") || claim.getClaimType() == Claim.ClaimType.CLAN);
                         claim.setUnderSiege(rs.getBoolean("is_under_siege"));
+                        claim.setOwnerDisplayName(rs.getString("owner_display_name"));
                     }
                 }
             }
@@ -383,6 +386,7 @@ public class SQLiteStorage {
             ps.setString(20, claim.getClaimType().name());
             ps.setBoolean(21, claim.isClanTerritory());
             ps.setBoolean(22, claim.isUnderSiege());
+            ps.setString(23, claim.getOwnerDisplayName());
         }
     }
 

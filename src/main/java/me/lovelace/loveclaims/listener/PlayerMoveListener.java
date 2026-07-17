@@ -95,7 +95,12 @@ public class PlayerMoveListener implements Listener {
         if (claim.isClanTerritory()) {
             // Для клановых территорий используем имя, установленное через API, или дефолтное из конфига
             claimDisplayName = claim.getName() != null ? claim.getName() : plugin.getConfigManager().getString("misc.clan-claim-display-name", "Клановая Территория");
-            ownerName = plugin.getConfigManager().getString("misc.clan-owner-display-name", "Клан");
+            // Настоящее имя/тег клана-владельца передаётся из LoveClans при создании территории
+            // (см. LoveClaimsAPI#createClanClaim). Если его почему-то нет (старая территория,
+            // созданная до этого поля) - используем дефолтную подпись из конфига.
+            ownerName = claim.getOwnerDisplayName() != null && !claim.getOwnerDisplayName().isBlank()
+                    ? claim.getOwnerDisplayName()
+                    : plugin.getConfigManager().getString("misc.clan-owner-display-name", "Клан");
         } else {
             // Логика для обычных приватов
             ownerName = "Сервер";

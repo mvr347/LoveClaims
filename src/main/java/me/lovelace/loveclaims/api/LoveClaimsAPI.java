@@ -160,6 +160,20 @@ public final class LoveClaimsAPI {
      * @return Созданный клановый приват
      */
     public Claim createClanClaim(World world, BoundingBox box, UUID clanId, Location anchorLocation) {
+        return createClanClaim(world, box, clanId, anchorLocation, null);
+    }
+
+    /**
+     * Создать новый клановый приват.
+     * @param world Мир
+     * @param box Границы
+     * @param clanId ID клана (будет владельцем)
+     * @param anchorLocation Место якоря
+     * @param ownerDisplayName Отображаемое имя клана (тег/название), показывается вместо
+     *                         дефолтной надписи "Клан" при входе/выходе из территории.
+     * @return Созданный клановый приват
+     */
+    public Claim createClanClaim(World world, BoundingBox box, UUID clanId, Location anchorLocation, String ownerDisplayName) {
         Claim claim = new Claim(UUID.randomUUID(), world, box, clanId, anchorLocation);
         // clanId не является UUID игрока, поэтому конструктор Claim ошибочно
         // генерирует имя "Приват null" через Bukkit.getOfflinePlayer(clanId).
@@ -167,9 +181,26 @@ public final class LoveClaimsAPI {
         claim.setName(null);
         claim.setClaimType(Claim.ClaimType.CLAN);
         claim.setClanTerritory(true);
+        claim.setOwnerDisplayName(ownerDisplayName);
         plugin.getClaimManager().addClaimToCache(claim);
         plugin.getStorage().saveClaimAsync(claim);
         return claim;
+    }
+
+    /**
+     * Обновить отображаемое имя клана-владельца во всех его клановых приватах.
+     * Вызывается LoveClans при переименовании клана/смене тега, чтобы надпись
+     * "владелец: ..." при входе на территорию оставалась актуальной.
+     * @param clanId ID клана
+     * @param newDisplayName Новое отображаемое имя
+     */
+    public void updateClanClaimOwnerName(UUID clanId, String newDisplayName) {
+        for (Claim claim : plugin.getClaimManager().getAllClanClaims()) {
+            if (clanId.equals(claim.getOwnerUuid())) {
+                claim.setOwnerDisplayName(newDisplayName);
+                plugin.getStorage().saveClaimAsync(claim);
+            }
+        }
     }
 
     /**

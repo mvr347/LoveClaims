@@ -29,6 +29,9 @@ public class Claim {
     private ClaimType claimType = ClaimType.PLAYER; // По умолчанию - приват игрока
     private boolean isClanTerritory = false; // Новое поле
     private boolean isUnderSiege = false; // Новое поле
+    // Отображаемое имя владельца-клана (тег/название), передаётся из LoveClans при создании/переименовании.
+    // Null для приватов игроков и для старых клановых территорий, ещё не получивших это поле.
+    private String ownerDisplayName = null;
 
     // Rental fields
     private long rentalPrice = 0;
@@ -156,6 +159,12 @@ public class Claim {
     public boolean isUnderSiege() { return isUnderSiege; }
     public void setUnderSiege(boolean underSiege) {
         isUnderSiege = underSiege;
+        this.modified = true;
+    }
+
+    public String getOwnerDisplayName() { return ownerDisplayName; }
+    public void setOwnerDisplayName(String ownerDisplayName) {
+        this.ownerDisplayName = ownerDisplayName;
         this.modified = true;
     }
 
