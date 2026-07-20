@@ -73,12 +73,13 @@ public class SettingsGUI extends AbstractGUI {
         if (canEditSettings) {
             java.util.List<Component> dLore = new ArrayList<>();
             for (String s : plugin.getConfigManager().getGuiLore("main.desc-lore")) dLore.add(Component.text(s));
-            inventory.setItem(40, createHead(HEAD_DESC, Component.text(plugin.getConfigManager().getGuiText("main.desc-name")), dLore));
+            inventory.setItem(36, createHead(HEAD_DESC, Component.text(plugin.getConfigManager().getGuiText("main.desc-name")), dLore));
         } else {
-            inventory.setItem(40, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
+            inventory.setItem(36, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
         }
 
-        inventory.setItem(39, createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null));
+        inventory.setItem(43, createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null));
+        inventory.setItem(44, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null));
 
         if (viewer.getUniqueId().equals(claim.getOwnerUuid())) {
             int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
@@ -110,7 +111,7 @@ public class SettingsGUI extends AbstractGUI {
             }
 
             inventory.setItem(22, createHead((canExpand && hasPoints) ? HEAD_EXPAND : HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText((canExpand && hasPoints) ? "settings.expand.can" : "settings.expand.cannot")), lore));
-            inventory.setItem(41, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("settings.delete")), null));
+            inventory.setItem(37, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("settings.delete")), null));
         }
         fillEmptySlots();
     }
@@ -160,17 +161,22 @@ public class SettingsGUI extends AbstractGUI {
         boolean isManager = claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER;
         boolean canEditSettings = isOwner || isManager;
 
-        if (slot == 39) {
+        if (slot == 44) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.closeInventory();
+            return;
+        }
+        if (slot == 43) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new MainClaimGUI(plugin, viewer, claim).getInventory());
             return;
         }
-        if (slot == 41 && isOwner) {
+        if (slot == 37 && isOwner) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new DeleteConfirmGUI(plugin, viewer, claim).getInventory());
             return;
         }
-        if (slot == 40 && canEditSettings) {
+        if (slot == 36 && canEditSettings) {
             viewer.closeInventory();
             plugin.getConfigManager().playSound(viewer, "gui-click");
 

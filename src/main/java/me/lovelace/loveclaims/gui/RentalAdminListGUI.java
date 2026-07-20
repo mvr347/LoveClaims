@@ -59,12 +59,17 @@ public class RentalAdminListGUI extends AbstractGUI {
 
             inventory.setItem(slot++, item);
         }
+        inventory.setItem(53, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
         fillEmptySlots();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
         event.setCancelled(true);
+        if (event.getSlot() == 53) {
+            event.getWhoClicked().closeInventory();
+            return;
+        }
         if (event.getCurrentItem() == null || event.getCurrentItem().getItemMeta() == null) return;
 
         NamespacedKey key = new NamespacedKey(plugin, "plot_id");

@@ -66,8 +66,8 @@ public class MemberActionGUI extends AbstractGUI {
             plugin.getConfigManager().getComponent("member-action.demote-name"),
             java.util.List.of(plugin.getConfigManager().getComponent(demoteLoreKey))));
 
-        // 4. Назад (Слот 22)
-        inventory.setItem(22, createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null));
+        inventory.setItem(25, createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null));
+        inventory.setItem(26, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
 
         fillEmptySlots();
     }
@@ -96,7 +96,13 @@ public class MemberActionGUI extends AbstractGUI {
         int slot = event.getSlot();
         TrustLevel currentRole = claim.getTrust(targetId);
 
-        if (slot == 22) {
+        if (slot == 26) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.closeInventory();
+            return;
+        }
+
+        if (slot == 25) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             openCorrectMembersGUI();
             return;

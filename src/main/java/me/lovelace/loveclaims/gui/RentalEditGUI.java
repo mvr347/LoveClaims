@@ -59,17 +59,17 @@ public class RentalEditGUI extends AbstractGUI {
         ));
         inventory.setItem(15, landlordBtn);
 
-        // Слот 26: Удалить плот
+        // Слот 17: Удалить плот (перенесено из футера, чтобы 25/26 остались под Назад/Закрыть)
         ItemStack delete = createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("rental-edit.delete-name"), List.of(
                 plugin.getConfigManager().getComponent("rental-edit.delete-lore"),
                 Component.empty(),
                 plugin.getConfigManager().getComponent("rental-edit.delete-lore-warning")
         ));
-        inventory.setItem(26, delete);
+        inventory.setItem(17, delete);
 
-        // Слот 22: Назад
         ItemStack back = createHead(HEAD_BACK, plugin.getConfigManager().getComponent("rental-edit.back-name"), null);
-        inventory.setItem(22, back);
+        inventory.setItem(25, back);
+        inventory.setItem(26, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
 
         fillEmptySlots();
     }
@@ -90,9 +90,11 @@ public class RentalEditGUI extends AbstractGUI {
         event.setCancelled(true);
         int slot = event.getSlot();
 
-        if (slot == 22) {
+        if (slot == 26) {
+            event.getWhoClicked().closeInventory();
+        } else if (slot == 25) {
             event.getWhoClicked().openInventory(new RentalAdminListGUI(plugin).getInventory());
-        } else if (slot == 26) {
+        } else if (slot == 17) {
             plugin.getStorage().deleteClaimAsync(plot.getId());
             plugin.getClaimManager().removeClaimFromCache(plot.getId());
             plugin.getRentalManager().unregisterPlotName(plot.getName());

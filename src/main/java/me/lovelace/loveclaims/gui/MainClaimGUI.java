@@ -51,7 +51,7 @@ public class MainClaimGUI extends AbstractGUI {
                 plugin.getConfigManager().getComponent("main.quests-name"),
                 plugin.getConfigManager().getHelpMessage("main.quests-lore")));
 
-        inventory.setItem(22, createHead(HEAD_BARRIER,
+        inventory.setItem(26, createHead(HEAD_BARRIER,
                 plugin.getConfigManager().getComponent("common.close"), null));
 
         fillEmptySlots();
@@ -99,7 +99,7 @@ public class MainClaimGUI extends AbstractGUI {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 viewer.openInventory(new QuestsGUI(plugin, viewer, claim).getInventory());
             }
-            case 22 -> {
+            case 26 -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 viewer.closeInventory();
             }
