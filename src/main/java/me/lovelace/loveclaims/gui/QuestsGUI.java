@@ -94,13 +94,19 @@ public class QuestsGUI extends AbstractGUI {
             inventory.setItem(slot++, createHead(HEAD_QUEST, plugin.getConfigManager().getComponent("quests.quest-name", "name", quest.name()), lore));
         }
 
-        inventory.setItem(31, createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null));
+        inventory.setItem(34, createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null));
+        inventory.setItem(35, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
         fillEmptySlots();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        if (event.getSlot() == 31) {
+        if (event.getSlot() == 35) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.closeInventory();
+            return;
+        }
+        if (event.getSlot() == 34) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new MainClaimGUI(plugin, viewer, claim).getInventory());
         }

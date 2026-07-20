@@ -6,15 +6,19 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 
 public class DeleteConfirmGUI extends AbstractGUI {
+    private static final int CONFIRM_SLOT = 1;
+    private static final int CANCEL_SLOT = 3;
+
     private final LoveClaims plugin;
     private final Player viewer;
     private final Claim claim;
 
     public DeleteConfirmGUI(LoveClaims plugin, Player viewer, Claim claim) {
-        super(27, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title")));
+        super(InventoryType.HOPPER, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title")));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -23,18 +27,17 @@ public class DeleteConfirmGUI extends AbstractGUI {
 
     @Override
     protected void setMenuItems() {
-        // ИЗМЕНЕНО: Используем ключи confirm и cancel
-        inventory.setItem(11, createHead(HEAD_DELETE_YES, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.confirm")), null));
-        inventory.setItem(15, createHead(HEAD_DELETE_NO, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.cancel")), null));
-
-        inventory.setItem(22, createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null));
+        // Компактный диалог "Подтвердить/Отменить" на 5 слотов (хоппер) — отдельная кнопка
+        // "Назад" не нужна, так как "Отменить" уже возвращает в SettingsGUI.
+        inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.confirm")), null));
+        inventory.setItem(CANCEL_SLOT, createHead(HEAD_DELETE_NO, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.cancel")), null));
 
         fillEmptySlots();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        if (event.getSlot() == 11) {
+        if (event.getSlot() == CONFIRM_SLOT) {
             viewer.closeInventory();
             if (claim.getAnchorLocation().getBlock().getType() != Material.AIR) {
                 claim.getAnchorLocation().getBlock().setType(Material.AIR);
@@ -50,7 +53,7 @@ public class DeleteConfirmGUI extends AbstractGUI {
             if (anchor != null) viewer.getInventory().addItem(anchor);
 
             viewer.sendMessage(plugin.getConfigManager().getComponent("delete-confirm.deleted"));
-        } else if (event.getSlot() == 15 || event.getSlot() == 22) {
+        } else if (event.getSlot() == CANCEL_SLOT) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new SettingsGUI(plugin, viewer, claim).getInventory());
         }

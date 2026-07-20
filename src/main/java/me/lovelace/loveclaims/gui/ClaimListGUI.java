@@ -53,14 +53,14 @@ public class ClaimListGUI extends AbstractGUI {
             inventory.setItem(slot++, createHead(HEAD_INFO, Component.text(plugin.getConfigManager().getGuiText("list.claim-name", "x", String.valueOf(x), "y", String.valueOf(y), "z", String.valueOf(z))), lore));
         }
 
-        inventory.setItem(49, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null));
+        inventory.setItem(53, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null));
         fillEmptySlots();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
         int slot = event.getSlot();
-        if (slot == 49) {
+        if (slot == 53) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.closeInventory();
             return;

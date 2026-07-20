@@ -39,7 +39,8 @@ public class MembersGUI extends AbstractGUI {
         boolean isManagerOrOwner = viewer.getUniqueId().equals(claim.getOwnerUuid()) ||
                 claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER;
 
-        inventory.setItem(27, createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null));
+        inventory.setItem(34, createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null));
+        inventory.setItem(35, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
 
         if (claim.getMembers().isEmpty()) {
             java.util.List<Component> lore = plugin.getConfigManager().getHelpMessage("members.empty-lore", "limit", String.valueOf(maxMembers));
@@ -52,16 +53,15 @@ public class MembersGUI extends AbstractGUI {
         } else {
             if (claim.getMembers().size() < maxMembers && isManagerOrOwner) {
                 java.util.List<Component> lore = plugin.getConfigManager().getHelpMessage("members.add-lore", "free", String.valueOf(maxMembers - claim.getMembers().size()));
-                inventory.setItem(35, createHead(HEAD_ADD_MEMBER, plugin.getConfigManager().getComponent("members.add-name"), lore));
+                inventory.setItem(33, createHead(HEAD_ADD_MEMBER, plugin.getConfigManager().getComponent("members.add-name"), lore));
             } else if (!isManagerOrOwner) {
                 java.util.List<Component> lore = plugin.getConfigManager().getHelpMessage("members.empty-lore", "limit", String.valueOf(maxMembers));
-                inventory.setItem(35, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("members.no-perm-barrier"), lore));
+                inventory.setItem(33, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("members.no-perm-barrier"), lore));
             }
 
             int slot = 0;
             for (Map.Entry<UUID, TrustLevel> entry : claim.getMembers().entrySet()) {
-                if (slot == 27) slot = 28;
-                if (slot >= 35) break;
+                if (slot >= 33) break;
 
                 OfflinePlayer target = Bukkit.getOfflinePlayer(entry.getKey());
                 ItemStack head = new ItemStack(Material.PLAYER_HEAD);
@@ -99,7 +99,12 @@ public class MembersGUI extends AbstractGUI {
     @Override
     public void handleClick(InventoryClickEvent event) {
         int slot = event.getSlot();
-        if (slot == 27) {
+        if (slot == 35) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.closeInventory();
+            return;
+        }
+        if (slot == 34) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new MainClaimGUI(plugin, viewer, claim).getInventory());
             return;
@@ -108,7 +113,7 @@ public class MembersGUI extends AbstractGUI {
         boolean isManagerOrOwner = viewer.getUniqueId().equals(claim.getOwnerUuid()) ||
                 claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER;
 
-        if ((claim.getMembers().isEmpty() && slot == 13) || (!claim.getMembers().isEmpty() && slot == 35)) {
+        if ((claim.getMembers().isEmpty() && slot == 13) || (!claim.getMembers().isEmpty() && slot == 33)) {
             if (!isManagerOrOwner) {
                 plugin.getConfigManager().playSound(viewer, "gui-error");
                 viewer.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
