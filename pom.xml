@@ -107,6 +107,12 @@
             <version>d06a59d8ff</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.mvr347.LoveCore</groupId>
+            <artifactId>lovecore-api</artifactId>
+            <version>fe15e0144e</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>net.citizensnpcs</groupId>
