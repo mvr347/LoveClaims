@@ -141,14 +141,39 @@ public final class LoveClaimsAPI {
      * @param box Границы
      * @param owner Владелец
      * @param anchorLocation Место якоря
-     * @return Созданный приват
+     * @return Созданный приват либо {@code null}, если границы пересекают существующий приват
      */
     public Claim createClaim(World world, BoundingBox box, UUID owner, Location anchorLocation) {
+        if (overlapsExistingClaim(world, box, "приват игрока")) {
+            return null;
+        }
         Claim claim = new Claim(UUID.randomUUID(), world, box, owner, anchorLocation);
         claim.setClaimType(Claim.ClaimType.PLAYER); // Отмечаем как приват игрока
         plugin.getClaimManager().addClaimToCache(claim);
         plugin.getStorage().saveClaimAsync(claim);
         return claim;
+    }
+
+    /**
+     * Приваты не пересекаются и не вкладываются друг в друга — ни приват игрока в клановый,
+     * ни наоборот. Проверка живёт здесь, а не у вызывающего: реестр приватов один, и правило
+     * должно держаться в нём, иначе его пришлось бы дублировать в каждом плагине, который
+     * умеет создавать приваты, и любой пропуск ломал бы правило молча.
+     *
+     * Собственные пути плагина (установка якоря, изменение границ) проверяют пересечение сами;
+     * до этой правки внешний вызов через API был единственной дырой в правиле.
+     */
+    private boolean overlapsExistingClaim(World world, BoundingBox box, String what) {
+        if (world == null || box == null) {
+            return true;
+        }
+        if (!plugin.getClaimManager().checkOverlap(world, box)) {
+            return false;
+        }
+        plugin.getLogger().warning("Отказано в создании: " + what
+                + " пересекает существующий приват в мире " + world.getName()
+                + " (" + (int) box.getMinX() + ", " + (int) box.getMinZ() + ").");
+        return true;
     }
 
     /**
@@ -171,9 +196,13 @@ public final class LoveClaimsAPI {
      * @param anchorLocation Место якоря
      * @param ownerDisplayName Отображаемое имя клана (тег/название), показывается вместо
      *                         дефолтной надписи "Клан" при входе/выходе из территории.
-     * @return Созданный клановый приват
+     * @return Созданный клановый приват либо {@code null}, если границы пересекают
+     *         существующий приват — клановую территорию нельзя положить поверх чужой земли
      */
     public Claim createClanClaim(World world, BoundingBox box, UUID clanId, Location anchorLocation, String ownerDisplayName) {
+        if (overlapsExistingClaim(world, box, "клановая территория")) {
+            return null;
+        }
         Claim claim = new Claim(UUID.randomUUID(), world, box, clanId, anchorLocation);
         // clanId не является UUID игрока, поэтому конструктор Claim ошибочно
         // генерирует имя "Приват null" через Bukkit.getOfflinePlayer(clanId).
