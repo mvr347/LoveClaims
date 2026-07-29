@@ -13,6 +13,7 @@ commands:
   rental:
     description: Управление арендой
     aliases: [ rent ]
+    permission: loveclaims.rental
 permissions:
   loveclaims.admin:
     description: Доступ к /ac admin
@@ -24,37 +25,17 @@ permissions:
     description: Доступ к управлению любыми приватами (модерация)
     default: op
   loveclaims.rental:
-    description: Базовый доступ к аренде
+    description: Базовый доступ к аренде (команда /rental)
     default: true
   loveclaims.rental.admin:
     description: Администрирование аренды
     default: op
-  loveclaims.rental.taxcollector:
-    description: Доступ к налоговому сборщику
-    default: true
-  loveclaims.expand:
-    default: false
-  loveclaims.flag.pvp:
-    default: false
-  loveclaims.flag.msg:
-    default: false
-  loveclaims.flag.hide:
-    default: false
-  loveclaims.flag.deny:
-    default: false
-  loveclaims.flag.enderpearl:
-    default: false
-  loveclaims.flag.chorus:
-    default: false
-  loveclaims.flag.elytra:
-    default: false
-  loveclaims.flag.interact:
-    default: false
-  loveclaims.flag.haste:
-    default: false
-  loveclaims.flag.regen:
-    default: false
-  loveclaims.flag.saturation:
-    default: false
-  loveclaims.flag.crop_growth:
-    default: false
+  loveclaims.rental.bypasslimit:
+    description: Обход лимита на количество арендуемых участков
+    default: op
+  loveclaims.bypass.expand:
+    description: Расширение привата без ограничений по тиру
+    default: op
+  loveclaims.bypass.flags:
+    description: Доступ ко всем флагам привата без открытия их через квесты
+    default: op

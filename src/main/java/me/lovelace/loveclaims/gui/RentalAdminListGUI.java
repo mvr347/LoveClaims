@@ -70,10 +70,14 @@ public class RentalAdminListGUI extends AbstractGUI {
             event.getWhoClicked().closeInventory();
             return;
         }
-        if (event.getCurrentItem() == null || event.getCurrentItem().getItemMeta() == null) return;
+        ItemStack item = event.getCurrentItem();
+        if (item == null) return;
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
 
         NamespacedKey key = new NamespacedKey(plugin, "plot_id");
-        String idStr = event.getCurrentItem().getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
+        String idStr = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
 
         if (idStr != null) {
             UUID plotId = UUID.fromString(idStr);

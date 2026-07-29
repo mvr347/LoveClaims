@@ -28,7 +28,8 @@ public class PAPIExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getAuthor() {
-        return plugin.getDescription().getAuthors().get(0);
+        var authors = plugin.getDescription().getAuthors();
+        return authors.isEmpty() ? "Unknown" : authors.get(0);
     }
 
     @Override
