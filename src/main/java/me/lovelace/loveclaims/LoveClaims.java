@@ -112,6 +112,20 @@ public final class LoveClaims extends JavaPlugin {
                 getLogger().info("PlaceholderAPI integration enabled!");
             }
 
+            // 7.1 Регистрация TerritoryOracle в LoveCore, если ядро установлено
+            if (getServer().getPluginManager().getPlugin("LoveCore") != null) {
+                try {
+                    getServer().getServicesManager().register(
+                            dev.lovelace.lovecore.api.territory.TerritoryOracle.class,
+                            new me.lovelace.loveclaims.integration.LoveClaimsTerritoryOracle(this),
+                            this,
+                            org.bukkit.plugin.ServicePriority.High);
+                    getLogger().info("LoveCore integration: TerritoryOracle registered.");
+                } catch (Throwable t) {
+                    getLogger().warning("Failed to register TerritoryOracle with LoveCore: " + t.getMessage());
+                }
+            }
+
             // 8. Старт фоновых задач
             this.globalTickManager = new GlobalTickManager(this);
             this.globalTickManager.start();
