@@ -1,5 +1,6 @@
 package me.lovelace.loveclaims;
 
+import me.lovelace.loveclaims.command.LoveClaimsAdminCommand;
 import me.lovelace.loveclaims.command.MainCommand;
 import me.lovelace.loveclaims.command.RentalCommand;
 import me.lovelace.loveclaims.hook.PAPIExpansion;
@@ -89,6 +90,9 @@ public final class LoveClaims extends JavaPlugin {
             getCommand("ac").setTabCompleter(new MainCommand(this));
             getCommand("rental").setExecutor(new RentalCommand(this));
             getCommand("rental").setTabCompleter(new RentalCommand(this));
+            LoveClaimsAdminCommand adminCommand = new LoveClaimsAdminCommand(this);
+            getCommand("loveclaimsadmin").setExecutor(adminCommand);
+            getCommand("loveclaimsadmin").setTabCompleter(adminCommand);
             getLogger().info("Commands registered!");
 
             // 6. Регистрация слушателей

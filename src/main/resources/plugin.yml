@@ -9,14 +9,17 @@ description: Advanced anchor-based claiming system.
 commands:
   ac:
     description: Основная команда приватов
-    aliases: [ claim, loveclaims ]
+    aliases: [ claim, loveclaims, приват ]
   rental:
     description: Управление арендой
     aliases: [ rent ]
     permission: loveclaims.rental
+  loveclaimsadmin:
+    description: Административные команды LoveClaims (reload и т.д.)
+    permission: loveclaims.admin
 permissions:
   loveclaims.admin:
-    description: Доступ к /ac admin
+    description: Доступ к /loveclaimsadmin
     default: op
   loveclaims.bypass:
     description: Игнорирование защиты ВСЕХ приватов

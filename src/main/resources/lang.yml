@@ -28,6 +28,8 @@ prefix: "<dark_gray>[<gold>AC<dark_gray>] <white>"
 
 # ===== ОБЫЧНЫЕ СООБЩЕНИЯ =====
 no-permission: "<red>У вас нет прав!"
+player-only: "<red>Эта команда только для игроков!"
+admin-moved: "<yellow>Эта команда переехала: используйте <gold>/loveclaimsadmin</gold>."
 claim-create-confirm: "<green>Сетка построена! Пропишите <yellow>/ac confirm <green>для подтверждения."
 claim-created: "<green>Приват успешно создан!"
 claim-overlap: "<red>Эта территория пересекается с чужим приватом!"
@@ -174,24 +176,30 @@ actionbar-enter: "<gray>Владелец: <white>{owner}"
 actionbar-leave: "<gray>Вы покинули территорию"
 
 # ===== СПРАВКА =====
-admin-help:
-  - "<red>--- Админ-команды ---"
-  - "<red>/ac admin reload <gray>- Перезагрузка"
-  - "<red>/ac admin give <игрок> <тир> <gray>- Выдать якорь"
-  - "<red>/ac admin expand <игрок> <кол-во> <gray>- Увеличить приват"
-  - "<red>/ac admin addmembers <игрок> <кол-во> <gray>- Добавить слоты участников"
-  - "<red>/ac admin claim limit add/remove <игрок> [кол-во] <gray>- Выдать/забрать очки расширения"
+# Единый header/body/footer формат для всех help-выводов плагина: разделитель, список
+# "<green>/команда аргументы</green> <gray>- описание</gray>", разделитель.
 
-command-help:
-  - "<yellow>--- Команды привата ---"
-  - "<green>/ac <gray>- Открыть меню привата"
-  - "<green>/ac show <gray>- Показать границы"
-  - "<green>/ac home <gray>- Телепорт на базу"
-  - "<green>/ac invite <ник> <gray>- Пригласить игрока"
-  - "<green>/ac invite confirm <gray>- Принять приглашение"
-  - "<green>/ac move <gray>- Свертывает ваш приват"
-  - "<green>/rental admin <gray>- Список всех арендных плотов"
-  - "<green>/rental sell <имя> <gray>- Отказаться от аренды"
+# --- /ac help ---
+command-help-header: "<dark_gray>========== <gold>LoveClaims Помощь</gold> ==========</dark_gray>"
+command-help-body:
+  - "<green>/ac</green> <gray>- Открыть меню привата</gray>"
+  - "<green>/ac show</green> <gray>- Показать границы привата</gray>"
+  - "<green>/ac home</green> <gray>- Телепорт на базу привата</gray>"
+  - "<green>/ac invite <ник></green> <gray>- Пригласить игрока в приват</gray>"
+  - "<green>/ac invite confirm</green> <gray>- Принять приглашение</gray>"
+  - "<green>/ac move</green> <gray>- Свернуть свой приват</gray>"
+  - "<green>/rental</green> <gray>- Меню аренды участков (алиас: /rent)</gray>"
+command-help-admin: "<green>/loveclaimsadmin</green> <gray>- Административные команды LoveClaims</gray>"
+command-help-footer: "<dark_gray>=========================================</dark_gray>"
+
+# --- /loveclaimsadmin (без аргументов или неизвестная подкоманда) ---
+admin-help-header: "<dark_gray>========== <gold>LoveClaims Admin</gold> ==========</dark_gray>"
+admin-help-body:
+  - "<green>/loveclaimsadmin reload</green> <gray>- Перезагрузка конфигурации, тиров и квестов</gray>"
+  - "<green>/loveclaimsadmin give <игрок> <тир></green> <gray>- Выдать якорь</gray>"
+  - "<green>/loveclaimsadmin expand <игрок> <кол-во></green> <gray>- Увеличить приват (встаньте внутри него)</gray>"
+  - "<green>/loveclaimsadmin addmembers <игрок> <кол-во></green> <gray>- Добавить слоты участников</gray>"
+  - "<green>/loveclaimsadmin claim limit add/remove <игрок> [кол-во]</green> <gray>- Выдать/забрать очки расширения</gray>"
 
 rental-help:
   - "<dark_gray><st>━━━━━━━━━━━━━━</st></dark_gray> <gold>Аренда Участков</gold> <dark_gray><st>━━━━━━━━━━━━━━</st></dark_gray>"
