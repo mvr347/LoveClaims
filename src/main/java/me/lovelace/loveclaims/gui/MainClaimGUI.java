@@ -1,5 +1,6 @@
 package me.lovelace.loveclaims.gui;
 import me.lovelace.loveclaims.LoveClaims;
+import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;

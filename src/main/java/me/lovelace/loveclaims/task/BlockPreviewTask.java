@@ -3,6 +3,7 @@ package me.lovelace.loveclaims.task;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.model.ClaimTier;
+import me.lovelace.loveclaims.textures.HeadTextures;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -37,9 +38,6 @@ public class BlockPreviewTask {
     private final Map<Location, BlockData> fakeBlocks = new HashMap<>();
     private final List<ItemDisplay> displayedEntities = new ArrayList<>();
     private ScheduledTask task;
-
-    // Текстура для голов (зеленое стекло)
-    private static final String GREEN_GLASS_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjQ5NjAxMTMwNzNiNTIwNDRkNzA3OTk2NTQxOTYyMTkyMjMxOGE5ZTk5ZDc2NzE3MGIxNDI4ZGVkNDhjN2NlNSJ9fX0=";
 
     public BlockPreviewTask(LoveClaims plugin, Player player, BoundingBox box, ClaimTier tier, Runnable onCancel) {
         this.plugin = plugin;
@@ -139,7 +137,7 @@ public class BlockPreviewTask {
                 ItemDisplay display = player.getWorld().spawn(loc, ItemDisplay.class);
                 if (display != null) {
                     display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.HEAD);
-                    setHeadTexture(display, GREEN_GLASS_TEXTURE);
+                    setHeadTexture(display, HeadTextures.PREVIEW_GLASS_GREEN);
                     display.setBillboard(Display.Billboard.FIXED);
 
                     Transformation transform = display.getTransformation();

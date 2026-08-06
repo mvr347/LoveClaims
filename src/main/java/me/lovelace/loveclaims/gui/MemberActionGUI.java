@@ -1,6 +1,7 @@
 package me.lovelace.loveclaims.gui;
 
 import me.lovelace.loveclaims.LoveClaims;
+import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.TrustLevel;
 import net.kyori.adventure.text.Component;

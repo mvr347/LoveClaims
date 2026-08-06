@@ -52,9 +52,14 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
 
         switch (args[0].toLowerCase()) {
             case "help" -> {
-                for (Component line : plugin.getConfigManager().getHelpMessage("command-help")) {
+                player.sendMessage(plugin.getConfigManager().getComponent("command-help-header"));
+                for (Component line : plugin.getConfigManager().getHelpMessage("command-help-body")) {
                     player.sendMessage(line);
                 }
+                if (player.hasPermission("loveclaims.admin")) {
+                    player.sendMessage(plugin.getConfigManager().getComponent("command-help-admin"));
+                }
+                player.sendMessage(plugin.getConfigManager().getComponent("command-help-footer"));
                 return true;
             }
             case "home" -> {
@@ -264,109 +269,10 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
                     return true;
                 }
-                // Admin commands usually bypass such restrictions, so no isClanTerritory() check here.
-                if (args.length >= 2) {
-                    if (args[1].equalsIgnoreCase("reload")) {
-                        plugin.getConfigManager().loadAll();
-                        plugin.getAnchorManager().loadTiers();
-                        plugin.getQuestManager().loadQuests();
-                        player.sendMessage(plugin.getConfigManager().getMessage("admin-reloaded"));
-                        return true;
-                    } else if (args[1].equalsIgnoreCase("give") && args.length >= 4) {
-                        Player target = Bukkit.getPlayer(args[2]);
-                        org.bukkit.inventory.ItemStack anchor = plugin.getAnchorManager().createAnchorItem(args[3]);
-                        if (target != null && anchor != null) {
-                            target.getInventory().addItem(anchor);
-                            player.sendMessage(plugin.getConfigManager().getMessage("admin-give-success", "player", target.getName()));
-                        } else {
-                            player.sendMessage(plugin.getConfigManager().getMessage("admin-give-fail"));
-                        }
-                        return true;
-                    } else if (args[1].equalsIgnoreCase("expand") && args.length >= 4) {
-                        Player owner = Bukkit.getPlayer(args[2]);
-                        if (owner == null) return true;
-                        int amount = Integer.parseInt(args[3]);
-                        Optional<Claim> opt = plugin.getClaimManager().getClaimAt(player.getLocation());
-                        if (opt.isEmpty()) {
-                            player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-expand-fail"));
-                            return true;
-                        }
-                        Claim claim = opt.get();
-                        // Admin expand should work on all claims, including clan claims, if needed.
-                        // If you want to restrict admin expand for clan claims, add the check here.
-                        if (!claim.getOwnerUuid().equals(owner.getUniqueId())) {
-                            player.sendMessage(plugin.getConfigManager().getMessage("admin-expand-not-owner", "player", owner.getName()));
-                            return true;
-                        }
-                        claim.setBoundingBox(claim.getBoundingBox().expand(amount, amount, amount));
-                        plugin.getStorage().saveClaimAsync(claim);
-                        player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-expand-success", "amount", String.valueOf(amount)));
-                        me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, player, claim.getBoundingBox(), 100);
-                        return true;
-                    } else if (args[1].equalsIgnoreCase("addmembers") && args.length >= 4) {
-                        Player target = Bukkit.getPlayer(args[2]);
-                        if (target != null) {
-                            int amount = Integer.parseInt(args[3]);
-                            me.lovelace.loveclaims.model.UserData data = plugin.getQuestManager().getUserData(target.getUniqueId());
-                            data.addBonusMemberLimit(amount);
-                            plugin.getStorage().saveUserDataAsync(data);
-                            player.sendMessage(plugin.getConfigManager().getMessage("admin-limit-success", "player", target.getName(), "amount", String.valueOf(amount)));
-                        }
-                        return true;
-                    } else if (args[1].equalsIgnoreCase("claim") && args.length >= 5 && args[2].equalsIgnoreCase("limit")) {
-                        String action = args[3];
-                        Player target = Bukkit.getPlayer(args[4]);
-                        int count = args.length >= 6 ? Integer.parseInt(args[5]) : 1;
-                        if (target != null) {
-                            me.lovelace.loveclaims.model.UserData data = plugin.getQuestManager().getUserData(target.getUniqueId());
-                            if (args[0].equalsIgnoreCase("leave")) {
-                                if (args.length == 2 && args[1].equalsIgnoreCase("confirm")) {
-                                    java.util.Optional<me.lovelace.loveclaims.model.Claim> currentOpt = plugin.getClaimManager().getClaimAt(player.getLocation());
-                                    if (currentOpt.isPresent() && !currentOpt.get().isRentalPlot() && !currentOpt.get().isClanTerritory() && currentOpt.get().getMembers().containsKey(player.getUniqueId())) {
-                                        me.lovelace.loveclaims.model.Claim claim = currentOpt.get();
-                                        claim.getMembers().remove(player.getUniqueId());
-                                        plugin.getClaimManager().syncTrustRevoked(claim, player.getUniqueId());
-                                        plugin.getStorage().removeMemberAsync(claim.getId(), player.getUniqueId());
-                                        player.sendMessage(net.kyori.adventure.text.Component.text("§aВы успешно покинули приват!"));
-                                    } else {
-                                        player.sendMessage(net.kyori.adventure.text.Component.text("§cВы должны находиться в привате, который хотите покинуть (не клановом)."));
-                                    }
-                                } else {
-                                    java.util.Optional<me.lovelace.loveclaims.model.Claim> currentOpt = plugin.getClaimManager().getClaimAt(player.getLocation());
-                                    if (currentOpt.isEmpty() || currentOpt.get().isRentalPlot() || currentOpt.get().isClanTerritory() || !currentOpt.get().getMembers().containsKey(player.getUniqueId())) {
-                                        player.sendMessage(net.kyori.adventure.text.Component.text("§cВстаньте на территорию привата (где вы участник, не кланового), чтобы покинуть его."));
-                                        return true;
-                                    }
-                                    net.kyori.adventure.text.Component msg = net.kyori.adventure.text.Component.text("§eВы уверены, что хотите покинуть этот приват? ")
-                                            .append(net.kyori.adventure.text.Component.text("§a[ПОДТВЕРДИТЬ]")
-                                                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/ac leave confirm"))
-                                                    .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text("§7Нажмите для выхода из привата"))));
-                                    player.sendMessage(msg);
-                                }
-                                return true;
-                            }
-
-                            if (action.equalsIgnoreCase("add")) {
-                                data.addExpansionBlocks(count);
-                                player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-limit-add", "count", String.valueOf(count), "player", target.getName()));
-                            } else if (action.equalsIgnoreCase("remove")) {
-                                if (data.getExpansionBlocks() >= count) {
-                                    data.removeExpansionBlocks(count);
-                                    player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-limit-remove", "count", String.valueOf(count), "player", target.getName()));
-                                } else {
-                                    player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-limit-insufficient"));
-                                }
-                            }
-                            plugin.getStorage().saveUserDataAsync(data);
-                        } else {
-                            player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-player-not-found"));
-                        }
-                        return true;
-                    }
-                }
-                for (Component line : plugin.getConfigManager().getHelpMessage("admin-help")) {
-                    player.sendMessage(line);
-                }
+                // Админ-подкоманды переехали под единую /loveclaimsadmin — здесь остаётся только
+                // понятная подсказка, чтобы команда не «молчала» для тех, кто по привычке
+                // набирает /ac admin ...
+                player.sendMessage(plugin.getConfigManager().getMessage("admin-moved"));
                 return true;
             }
             default -> {
@@ -395,7 +301,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         java.util.List<String> completions = new java.util.ArrayList<>();
         if (args.length == 1) {
-            completions.addAll(java.util.List.of("home", "show", "confirm", "invite", "move", "admin", "help"));
+            completions.addAll(java.util.List.of("home", "show", "confirm", "invite", "move", "help"));
             if (sender instanceof Player player) {
                 plugin.getClaimManager().getAllClaims().stream()
                         .filter(c -> !c.isRentalPlot())
@@ -408,21 +314,9 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                             }
                         });
             }
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("admin")) {
-            completions.addAll(java.util.List.of("reload", "give", "expand", "addmembers", "claim"));
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("claim")) {
-            completions.add("limit");
-        } else if (args.length == 4 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("claim") && args[2].equalsIgnoreCase("limit")) {
-            completions.addAll(java.util.List.of("add", "remove"));
-        } else if (args.length == 5 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("claim") && args[2].equalsIgnoreCase("limit")) {
-            for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
         } else if (args.length == 2 && args[0].equalsIgnoreCase("invite")) {
             for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
             completions.add("confirm");
-        } else if (args.length == 3 && (args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("expand") || args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("addmembers"))) {
-            for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
-        } else if (args.length == 4 && args[1].equalsIgnoreCase("give")) {
-            completions.addAll(java.util.List.of("tier-1", "tier-2", "tier-3"));
         }
         return completions.stream()
                 .filter(s -> s.toLowerCase().startsWith(args[args.length - 1].toLowerCase()))
