@@ -24,6 +24,7 @@ import me.lovelace.loveclaims.task.RentalExpirationTask;
 import me.lovelace.loveclaims.storage.SQLiteStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class LoveClaims extends JavaPlugin {
@@ -144,13 +145,14 @@ public final class LoveClaims extends JavaPlugin {
 
         } catch (Exception e) {
             getLogger().severe("Failed to enable LoveClaims! " + e.getMessage());
-            e.printStackTrace();
+            getLogger().log(java.util.logging.Level.SEVERE, "Полная трассировка ошибки:", e);
             this.setEnabled(false);
         }
     }
 
     @Override
     public void onDisable() {
+        HandlerList.unregisterAll(this);
         getLogger().info("Disabling LoveClaims...");
 
         try {
@@ -186,7 +188,7 @@ public final class LoveClaims extends JavaPlugin {
 
         } catch (Exception e) {
             getLogger().severe("Error during disable: " + e.getMessage());
-            e.printStackTrace();
+            getLogger().log(java.util.logging.Level.SEVERE, "Полная трассировка ошибки:", e);
         } finally {
             getLogger().info("LoveClaims disabled successfully!");
             instance = null;
