@@ -24,6 +24,7 @@ import me.lovelace.loveclaims.task.RentalExpirationTask;
 import me.lovelace.loveclaims.storage.SQLiteStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class LoveClaims extends JavaPlugin {
@@ -151,6 +152,7 @@ public final class LoveClaims extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        HandlerList.unregisterAll(this);
         getLogger().info("Disabling LoveClaims...");
 
         try {
