@@ -144,7 +144,7 @@ public final class LoveClaims extends JavaPlugin {
 
         } catch (Exception e) {
             getLogger().severe("Failed to enable LoveClaims! " + e.getMessage());
-            e.printStackTrace();
+            getLogger().log(java.util.logging.Level.SEVERE, "Полная трассировка ошибки:", e);
             this.setEnabled(false);
         }
     }
@@ -186,7 +186,7 @@ public final class LoveClaims extends JavaPlugin {
 
         } catch (Exception e) {
             getLogger().severe("Error during disable: " + e.getMessage());
-            e.printStackTrace();
+            getLogger().log(java.util.logging.Level.SEVERE, "Полная трассировка ошибки:", e);
         } finally {
             getLogger().info("LoveClaims disabled successfully!");
             instance = null;
