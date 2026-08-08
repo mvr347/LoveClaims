@@ -180,26 +180,26 @@ actionbar-leave: "<gray>Вы покинули территорию"
 # "<green>/команда аргументы</green> <gray>- описание</gray>", разделитель.
 
 # --- /ac help ---
-command-help-header: "<dark_gray>========== <gold>LoveClaims Помощь</gold> ==========</dark_gray>"
+command-help-header: "<dark_gray>========== <aqua>LoveClaims Помощь</aqua> ==========</dark_gray>"
 command-help-body:
-  - "<green>/ac</green> <gray>- Открыть меню привата</gray>"
-  - "<green>/ac show</green> <gray>- Показать границы привата</gray>"
-  - "<green>/ac home</green> <gray>- Телепорт на базу привата</gray>"
-  - "<green>/ac invite <ник></green> <gray>- Пригласить игрока в приват</gray>"
-  - "<green>/ac invite confirm</green> <gray>- Принять приглашение</gray>"
-  - "<green>/ac move</green> <gray>- Свернуть свой приват</gray>"
-  - "<green>/rental</green> <gray>- Меню аренды участков (алиас: /rent)</gray>"
-command-help-admin: "<green>/loveclaimsadmin</green> <gray>- Административные команды LoveClaims</gray>"
+  - "<aqua>/ac</aqua> <gray>- Открыть меню привата</gray>"
+  - "<aqua>/ac show</aqua> <gray>- Показать границы привата</gray>"
+  - "<aqua>/ac home</aqua> <gray>- Телепорт на базу привата</gray>"
+  - "<aqua>/ac invite <ник></aqua> <gray>- Пригласить игрока в приват</gray>"
+  - "<aqua>/ac invite confirm</aqua> <gray>- Принять приглашение</gray>"
+  - "<aqua>/ac move</aqua> <gray>- Свернуть свой приват</gray>"
+  - "<aqua>/rental</aqua> <gray>- Меню аренды участков (алиас: /rent)</gray>"
+command-help-admin: "<aqua>/loveclaimsadmin</aqua> <gray>- Административные команды LoveClaims</gray>"
 command-help-footer: "<dark_gray>=========================================</dark_gray>"
 
 # --- /loveclaimsadmin (без аргументов или неизвестная подкоманда) ---
-admin-help-header: "<dark_gray>========== <gold>LoveClaims Admin</gold> ==========</dark_gray>"
+admin-help-header: "<dark_gray>========== <aqua>LoveClaims Admin</aqua> ==========</dark_gray>"
 admin-help-body:
-  - "<green>/loveclaimsadmin reload</green> <gray>- Перезагрузка конфигурации, тиров и квестов</gray>"
-  - "<green>/loveclaimsadmin give <игрок> <тир></green> <gray>- Выдать якорь</gray>"
-  - "<green>/loveclaimsadmin expand <игрок> <кол-во></green> <gray>- Увеличить приват (встаньте внутри него)</gray>"
-  - "<green>/loveclaimsadmin addmembers <игрок> <кол-во></green> <gray>- Добавить слоты участников</gray>"
-  - "<green>/loveclaimsadmin claim limit add/remove <игрок> [кол-во]</green> <gray>- Выдать/забрать очки расширения</gray>"
+  - "<aqua>/loveclaimsadmin reload</aqua> <gray>- Перезагрузка конфигурации, тиров и квестов</gray>"
+  - "<aqua>/loveclaimsadmin give <игрок> <тир></aqua> <gray>- Выдать якорь</gray>"
+  - "<aqua>/loveclaimsadmin expand <игрок> <кол-во></aqua> <gray>- Увеличить приват (встаньте внутри него)</gray>"
+  - "<aqua>/loveclaimsadmin addmembers <игрок> <кол-во></aqua> <gray>- Добавить слоты участников</gray>"
+  - "<aqua>/loveclaimsadmin claim limit add/remove <игрок> [кол-во]</aqua> <gray>- Выдать/забрать очки расширения</gray>"
 
 rental-help:
   - "<dark_gray><st>━━━━━━━━━━━━━━</st></dark_gray> <gold>Аренда Участков</gold> <dark_gray><st>━━━━━━━━━━━━━━</st></dark_gray>"
