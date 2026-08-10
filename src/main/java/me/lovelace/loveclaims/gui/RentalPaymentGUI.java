@@ -13,6 +13,7 @@ import org.bukkit.event.inventory.InventoryType;
 public class RentalPaymentGUI extends AbstractGUI {
     private final LoveClaims plugin;
     private final Claim plot;
+    private boolean processing = false;
 
     public RentalPaymentGUI(LoveClaims plugin, Claim plot) {
         super(9, plugin.getConfigManager().getComponent("rental-payment.title-short"));
@@ -50,9 +51,23 @@ public class RentalPaymentGUI extends AbstractGUI {
             player.closeInventory();
             plugin.getConfigManager().playSound(player, "gui-click");
         } else if (event.getSlot() == 0) {
+            if (processing) return;
+            processing = true;
+
+            if (plot.getRentalEndTime() > System.currentTimeMillis()
+                    && plot.getOwnerUuid() != null
+                    && !plot.getOwnerUuid().equals(player.getUniqueId())
+                    && !plot.getOwnerUuid().equals(plot.getParentClaimId())) {
+                player.sendMessage(plugin.getConfigManager().getMessage("rental-already-taken"));
+                plugin.getConfigManager().playSound(player, "anchor-error");
+                player.closeInventory();
+                return;
+            }
+
             long ownedCount = plugin.getClaimManager().getAllClaims().stream()
                     .filter(Claim::isRentalPlot)
                     .filter(c -> c.getOwnerUuid() != null && c.getOwnerUuid().equals(player.getUniqueId()))
+                    .filter(c -> c.getRentalEndTime() > System.currentTimeMillis())
                     .count();
 
             if (ownedCount >= 1 && !player.hasPermission("loveclaims.rental.bypasslimit")) {
@@ -63,20 +78,30 @@ public class RentalPaymentGUI extends AbstractGUI {
             }
 
             long price = plot.getRentalPrice();
+            if (price < 0) {
+                player.closeInventory();
+                return;
+            }
+
             if (plugin.getCurrencyManager().hasEnough(player, price)) {
                 if (plugin.getCurrencyManager().takeCurrency(player, price)) {
                     plot.setOwnerUuid(player.getUniqueId());
                     plot.setRentalEndTime(System.currentTimeMillis() + plugin.getRentalManager().getTaxDays() * 86400000L);
                     plot.setTrust(player.getUniqueId(), TrustLevel.OWNER);
                     plugin.getClaimManager().syncTrustGranted(plot, player.getUniqueId());
+                    plugin.getStorage().saveMemberAsync(plot.getId(), player.getUniqueId(), TrustLevel.OWNER);
                     plugin.getStorage().saveClaimAsync(plot);
                     plugin.getRentalManager().updateIndicator(plot);
-
                     player.closeInventory();
                     player.sendMessage(plugin.getConfigManager().getMessage("rental-buy-success", "name", plot.getName()));
                     plugin.getConfigManager().playSound(player, "tax-paid");
+                } else {
+                    processing = false;
+                    player.sendMessage(plugin.getConfigManager().getMessage("rental-insufficient-funds", "price", String.valueOf(price)));
+                    plugin.getConfigManager().playSound(player, "anchor-error");
                 }
             } else {
+                processing = false;
                 player.sendMessage(plugin.getConfigManager().getMessage("rental-paytax-needed", "needed", plugin.getCurrencyManager().getNeededCoinsString(price)));
                 plugin.getConfigManager().playSound(player, "anchor-error");
                 player.closeInventory();
