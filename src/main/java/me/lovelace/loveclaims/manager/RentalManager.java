@@ -100,7 +100,9 @@ public class RentalManager {
             try {
                 Object npc = npcRegistry.getClass().getMethod("getById", int.class).invoke(npcRegistry, npcCache.get(claim.getId()));
                 if (npc != null) destroyMethod.invoke(npc);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                plugin.getLogger().warning("RentalManager: " + e.getMessage());
+            }
             npcCache.remove(claim.getId());
         }
 
@@ -117,7 +119,9 @@ public class RentalManager {
             try {
                 Object npc = npcRegistry.getClass().getMethod("getById", int.class).invoke(npcRegistry, taxerNpcId);
                 if (npc != null) destroyMethod.invoke(npc);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                plugin.getLogger().warning("RentalManager: " + e.getMessage());
+            }
             taxerNpcId = null;
         }
     }
@@ -145,7 +149,9 @@ public class RentalManager {
             try {
                 Object npc = npcRegistry.getClass().getMethod("getById", int.class).invoke(npcRegistry, npcCache.get(claim.getId()));
                 if (npc != null) destroyMethod.invoke(npc);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                plugin.getLogger().warning("RentalManager: " + e.getMessage());
+            }
             npcCache.remove(claim.getId());
         }
 
@@ -177,7 +183,9 @@ public class RentalManager {
                 spawnMethod.invoke(npc, loc);
                 int id = (int) getIdMethod.invoke(npc);
                 npcCache.put(claim.getId(), id);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                plugin.getLogger().warning("RentalManager: " + e.getMessage());
+            }
         }
     }
 
