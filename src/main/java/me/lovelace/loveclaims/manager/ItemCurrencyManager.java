@@ -26,16 +26,34 @@ public class ItemCurrencyManager {
             // Fallback для старого конфига
             String mat = plugin.getConfigManager().getConfig().getString("rental.currency.material", "COPPER_INGOT");
             String data = plugin.getConfigManager().getConfig().getString("rental.currency.custom-model-data", "0");
-            currencyUnits.add(new CurrencyUnit(Material.getMaterial(mat), data, 1));
+            Material material = Material.getMaterial(mat != null ? mat.toUpperCase() : "COPPER_INGOT");
+            if (material == null) material = Material.COPPER_INGOT;
+            currencyUnits.add(new CurrencyUnit(material, data != null ? data : "0", 1));
         } else {
             for (Map<?, ?> unit : units) {
-                String matName = (String) unit.get("material");
-                String data = unit.get("data").toString(); // Может быть числом или строкой
-                int value = (Integer) unit.get("value");
-                Material material = Material.getMaterial(matName);
-                if (material != null) {
-                    currencyUnits.add(new CurrencyUnit(material, data, value));
+                Object matObj = unit.get("material");
+                if (matObj == null) continue;
+                String matName = matObj.toString();
+                Object dataObj = unit.get("data");
+                String data = dataObj != null ? dataObj.toString() : "0";
+                Object valueObj = unit.get("value");
+                int value;
+                if (valueObj instanceof Number) {
+                    value = ((Number) valueObj).intValue();
+                } else if (valueObj != null) {
+                    try { value = Integer.parseInt(valueObj.toString()); }
+                    catch (NumberFormatException e) {
+                        plugin.getLogger().warning("Invalid currency unit value: " + valueObj);
+                        continue;
+                    }
+                } else continue;
+                if (value <= 0) {
+                    plugin.getLogger().warning("Currency unit value must be > 0, skipped: " + matName);
+                    continue;
                 }
+                Material material = Material.getMaterial(matName.toUpperCase());
+                if (material != null) currencyUnits.add(new CurrencyUnit(material, data, value));
+                else plugin.getLogger().warning("Unknown currency material: " + matName);
             }
         }
         // Сортируем от дорогих к дешевым для правильной выдачи сдачи
@@ -110,25 +128,23 @@ public class ItemCurrencyManager {
     }
 
     public boolean takeCurrency(Player player, long cost) {
+        if (player == null || cost < 0) return false;
+        if (cost == 0) return true;
+        if (!org.bukkit.Bukkit.isPrimaryThread()) {
+            plugin.getLogger().severe("takeCurrency called off main thread! Rejecting to prevent inventory corruption.");
+            return false;
+        }
         long totalBalance = calculateValue(player.getInventory());
         if (totalBalance < cost) return false;
-
-        // 1. Забираем ВСЕ валютные предметы из инвентаря
         ItemStack[] contents = player.getInventory().getContents();
         for (int i = 0; i < contents.length; i++) {
-            if (getCurrencyValue(contents[i]) > 0) {
+            ItemStack stack = contents[i];
+            if (stack != null && getCurrencyValue(stack) > 0) {
                 player.getInventory().setItem(i, null);
             }
         }
-
-        // 2. Рассчитываем сдачу
         long change = totalBalance - cost;
-
-        // 3. Выдаем сдачу (используя самые крупные монеты)
-        if (change > 0) {
-            giveChange(player, change);
-        }
-
+        if (change > 0) giveChange(player, change);
         return true;
     }
 
@@ -191,7 +207,9 @@ public class ItemCurrencyManager {
                 if (key != null) {
                     meta.setItemModel(key);
                 }
-            } catch (Exception ignored) {}
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid NamespacedKey for currency model: " + data);
+            }
         }
     }
 
