@@ -64,6 +64,7 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
             plot.setOwnerUuid(plot.getParentClaimId());
             for (java.util.UUID oldMember : new java.util.ArrayList<>(plot.getMembers().keySet())) {
                 plugin.getClaimManager().syncTrustRevoked(plot, oldMember);
+                plugin.getStorage().removeMemberAsync(plot.getId(), oldMember);
             }
             plot.getMembers().clear();
             plugin.getStorage().saveClaimAsync(plot);
