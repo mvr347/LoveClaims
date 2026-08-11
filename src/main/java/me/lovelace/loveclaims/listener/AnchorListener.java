@@ -212,10 +212,19 @@ public class AnchorListener implements Listener {
     public void onConfirmInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         if (event.getAction().name().contains("RIGHT_CLICK") && pendingClaims.containsKey(player.getUniqueId())) {
+            // Всегда отменяем клик, пока приват ожидает подтверждения - иначе, пока действует
+            // debounce ниже, клик доходит до ванильной обработки и якорь (материал которого -
+            // реальный ставящийся блок, напр. костёр) физически ставится в мире как обычный
+            // блок, съедая предмет из руки. Следующая проверка в BlockPreviewTask видит пустую
+            // руку и откатывает приват с сообщением "держите якорь в руке", а блок остаётся
+            // висеть незарегистрированным (ломается как ванильный, напр. роняет уголь).
+            event.setCancelled(true);
+
             PendingClaim pending = pendingClaims.get(player.getUniqueId());
+            // Debounce нужен только чтобы самый первый (создающий превью) клик не был тут же
+            // истолкован как клик подтверждения - саму отмену это не затрагивает.
             if (System.currentTimeMillis() - pending.createdAt() < 500) return;
 
-            event.setCancelled(true);
             Bukkit.dispatchCommand(player, "ac confirm");
         }
     }
