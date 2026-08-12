@@ -31,18 +31,19 @@ import java.util.Optional;
 
 public class ProtectionListener implements Listener {
     private final LoveClaims plugin;
-    private final me.lovelace.loveclaims.integration.LoveNotifyBridge loveNotifyBridge;
 
     public ProtectionListener(LoveClaims plugin) {
         this.plugin = plugin;
-        this.loveNotifyBridge = new me.lovelace.loveclaims.integration.LoveNotifyBridge(plugin);
     }
 
     private void deny(Player player, Claim claim, Component message) {
         // Если claim == null, это означает, что сообщение идет от спавна или общей защиты
-        // В этом случае флаг SILENT_DENY не применяется
-        if ((claim == null || !claim.getFlag(ClaimFlag.SILENT_DENY))
-                && loveNotifyBridge.isChannelEnabled(player.getUniqueId(), "ACTION_BAR")) {
+        // В этом случае флаг SILENT_DENY не применяется. Не кэшируем Optional<LoveNotify> —
+        // сосед может зарегистрировать реализацию позже, см. LoveCore.service(...) javadoc.
+        boolean actionBarAllowed = dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.notify.LoveNotify.class)
+                .map(n -> n.isChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.ACTION_BAR))
+                .orElse(true);
+        if ((claim == null || !claim.getFlag(ClaimFlag.SILENT_DENY)) && actionBarAllowed) {
             player.sendActionBar(message);
         }
     }
