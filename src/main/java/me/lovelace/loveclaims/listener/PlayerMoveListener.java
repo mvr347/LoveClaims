@@ -24,10 +24,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerMoveListener implements Listener {
     private final LoveClaims plugin;
+    private final me.lovelace.loveclaims.integration.LoveNotifyBridge loveNotifyBridge;
     private final Map<UUID, UUID> lastClaim = new ConcurrentHashMap<>();
 
     public PlayerMoveListener(LoveClaims plugin) {
         this.plugin = plugin;
+        this.loveNotifyBridge = new me.lovelace.loveclaims.integration.LoveNotifyBridge(plugin);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -71,7 +73,9 @@ public class PlayerMoveListener implements Listener {
                     } else {
                         player.teleport(from); // Если это был телепорт - возвращаем назад
                     }
-                    player.sendActionBar(plugin.getConfigManager().getMessage("deny-entry"));
+                    if (loveNotifyBridge.isChannelEnabled(playerId, "ACTION_BAR")) {
+                        player.sendActionBar(plugin.getConfigManager().getMessage("deny-entry"));
+                    }
                     return;
                 }
             }
@@ -112,7 +116,7 @@ public class PlayerMoveListener implements Listener {
             claimDisplayName = claim.getName() != null ? claim.getName() : "Участок";
         }
 
-        if (claim.getFlag(ClaimFlag.MSG_SCREEN)) {
+        if (claim.getFlag(ClaimFlag.MSG_SCREEN) && loveNotifyBridge.isChannelEnabled(player.getUniqueId(), "TITLE")) {
             Component titleComp = enter ?
                     plugin.getConfigManager().getComponent("title-enter", "name", claimDisplayName, "owner", ownerName) :
                     plugin.getConfigManager().getComponent("title-leave", "name", claimDisplayName, "owner", ownerName);
@@ -121,7 +125,7 @@ public class PlayerMoveListener implements Listener {
             player.showTitle(title);
         }
 
-        if (claim.getFlag(ClaimFlag.MSG_ACTIONBAR)) {
+        if (claim.getFlag(ClaimFlag.MSG_ACTIONBAR) && loveNotifyBridge.isChannelEnabled(player.getUniqueId(), "ACTION_BAR")) {
             Component actionbarComp = enter ?
                     plugin.getConfigManager().getComponent("actionbar-enter", "name", claimDisplayName, "owner", ownerName) :
                     plugin.getConfigManager().getComponent("actionbar-leave", "name", claimDisplayName, "owner", ownerName);
