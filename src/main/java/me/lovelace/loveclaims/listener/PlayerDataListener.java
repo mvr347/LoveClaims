@@ -22,13 +22,34 @@ public class PlayerDataListener implements Listener {
                     plugin.getQuestManager().getUserData(player.getUniqueId()).loadFrom(userData);
                 });
 
-        if (!player.hasPlayedBefore()) {
-            ItemStack starterAnchor = plugin.getAnchorManager().createAnchorItem("tier-1");
-            if (starterAnchor != null) {
-                player.getInventory().addItem(starterAnchor);
-                player.sendMessage(plugin.getConfigManager().getMessage("anchor-received"));
-            }
+        if (isAuthenticated(player)) {
+            giveStarterAnchorIfFirstJoin(player);
         }
+    }
+
+    @EventHandler
+    public void onAuthenticated(dev.lovelace.lovecore.api.auth.PlayerAuthenticatedEvent event) {
+        giveStarterAnchorIfFirstJoin(event.player());
+    }
+
+    private void giveStarterAnchorIfFirstJoin(Player player) {
+        if (player.hasPlayedBefore()) return;
+        ItemStack starterAnchor = plugin.getAnchorManager().createAnchorItem("tier-1");
+        if (starterAnchor != null) {
+            player.getInventory().addItem(starterAnchor);
+            player.sendMessage(plugin.getConfigManager().getMessage("anchor-received"));
+        }
+    }
+
+    /**
+     * Не кэшируем Optional<AuthOracle> — сосед может зарегистрировать реализацию позже,
+     * см. LoveCore.service(...) javadoc в LoveCore. Если LoveAuth не установлен, стартовый
+     * набор выдаётся сразу на join, как и раньше.
+     */
+    private boolean isAuthenticated(Player player) {
+        return dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.auth.AuthOracle.class)
+                .map(oracle -> oracle.isAuthenticated(player.getUniqueId()))
+                .orElse(true);
     }
 
     @EventHandler
