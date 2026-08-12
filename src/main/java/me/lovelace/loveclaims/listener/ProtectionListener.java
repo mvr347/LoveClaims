@@ -31,15 +31,18 @@ import java.util.Optional;
 
 public class ProtectionListener implements Listener {
     private final LoveClaims plugin;
+    private final me.lovelace.loveclaims.integration.LoveNotifyBridge loveNotifyBridge;
 
     public ProtectionListener(LoveClaims plugin) {
         this.plugin = plugin;
+        this.loveNotifyBridge = new me.lovelace.loveclaims.integration.LoveNotifyBridge(plugin);
     }
 
     private void deny(Player player, Claim claim, Component message) {
         // Если claim == null, это означает, что сообщение идет от спавна или общей защиты
         // В этом случае флаг SILENT_DENY не применяется
-        if (claim == null || !claim.getFlag(ClaimFlag.SILENT_DENY)) {
+        if ((claim == null || !claim.getFlag(ClaimFlag.SILENT_DENY))
+                && loveNotifyBridge.isChannelEnabled(player.getUniqueId(), "ACTION_BAR")) {
             player.sendActionBar(message);
         }
     }
