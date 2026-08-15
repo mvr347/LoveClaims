@@ -7,26 +7,23 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
 
 public class RentalPlayerGUI extends AbstractGUI {
     private final LoveClaims plugin;
     private final Player viewer;
     private final Claim plot;
+    private boolean showRefuse;
 
     public RentalPlayerGUI(LoveClaims plugin, Player viewer, Claim plot) {
-        super(9, plugin.getConfigManager().getComponent("gui.rental-player.title", "name", plot.getName()));
+        super(27, plugin.getConfigManager().getComponent("gui.rental-player.title", "name", plot.getName()));
         this.plugin = plugin;
         this.viewer = viewer;
         this.plot = plot;
-        this.inventory = Bukkit.createInventory(this, InventoryType.HOPPER, plugin.getConfigManager().getComponent("gui.rental-player.title", "name", plot.getName()));
         setMenuItems();
     }
 
     @Override
     protected void setMenuItems() {
-        inventory.clear();
-
         String ownerName = "Сервер";
         if (plot.getOwnerUuid() != null) {
             String fetchedName = Bukkit.getOfflinePlayer(plot.getOwnerUuid()).getName();
@@ -37,24 +34,27 @@ public class RentalPlayerGUI extends AbstractGUI {
         long days = Math.max(0, timeLeft / 86400);
         long hours = Math.max(0, (timeLeft % 86400) / 3600);
 
-        // Слот 0: Инфо
+        // gui-gen-5 RULE 3: слот 0 — тематическая иконка (инфо арендного плота, ЛКМ=телепорт, ПКМ=границы).
         inventory.setItem(0, createHead(HEAD_INFO,
                 plugin.getConfigManager().getComponent("gui.rental-player.info-name"),
                 plugin.getConfigManager().getHelpMessage("gui.rental-player.info-lore", "owner", ownerName, "days", String.valueOf(days), "hours", String.valueOf(hours))));
 
-        // Слот 2: Участники
-        inventory.setItem(2, createHead(HEAD_MEMBERS,
+        showRefuse = plot.getOwnerUuid() != null && plot.getOwnerUuid().equals(viewer.getUniqueId());
+
+        // Рабочая зона (9-17): "Участники" + (владельцу) "Отказаться", центрированы динамически.
+        inventory.setItem(showRefuse ? 11 : 13, createHead(HEAD_MEMBERS,
                 plugin.getConfigManager().getComponent("gui.rental-player.members-title"),
                 plugin.getConfigManager().getHelpMessage("gui.rental-player.members-lore-1", "count", String.valueOf(plot.getMembers().size()), "max", "10")));
 
-        // Слот 4: Отказаться (Открывает подтверждение)
-        if (plot.getOwnerUuid() != null && plot.getOwnerUuid().equals(viewer.getUniqueId())) {
-            inventory.setItem(4, createHead(HEAD_BARRIER,
+        if (showRefuse) {
+            inventory.setItem(15, createHead(HEAD_BARRIER,
                     plugin.getConfigManager().getComponent("gui.rental-player.refuse-name"),
                     plugin.getConfigManager().getHelpMessage("gui.rental-player.refuse-lore-1")));
         }
 
-        fillEmptySlots();
+        // Standalone-меню (открывается напрямую командой /rental) — Back неактивен, только Close.
+        setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
+        fillFrameGlass();
     }
 
     @Override
@@ -81,13 +81,17 @@ public class RentalPlayerGUI extends AbstractGUI {
                 me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, viewer, plot.getBoundingBox(), 200L);
             }
         }
-        if (slot == 2) {
+        if (slot == (showRefuse ? 11 : 13)) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new RentalMembersGUI(plugin, viewer, plot).getInventory());
         }
-        if (slot == 4 && plot.getOwnerUuid() != null && plot.getOwnerUuid().equals(viewer.getUniqueId())) {
+        if (slot == 15 && showRefuse) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new RentalAbandonConfirmGUI(plugin, plot).getInventory());
+        }
+        if (slot == inventory.getSize() - 1) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.closeInventory();
         }
     }
 }

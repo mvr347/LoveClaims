@@ -6,17 +6,15 @@ import me.lovelace.loveclaims.model.Claim;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
 
 public class RentalStrangerGUI extends AbstractGUI {
     private final LoveClaims plugin;
     private final Claim plot;
 
     public RentalStrangerGUI(LoveClaims plugin, Claim plot) {
-        super(9, plugin.getConfigManager().getComponent("gui.rental-player.title", "name", plot.getName()));
+        super(27, plugin.getConfigManager().getComponent("gui.rental-player.title", "name", plot.getName()));
         this.plugin = plugin;
         this.plot = plot;
-        this.inventory = Bukkit.createInventory(this, InventoryType.HOPPER, plugin.getConfigManager().getComponent("gui.rental-player.title", "name", plot.getName()));
         setMenuItems();
     }
 
@@ -29,19 +27,26 @@ public class RentalStrangerGUI extends AbstractGUI {
         }
 
         int sizeX = (int) Math.round(plot.getBoundingBox().getMaxX() - plot.getBoundingBox().getMinX());
-        int sizeZ = (int) Math.round(plot.getBoundingBox().getMaxZ() - plot.getBoundingBox().getMinZ());
 
-        // Инфа по центру (Слот 2)
-        inventory.setItem(2, createHead(HEAD_INFO,
+        // gui-gen-5 RULE 3: слот 0 — тематическая иконка (просмотр чужого арендного плота, только инфо).
+        inventory.setItem(0, createHead(HEAD_INFO,
                 plugin.getConfigManager().getComponent("gui.rental-edit.info-name"),
                 plugin.getConfigManager().getHelpMessage("gui.main.info-lore", "owner", ownerName, "size", String.valueOf(sizeX), "points", "0")));
-        fillEmptySlots();
+
+        // Standalone-меню, доступ только на просмотр — Back неактивен, только Close.
+        setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
+        fillFrameGlass();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
         event.setCancelled(true);
-        if (event.getSlot() == 2) {
+        if (event.getSlot() == inventory.getSize() - 1) {
+            org.bukkit.entity.Player viewer = (org.bukkit.entity.Player) event.getWhoClicked();
+            viewer.closeInventory();
+            return;
+        }
+        if (event.getSlot() == 0) {
             org.bukkit.entity.Player viewer = (org.bukkit.entity.Player) event.getWhoClicked();
             if (event.isLeftClick()) {
                 plugin.getConfigManager().playSound(viewer, "gui-click");

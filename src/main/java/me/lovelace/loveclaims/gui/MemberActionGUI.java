@@ -38,14 +38,8 @@ public class MemberActionGUI extends AbstractGUI {
         TrustLevel currentRole = claim.getTrust(targetId);
         String roleName = getColoredRoleName(currentRole);
 
-        // 1. Повысить (Слот 11)
-        boolean canPromote = currentRole.ordinal() < TrustLevel.MANAGER.ordinal();
-        String promoteLoreKey = canPromote ? "member-action.promote-lore-yes" : "member-action.promote-lore-no";
-        inventory.setItem(11, createHead(canPromote ? HEAD_EXPAND : HEAD_BARRIER,
-            plugin.getConfigManager().getComponent("member-action.promote-name"),
-            java.util.List.of(plugin.getConfigManager().getComponent(promoteLoreKey))));
-
-        // 2. Голова (Слот 13 - По центру. Выгоняет!)
+        // gui-gen-5 RULE 3: слот 0 — профиль напрямую (меню про конкретного участника).
+        // Клик по голове по-прежнему выгоняет игрока — сохранено с прежнего центрального слота.
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         org.bukkit.inventory.meta.SkullMeta headMeta = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
         if (headMeta != null) {
@@ -58,19 +52,27 @@ public class MemberActionGUI extends AbstractGUI {
             ));
             head.setItemMeta(headMeta);
         }
-        inventory.setItem(13, head);
+        inventory.setItem(0, head);
 
-        // 3. Понизить (Слот 15)
+        // Рабочая зона (9-17): повысить/понизить, центрированы 11/15.
+        boolean canPromote = currentRole.ordinal() < TrustLevel.MANAGER.ordinal();
+        String promoteLoreKey = canPromote ? "member-action.promote-lore-yes" : "member-action.promote-lore-no";
+        inventory.setItem(11, createHead(canPromote ? HEAD_EXPAND : HEAD_BARRIER,
+            plugin.getConfigManager().getComponent("member-action.promote-name"),
+            java.util.List.of(plugin.getConfigManager().getComponent(promoteLoreKey))));
+
         boolean canDemote = currentRole.ordinal() > TrustLevel.ACCESS.ordinal();
         String demoteLoreKey = canDemote ? "member-action.demote-lore-yes" : "member-action.demote-lore-no";
         inventory.setItem(15, createHead(canDemote ? HEAD_DEMOTE : HEAD_BARRIER,
             plugin.getConfigManager().getComponent("member-action.demote-name"),
             java.util.List.of(plugin.getConfigManager().getComponent(demoteLoreKey))));
 
-        inventory.setItem(25, createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null));
-        inventory.setItem(26, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
-
-        fillEmptySlots();
+        setFooterButtons(
+                null,
+                createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null),
+                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
+        );
+        fillFrameGlass();
     }
 
     private String getColoredRoleName(TrustLevel level) {
@@ -109,8 +111,8 @@ public class MemberActionGUI extends AbstractGUI {
             return;
         }
 
-        // Клик по голове по центру (Слот 13) - ВЫГОНЯЕТ ИГРОКА
-        if (slot == 13) {
+        // Клик по голове (Слот 0) - ВЫГОНЯЕТ ИГРОКА
+        if (slot == 0) {
             claim.getMembers().remove(targetId);
             plugin.getClaimManager().syncTrustRevoked(claim, targetId);
             plugin.getStorage().removeMemberAsync(claim.getId(), targetId);

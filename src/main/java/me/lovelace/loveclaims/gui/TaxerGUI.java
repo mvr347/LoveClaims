@@ -4,24 +4,26 @@ import me.lovelace.loveclaims.LoveClaims;
 import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.List;
 import java.util.UUID;
 
 public class TaxerGUI extends AbstractGUI {
+    // Рабочая зона 27-слотового меню: 7 интерьерных слотов (10-16).
+    private static final int[] CONTENT_SLOTS = {10, 11, 12, 13, 14, 15, 16};
+
     private final LoveClaims plugin;
     private final Player viewer;
 
     public TaxerGUI(LoveClaims plugin, Player viewer) {
-        super(InventoryType.DISPENSER, plugin.getConfigManager().getComponent("taxer-npc-name"));
+        super(27, plugin.getConfigManager().getComponent("taxer-npc-name"));
         this.plugin = plugin;
         this.viewer = viewer;
         setMenuItems();
@@ -35,18 +37,25 @@ public class TaxerGUI extends AbstractGUI {
                 .filter(c -> c.getOwnerUuid() != null && c.getOwnerUuid().equals(viewer.getUniqueId()))
                 .toList();
 
+        // gui-gen-5 RULE 3: слот 0 — профиль напрямую (список СВОИХ арендованных плотов игрока).
+        ItemStack self = new ItemStack(org.bukkit.Material.PLAYER_HEAD);
+        SkullMeta selfMeta = (SkullMeta) self.getItemMeta();
+        if (selfMeta != null) {
+            selfMeta.setOwningPlayer(viewer);
+            selfMeta.displayName(Component.text("§e" + viewer.getName()));
+            self.setItemMeta(selfMeta);
+        }
+        inventory.setItem(0, self);
+
         if (ownedPlots.isEmpty()) {
-            inventory.setItem(4, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("rental-no-rented"), List.of(
+            inventory.setItem(CONTENT_SLOTS[0], createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("rental-no-rented"), List.of(
                     Component.text("§7Арендуйте участок, чтобы"),
                     Component.text("§7оплачивать здесь налоги.")
             )));
         } else {
-            int slot = 0;
             NamespacedKey key = new NamespacedKey(plugin, "plot_id");
-            for (Claim plot : ownedPlots) {
-                if (slot == 6 || slot == 7 || slot == 8) {
-                    break;
-                }
+            for (int i = 0; i < ownedPlots.size() && i < CONTENT_SLOTS.length; i++) {
+                Claim plot = ownedPlots.get(i);
 
                 long taxAmount = Math.round(plot.getRentalPrice() * (plugin.getRentalManager().getTaxPercentage() / 100.0));
                 long timeLeft = (plot.getRentalEndTime() - System.currentTimeMillis()) / 1000;
@@ -68,20 +77,13 @@ public class TaxerGUI extends AbstractGUI {
                     item.setItemMeta(meta);
                 }
 
-                inventory.setItem(slot++, item);
+                inventory.setItem(CONTENT_SLOTS[i], item);
             }
         }
 
-        inventory.setItem(7, createHead(HEAD_DELETE_NO, Component.text("§cЗакрыть"), List.of()));
-
-        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = glass.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.empty());
-            glass.setItemMeta(meta);
-        }
-        inventory.setItem(6, glass);
-        inventory.setItem(8, glass);
+        // Standalone-меню (открывается напрямую NPC-листенером) — Back неактивен, только Close.
+        setFooterButtons(null, null, createHead(HEAD_DELETE_NO, Component.text("§cЗакрыть"), List.of()));
+        fillFrameGlass();
     }
 
     @Override
@@ -89,7 +91,7 @@ public class TaxerGUI extends AbstractGUI {
         event.setCancelled(true);
         if (event.getCurrentItem() == null) return;
 
-        if (event.getSlot() == 7) {
+        if (event.getSlot() == inventory.getSize() - 1) {
             viewer.closeInventory();
             return;
         }

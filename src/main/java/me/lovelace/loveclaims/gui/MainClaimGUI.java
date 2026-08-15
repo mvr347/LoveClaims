@@ -36,10 +36,12 @@ public class MainClaimGUI extends AbstractGUI {
         String ownerName = Bukkit.getOfflinePlayer(claim.getOwnerUuid()).getName();
         if (ownerName == null) ownerName = "???";
 
-        inventory.setItem(4, createHead(HEAD_INFO,
+        // gui-gen-5 RULE 3: слот 0 — тематическая иконка/профиль меню (инфо привата, ЛКМ=телепорт, ПКМ=границы).
+        inventory.setItem(0, createHead(HEAD_INFO,
                 plugin.getConfigManager().getComponent("main.info-name"),
                 plugin.getConfigManager().getHelpMessage("main.info-lore", "owner", ownerName, "size", String.valueOf(currentSize), "points", String.valueOf(userData.getExpansionBlocks()))));
 
+        // Рабочая зона (9-17): 3 контентные кнопки, центрированы 11/13/15.
         inventory.setItem(11, createHead(HEAD_SETTINGS,
                 plugin.getConfigManager().getComponent("main.settings-name"),
                 plugin.getConfigManager().getHelpMessage("main.settings-lore")));
@@ -52,16 +54,15 @@ public class MainClaimGUI extends AbstractGUI {
                 plugin.getConfigManager().getComponent("main.quests-name"),
                 plugin.getConfigManager().getHelpMessage("main.quests-lore")));
 
-        inventory.setItem(26, createHead(HEAD_BARRIER,
-                plugin.getConfigManager().getComponent("common.close"), null));
-
-        fillEmptySlots();
+        // Footer: standalone-меню (открывается напрямую с якоря) — Back неактивен, только Close.
+        setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
+        fillFrameGlass();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
         switch (event.getSlot()) {
-            case 4 -> {
+            case 0 -> {
                 if (event.isLeftClick()) {
                     plugin.getConfigManager().playSound(viewer, "gui-click");
                     viewer.closeInventory();

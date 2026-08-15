@@ -33,7 +33,7 @@ public class RentalEditGUI extends AbstractGUI {
 
         String statusKey = plot.isRented() ? "rental-edit.info-lore-status-rented" : "rental-edit.info-lore-status-free";
 
-        // Слот 13: Информация
+        // gui-gen-5 RULE 3: слот 0 — тематическая иконка (админ-редактирование конкретного плота).
         ItemStack info = createHead(HEAD_INFO, plugin.getConfigManager().getComponent("rental-edit.info-name"), List.of(
                 plugin.getConfigManager().getComponent("rental-edit.info-lore-owner", "owner", ownerName),
                 plugin.getConfigManager().getComponent("rental-edit.info-lore-price", "price", String.valueOf(plot.getRentalPrice())),
@@ -41,13 +41,12 @@ public class RentalEditGUI extends AbstractGUI {
                 Component.empty(),
                 plugin.getConfigManager().getComponent("rental-list.plot-lore-click")
         ));
-        inventory.setItem(13, info);
+        inventory.setItem(0, info);
 
-        // Слот 11: Изменить цену
+        // Рабочая зона (9-17): цена / переключатель Landlord, центрированы 11/15.
         ItemStack price = createItem(Material.GOLD_INGOT, plugin.getConfigManager().getComponent("rental-edit.price-name"), plugin.getConfigManager().getHelpMessage("rental-edit.price-lore"));
         inventory.setItem(11, price);
 
-        // Слот 15: КНОПКА LANDLORD (Переключатель NPC / SIGN)
         String typeStr = switch (plot.getIndicatorType()) {
             case NPC -> "NPC (Житель)";
             case SIGN -> "Табличка";
@@ -60,19 +59,18 @@ public class RentalEditGUI extends AbstractGUI {
         ));
         inventory.setItem(15, landlordBtn);
 
-        // Слот 17: Удалить плот (перенесено из футера, чтобы 25/26 остались под Назад/Закрыть)
+        // Footer Д (доп.кнопка, Исключение 3): опасное действие "удалить плот".
         ItemStack delete = createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("rental-edit.delete-name"), List.of(
                 plugin.getConfigManager().getComponent("rental-edit.delete-lore"),
                 Component.empty(),
                 plugin.getConfigManager().getComponent("rental-edit.delete-lore-warning")
         ));
-        inventory.setItem(17, delete);
-
-        ItemStack back = createHead(HEAD_BACK, plugin.getConfigManager().getComponent("rental-edit.back-name"), null);
-        inventory.setItem(25, back);
-        inventory.setItem(26, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
-
-        fillEmptySlots();
+        setFooterButtons(
+                delete,
+                createHead(HEAD_BACK, plugin.getConfigManager().getComponent("rental-edit.back-name"), null),
+                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
+        );
+        fillFrameGlass();
     }
 
     private ItemStack createItem(Material m, Component name, List<Component> lore) {
@@ -95,7 +93,7 @@ public class RentalEditGUI extends AbstractGUI {
             event.getWhoClicked().closeInventory();
         } else if (slot == 25) {
             event.getWhoClicked().openInventory(new RentalAdminListGUI(plugin).getInventory());
-        } else if (slot == 17) {
+        } else if (slot == 24) {
             plugin.getStorage().deleteClaimAsync(plot.getId());
             plugin.getClaimManager().removeClaimFromCache(plot.getId());
             plugin.getRentalManager().unregisterPlotName(plot.getName());

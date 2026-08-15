@@ -54,6 +54,12 @@ public final class HeadTextures {
     public static final String HEAD_PVP =
             HeadsConfig.get("pvp", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmE1MzYxYjUyZGFmNGYxYzVjNTQ4MGEzOWZhYWExMDg5NzU5NWZhNTc2M2Y3NTdiZGRhMzk1NjU4OGZlYzY3OCJ9fX0=");
 
+    // gui-gen-5: пагинация (только 54-слотовые меню, слоты 36/44)
+    public static final String HEAD_ARROW_LEFT =
+            HeadsConfig.get("arrow-left", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODRkZjJjZWZhZDQ4YzEwMDYzZDczNTM5OWY5MDRmYWE0NjA4ZmQ0NjZkZWYxZGU5ZTU1YjFhMzY2NWUzODYwMyJ9fX0=");
+    public static final String HEAD_ARROW_RIGHT =
+            HeadsConfig.get("arrow-right", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWM4YzJhMDExYmU4ZTI2NDk4YjAzNmJjNDA3OTc3NDA4ODczYTYxYTc0MjYxMmM0OTdhMjI1MzU5YTMwYjRjZDMifX19");
+
     /**
      * Текстура «зелёного стекла» для голов-дисплеев предпросмотра границ привата
      * (см. {@code task.BlockPreviewTask}) — визуально не связана с иконками GUI-меню,

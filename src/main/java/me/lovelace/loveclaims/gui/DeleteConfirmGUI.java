@@ -7,19 +7,19 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 
 public class DeleteConfirmGUI extends AbstractGUI {
+    // gui-gen-5 Исключение 1 (hopper-confirm, 9 слотов): [С][✓][С][П][П][П][С][✗][С]
     private static final int CONFIRM_SLOT = 1;
-    private static final int CANCEL_SLOT = 3;
+    private static final int CANCEL_SLOT = 7;
 
     private final LoveClaims plugin;
     private final Player viewer;
     private final Claim claim;
 
     public DeleteConfirmGUI(LoveClaims plugin, Player viewer, Claim claim) {
-        super(InventoryType.HOPPER, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title")));
+        super(9, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title")));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -28,12 +28,11 @@ public class DeleteConfirmGUI extends AbstractGUI {
 
     @Override
     protected void setMenuItems() {
-        // Компактный диалог "Подтвердить/Отменить" на 5 слотов (хоппер) — отдельная кнопка
-        // "Назад" не нужна, так как "Отменить" уже возвращает в SettingsGUI.
+        // gui-gen-5 Исключение 1: "Назад" в этом шаблоне нет — "Отменить" (✗) уже возвращает в SettingsGUI.
         inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.confirm")), null));
         inventory.setItem(CANCEL_SLOT, createHead(HEAD_DELETE_NO, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.cancel")), null));
-
-        fillEmptySlots();
+        setGlass(0, 2, 6, 8);
+        // Слоты 3,4,5 остаются пустыми (AIR) — визуальный разделитель по шаблону.
     }
 
     @Override
