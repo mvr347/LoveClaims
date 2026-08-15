@@ -48,6 +48,16 @@ public class AnchorListener implements Listener {
         this.plugin = plugin;
     }
 
+    /**
+     * Не кэшируем {@code Optional<LoveNotify>} в поле — сосед может зарегистрировать
+     * реализацию позже, см. {@code LoveCore.service(...)} javadoc в LoveCore.
+     */
+    private boolean isNotifyChannelEnabled(UUID uuid, dev.lovelace.lovecore.api.notify.LoveNotify.Channel channel) {
+        return dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.notify.LoveNotify.class)
+                .map(n -> n.isChannelEnabled(uuid, channel))
+                .orElse(true);
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onAnchorBreak(BlockBreakEvent event) {
         Location loc = event.getBlock().getLocation();
@@ -190,7 +200,9 @@ public class AnchorListener implements Listener {
         String titleTitle = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(plugin.getConfigManager().getMessage("claim-preview-title"));
         String titleSub = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(plugin.getConfigManager().getMessage("claim-preview-subtitle"));
 
-        player.sendTitle(titleTitle, titleSub, 10, 70, 20);
+        if (isNotifyChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.TITLE)) {
+            player.sendTitle(titleTitle, titleSub, 10, 70, 20);
+        }
         player.sendMessage(plugin.getConfigManager().getMessage("claim-create-hint"));
     }
 
