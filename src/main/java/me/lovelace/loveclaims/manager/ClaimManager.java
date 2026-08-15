@@ -251,6 +251,68 @@ public class ClaimManager {
         }
     }
 
+    /**
+     * Обновить чанковый кэш (worldCaches) после изменения границ уже зарегистрированного
+     * привата (например, расширение через SettingsGUI или /loveclaimsadmin expand).
+     * claim.getBoundingBox() должен уже содержать НОВЫЕ границы на момент вызова, а oldBox -
+     * границы, которые были до изменения.
+     * <p>
+     * Без этого вызова блоки в чанках, вошедших в приват после расширения, не защищаются
+     * (getClaimAt их не находит), а checkOverlap не видит расширенную зону в этих чанках,
+     * позволяя другому игроку создать новый приват поверх уже занятой территории - оба этих
+     * метода читают тот же самый worldCaches, который addClaimToCacheInternal/removeClaimFromCache
+     * поддерживают только при создании/удалении привата целиком.
+     * @param claim Приват с уже применёнными новыми границами
+     * @param oldBox Границы привата до изменения
+     */
+    public void resizeClaimInCache(Claim claim, BoundingBox oldBox) {
+        if (claim == null || claim.getWorld() == null || oldBox == null) return;
+        lock.writeLock().lock();
+        try {
+            Long2ObjectOpenHashMap<List<Claim>> chunkMap = worldCaches.computeIfAbsent(
+                    claim.getWorld().getUID(),
+                    k -> new Long2ObjectOpenHashMap<>()
+            );
+
+            // Убираем приват из всех чанков, которые покрывались старыми границами.
+            int oldMinCX = (int) Math.floor(oldBox.getMinX());
+            int oldMaxCX = (int) Math.floor(oldBox.getMaxX());
+            int oldMinCZ = (int) Math.floor(oldBox.getMinZ());
+            int oldMaxCZ = (int) Math.floor(oldBox.getMaxZ());
+            for (int x = oldMinCX >> 4; x <= oldMaxCX >> 4; x++) {
+                for (int z = oldMinCZ >> 4; z <= oldMaxCZ >> 4; z++) {
+                    long chunkKey = getChunkKey(x, z);
+                    List<Claim> list = chunkMap.get(chunkKey);
+                    if (list != null) {
+                        list.remove(claim);
+                        if (list.isEmpty()) {
+                            chunkMap.remove(chunkKey);
+                        }
+                    }
+                }
+            }
+
+            // Добавляем приват во все чанки новых границ (некоторые могли совпадать со старыми -
+            // такие чанки только что были удалены выше и теперь корректно добавляются заново).
+            BoundingBox newBox = claim.getBoundingBox();
+            int newMinCX = (int) Math.floor(newBox.getMinX());
+            int newMaxCX = (int) Math.floor(newBox.getMaxX());
+            int newMinCZ = (int) Math.floor(newBox.getMinZ());
+            int newMaxCZ = (int) Math.floor(newBox.getMaxZ());
+            for (int x = newMinCX >> 4; x <= newMaxCX >> 4; x++) {
+                for (int z = newMinCZ >> 4; z <= newMaxCZ >> 4; z++) {
+                    long chunkKey = getChunkKey(x, z);
+                    List<Claim> list = chunkMap.computeIfAbsent(chunkKey, k -> new CopyOnWriteArrayList<>());
+                    if (!list.contains(claim)) {
+                        list.add(claim);
+                    }
+                }
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     public Collection<Claim> getAllClaims() {
         return Collections.unmodifiableCollection(claimsById.values());
     }

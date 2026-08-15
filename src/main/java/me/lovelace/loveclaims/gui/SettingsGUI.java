@@ -216,7 +216,9 @@ public class SettingsGUI extends AbstractGUI {
                 userData.removeExpansionBlocks(1);
                 plugin.getStorage().saveUserDataAsync(userData);
             }
+            org.bukkit.util.BoundingBox oldBox = claim.getBoundingBox().clone();
             claim.setBoundingBox(newBox);
+            plugin.getClaimManager().resizeClaimInCache(claim, oldBox);
             plugin.getStorage().saveClaimAsync(claim);
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> plugin.getQuestManager().saveUsers());
 

@@ -193,6 +193,18 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                 if (pending != null) {
                     // При создании нового привата, он всегда будет PLAYER типом, поэтому проверка isClanTerritory() здесь не нужна.
                     pending.previewTask().revert();
+
+                    // Повторная проверка пересечения прямо перед созданием: превью висит открытым
+                    // произвольное время (пока игрок держит якорь в руке), и за это время другой
+                    // игрок мог успеть создать и подтвердить свой приват поверх этой же зоны -
+                    // исходная проверка в AnchorListener к моменту confirm уже устарела. Без
+                    // повторной проверки здесь оба привата регистрируются с пересекающимися
+                    // границами.
+                    if (plugin.getClaimManager().checkOverlap(pending.location().getWorld(), pending.previewTask().getBox())) {
+                        player.sendMessage(plugin.getConfigManager().getMessage("claim-overlap"));
+                        return true;
+                    }
+
                     Claim newClaim = new Claim(java.util.UUID.randomUUID(), pending.location().getWorld(), pending.previewTask().getBox(), player.getUniqueId(), pending.location());
                     plugin.getClaimManager().addClaimToCache(newClaim);
                     plugin.getStorage().saveClaimAsync(newClaim);
