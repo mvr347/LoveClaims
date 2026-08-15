@@ -34,14 +34,18 @@ public class SettingsGUI extends AbstractGUI {
         boolean isManager = claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER;
         boolean canEditSettings = isOwner || isManager;
 
+        // gui-gen-5 RULE 3: слот 0 — тематическая иконка меню настроек.
+        inventory.setItem(0, createHead(HEAD_SETTINGS, plugin.getConfigManager().getComponent("main.settings-name"), null));
+
+        // Рабочая зона, ряд 1 (интерьер 19-25): базовые флаги привата + msg + расширение.
         if (canEditSettings) {
-            inventory.setItem(11, createToggle(HEAD_HIDE_ANCHOR, "hide", ClaimFlag.HIDE_ANCHOR));
-            inventory.setItem(13, createToggle(HEAD_PVP, "pvp", ClaimFlag.PVP));
-            inventory.setItem(15, createToggle(HEAD_DENY_ENTRY, "deny", ClaimFlag.DENY_ENTRY));
+            inventory.setItem(19, createToggle(HEAD_HIDE_ANCHOR, "hide", ClaimFlag.HIDE_ANCHOR));
+            inventory.setItem(20, createToggle(HEAD_PVP, "pvp", ClaimFlag.PVP));
+            inventory.setItem(21, createToggle(HEAD_DENY_ENTRY, "deny", ClaimFlag.DENY_ENTRY));
         } else {
-            inventory.setItem(11, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
-            inventory.setItem(13, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
-            inventory.setItem(15, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
+            inventory.setItem(19, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
+            inventory.setItem(20, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
+            inventory.setItem(21, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
         }
 
         String msgState = plugin.getConfigManager().getGuiText("settings.states.disabled");
@@ -57,30 +61,28 @@ public class SettingsGUI extends AbstractGUI {
         mLore.add(Component.text(plugin.getConfigManager().getGuiText("settings.flags.msg-desc")));
 
         String msgName = plugin.getConfigManager().getGuiText("settings.flags.msg");
-        inventory.setItem(20, createHead(HEAD_MSG, Component.text("§e" + msgName), mLore));
+        inventory.setItem(22, createHead(HEAD_MSG, Component.text("§e" + msgName), mLore));
 
+        // Рабочая зона, ряд 2 (интерьер 28-34): бафы + описание.
         if (canEditSettings) {
             inventory.setItem(28, createToggle(HEAD_HASTE, "haste", ClaimFlag.PERK_HASTE));
-            inventory.setItem(30, createToggle(HEAD_REGEN, "regen", ClaimFlag.PERK_REGEN));
-            inventory.setItem(32, createToggle(HEAD_SATURATION, "saturation", ClaimFlag.PERK_SATURATION));
-            inventory.setItem(34, createToggle(HEAD_CROP_GROWTH, "crop_growth", ClaimFlag.PERK_CROP_GROWTH));
+            inventory.setItem(29, createToggle(HEAD_REGEN, "regen", ClaimFlag.PERK_REGEN));
+            inventory.setItem(30, createToggle(HEAD_SATURATION, "saturation", ClaimFlag.PERK_SATURATION));
+            inventory.setItem(31, createToggle(HEAD_CROP_GROWTH, "crop_growth", ClaimFlag.PERK_CROP_GROWTH));
         } else {
             inventory.setItem(28, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
+            inventory.setItem(29, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
             inventory.setItem(30, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
-            inventory.setItem(32, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
-            inventory.setItem(34, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
+            inventory.setItem(31, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
         }
 
         if (canEditSettings) {
             java.util.List<Component> dLore = new ArrayList<>();
             for (String s : plugin.getConfigManager().getGuiLore("main.desc-lore")) dLore.add(Component.text(s));
-            inventory.setItem(36, createHead(HEAD_DESC, Component.text(plugin.getConfigManager().getGuiText("main.desc-name")), dLore));
+            inventory.setItem(32, createHead(HEAD_DESC, Component.text(plugin.getConfigManager().getGuiText("main.desc-name")), dLore));
         } else {
-            inventory.setItem(36, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
+            inventory.setItem(32, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getString("settings.barrier-name")), List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
         }
-
-        inventory.setItem(43, createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null));
-        inventory.setItem(44, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null));
 
         if (viewer.getUniqueId().equals(claim.getOwnerUuid())) {
             int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
@@ -111,10 +113,23 @@ public class SettingsGUI extends AbstractGUI {
                 lore.add(Component.text(plugin.getConfigManager().getGuiText("settings.expand.lore-click")));
             }
 
-            inventory.setItem(22, createHead((canExpand && hasPoints) ? HEAD_EXPAND : HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText((canExpand && hasPoints) ? "settings.expand.can" : "settings.expand.cannot")), lore));
-            inventory.setItem(37, createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("settings.delete")), null));
+            inventory.setItem(23, createHead((canExpand && hasPoints) ? HEAD_EXPAND : HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText((canExpand && hasPoints) ? "settings.expand.can" : "settings.expand.cannot")), lore));
+
+            // Footer Д (доп.кнопка, Исключение 3): опасное действие "удалить приват" — только у владельца.
+            setFooterButtons(
+                    createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("settings.delete")), null),
+                    createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null),
+                    createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null)
+            );
+        } else {
+            setFooterButtons(
+                    null,
+                    createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null),
+                    createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null)
+            );
         }
-        fillEmptySlots();
+
+        fillFrameGlass();
     }
 
     // ИСПРАВЛЕНИЕ: Убрали аргумент fallbackMat (он всегда был null)
@@ -172,12 +187,12 @@ public class SettingsGUI extends AbstractGUI {
             viewer.openInventory(new MainClaimGUI(plugin, viewer, claim).getInventory());
             return;
         }
-        if (slot == 37 && isOwner) {
+        if (slot == 42 && isOwner) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new DeleteConfirmGUI(plugin, viewer, claim).getInventory());
             return;
         }
-        if (slot == 36 && canEditSettings) {
+        if (slot == 32 && canEditSettings) {
             viewer.closeInventory();
             plugin.getConfigManager().playSound(viewer, "gui-click");
 
@@ -188,7 +203,7 @@ public class SettingsGUI extends AbstractGUI {
             return;
         }
 
-        if (slot == 22 && isOwner) {
+        if (slot == 23 && isOwner) {
             boolean hasBypassExpand = viewer.hasPermission("loveclaims.bypass.expand");
             me.lovelace.loveclaims.model.UserData userData = plugin.getQuestManager().getUserData(viewer.getUniqueId());
             if (!hasBypassExpand && userData.getExpansionBlocks() < 1) {
@@ -228,7 +243,7 @@ public class SettingsGUI extends AbstractGUI {
             return;
         }
 
-        if (slot == 20 && canEditSettings) {
+        if (slot == 22 && canEditSettings) {
             boolean screen = claim.getFlag(ClaimFlag.MSG_SCREEN);
             boolean actionbar = claim.getFlag(ClaimFlag.MSG_ACTIONBAR);
 
@@ -255,13 +270,13 @@ public class SettingsGUI extends AbstractGUI {
         }
 
         ClaimFlag targetFlag = switch (slot) {
-            case 11 -> ClaimFlag.HIDE_ANCHOR;
-            case 13 -> ClaimFlag.PVP;
-            case 15 -> ClaimFlag.DENY_ENTRY;
+            case 19 -> ClaimFlag.HIDE_ANCHOR;
+            case 20 -> ClaimFlag.PVP;
+            case 21 -> ClaimFlag.DENY_ENTRY;
             case 28 -> ClaimFlag.PERK_HASTE;
-            case 30 -> ClaimFlag.PERK_REGEN;
-            case 32 -> ClaimFlag.PERK_SATURATION;
-            case 34 -> ClaimFlag.PERK_CROP_GROWTH;
+            case 29 -> ClaimFlag.PERK_REGEN;
+            case 30 -> ClaimFlag.PERK_SATURATION;
+            case 31 -> ClaimFlag.PERK_CROP_GROWTH;
             default -> null;
         };
 

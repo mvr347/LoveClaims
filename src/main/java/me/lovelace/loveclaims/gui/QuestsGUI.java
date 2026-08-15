@@ -6,22 +6,23 @@ import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.Quest;
 import me.lovelace.loveclaims.model.UserData;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class QuestsGUI extends AbstractGUI {
+    private static final int PAGE_SIZE = CONTENT_SLOTS_54.length;
+
     private final LoveClaims plugin;
     private final Player viewer;
     private final Claim claim;
+    private int page = 0;
+    private int visibleQuestCount = 0;
 
     public QuestsGUI(LoveClaims plugin, Player viewer, Claim claim) {
-        super(36, plugin.getConfigManager().getComponent("quests.title"));
+        super(54, plugin.getConfigManager().getComponent("quests.title"));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -30,17 +31,36 @@ public class QuestsGUI extends AbstractGUI {
 
     @Override
     protected void setMenuItems() {
+        inventory.clear();
+
         UserData data = plugin.getQuestManager().getUserData(viewer.getUniqueId());
-        int slot = 0;
 
         int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
         me.lovelace.loveclaims.model.ClaimTier currentTier = plugin.getAnchorManager().getTierBySize(currentSize);
         String currentTierId = currentTier != null ? currentTier.id() : "all";
 
+        List<Quest> visibleQuests = new ArrayList<>();
         for (Quest quest : plugin.getQuestManager().getAllQuests()) {
             if (!quest.tier().equals("all") && !quest.tier().equals(currentTierId)) {
                 continue; // Пропускаем квесты, которые не предназначены для текущего тира привата
             }
+            visibleQuests.add(quest);
+        }
+
+        // gui-gen-5 RULE 3: слот 0 — тематическая иконка (список квестов привата).
+        inventory.setItem(0, createHead(HEAD_QUEST, plugin.getConfigManager().getComponent("quests.title"), null));
+
+        visibleQuestCount = visibleQuests.size();
+        int totalPages = Math.max(1, (int) Math.ceil(visibleQuests.size() / (double) PAGE_SIZE));
+        if (page >= totalPages) page = totalPages - 1;
+        if (page < 0) page = 0;
+
+        int start = page * PAGE_SIZE;
+        int end = Math.min(start + PAGE_SIZE, visibleQuests.size());
+
+        for (int i = start; i < end; i++) {
+            Quest quest = visibleQuests.get(i);
+            int contentSlot = CONTENT_SLOTS_54[i - start];
 
             boolean completed = data.isQuestCompleted(quest.id());
             int progress = Math.min(data.getQuestProgress(quest.id()), quest.targetAmount());
@@ -92,39 +112,52 @@ public class QuestsGUI extends AbstractGUI {
                 if (!hasRewards) lore.add(plugin.getConfigManager().getComponent("quests.no-reward"));
             }
 
-            inventory.setItem(slot++, createHead(HEAD_QUEST, plugin.getConfigManager().getComponent("quests.quest-name", "name", quest.name()), lore));
+            inventory.setItem(contentSlot, createHead(HEAD_QUEST, plugin.getConfigManager().getComponent("quests.quest-name", "name", quest.name()), lore));
         }
 
-        inventory.setItem(34, createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null));
-        inventory.setItem(35, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
-        fillEmptySlots();
+        // Пагинация (Исключение 2, только 54-слотовое): активна только если есть больше одной страницы.
+        if (page > 0) {
+            inventory.setItem(PAGINATION_PREV_SLOT_54, createHead(HEAD_ARROW_LEFT, Component.text("§6← Назад"), null));
+        }
+        if (end < visibleQuests.size()) {
+            inventory.setItem(PAGINATION_NEXT_SLOT_54, createHead(HEAD_ARROW_RIGHT, Component.text("§6Вперёд →"), null));
+        }
+
+        setFooterButtons(
+                null,
+                createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null),
+                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
+        );
+        fillFrameGlass();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        if (event.getSlot() == 35) {
+        int slot = event.getSlot();
+        int size = inventory.getSize();
+
+        if (slot == size - 1) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.closeInventory();
             return;
         }
-        if (event.getSlot() == 34) {
+        if (slot == size - 2) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new MainClaimGUI(plugin, viewer, claim).getInventory());
+            return;
         }
-    }
-
-    @Override
-    protected void fillEmptySlots() {
-        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = glass.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.empty());
-            glass.setItemMeta(meta);
+        if (slot == PAGINATION_PREV_SLOT_54 && page > 0) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            page--;
+            setMenuItems();
+            return;
         }
-        for (int i = 27; i < 36; i++) {
-            ItemStack item = inventory.getItem(i);
-            if (item == null || item.getType() == Material.AIR) {
-                inventory.setItem(i, glass);
+        if (slot == PAGINATION_NEXT_SLOT_54) {
+            int totalPages = Math.max(1, (int) Math.ceil(visibleQuestCount / (double) PAGE_SIZE));
+            if (page < totalPages - 1) {
+                plugin.getConfigManager().playSound(viewer, "gui-click");
+                page++;
+                setMenuItems();
             }
         }
     }
