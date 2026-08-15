@@ -270,6 +270,17 @@ public class QuestManager {
                         data.setQuestCompleted(quest.id(), true);
                         applyRewards(quest, uuid);
 
+                        // Для повторяемых квестов сбрасываем прогресс (с переносом излишка),
+                        // иначе progress остаётся >= targetAmount навсегда и applyRewards()
+                        // будет вызываться повторно на КАЖДОЕ следующее событие прогресса
+                        // (например, на каждый добытый блок) - награда фармится бесконечно.
+                        if (quest.repeatable()) {
+                            int overflow = progress - quest.targetAmount();
+                            data.setQuestProgress(quest.id(), Math.max(overflow, 0));
+                            data.setQuestCompleted(quest.id(), false);
+                            plugin.getClaimManager().updateQuestProgress(uuid, quest.id(), data.getQuestProgress(quest.id()));
+                        }
+
                         // Уведомить слушателей
                         for (QuestProgressListener listener : progressListeners) {
                             listener.onQuestComplete(uuid, quest);

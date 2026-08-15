@@ -322,8 +322,39 @@ public class SQLiteStorage {
     }
 
     public void saveAllClaimsSync(Collection<Claim> claims) {
-        saveBatchSync(claimsConnection, CLAIMS_UPSERT, claims.stream().filter(c -> !c.isRentalPlot()).toList(), false);
-        saveBatchSync(rentalsConnection, RENTALS_UPSERT, claims.stream().filter(Claim::isRentalPlot).toList(), true);
+        // Выполняем внутри dbExecutor и ждём завершения: этот метод вызывается из onDisable
+        // ДО dbExecutor.shutdownNow(), пока в очереди ещё вполне может быть необработанный
+        // async-запрос (например, saveClaimAsync от события за секунду до выключения). Прямой
+        // вызов на текущем (главном) потоке работал бы с тем же Connection параллельно с
+        // executor-потоком - Connection у SQLite JDBC не потокобезопасен для конкурентного
+        // доступа из двух потоков одновременно, даже несмотря на WAL.
+        runOnDbExecutorAndAwait(() -> {
+            saveBatchSync(claimsConnection, CLAIMS_UPSERT, claims.stream().filter(c -> !c.isRentalPlot()).toList(), false);
+            saveBatchSync(rentalsConnection, RENTALS_UPSERT, claims.stream().filter(Claim::isRentalPlot).toList(), true);
+        });
+    }
+
+    /**
+     * Выполнить задачу на dbExecutor и дождаться её завершения (с таймаутом), сохраняя
+     * сериализацию доступа к Connection даже для "синхронных" вызовов со внешнего потока.
+     * Если dbExecutor уже остановлен (действительно безопасно - никакой конкурентный поток
+     * больше не тронет Connection), выполняем задачу прямо на вызывающем потоке.
+     */
+    private void runOnDbExecutorAndAwait(Runnable task) {
+        if (dbExecutor.isShutdown()) {
+            task.run();
+            return;
+        }
+        try {
+            dbExecutor.submit(task).get(15, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            plugin.getLogger().severe("Interrupted while waiting for synchronous DB save: " + e.getMessage());
+        } catch (java.util.concurrent.ExecutionException e) {
+            plugin.getLogger().severe("Synchronous DB save failed: " + e.getCause());
+        } catch (java.util.concurrent.TimeoutException e) {
+            plugin.getLogger().severe("Synchronous DB save timed out after 15s!");
+        }
     }
 
     private void saveBatchSync(Connection conn, String sql, List<Claim> claims, boolean isRental) {
@@ -586,6 +617,13 @@ public class SQLiteStorage {
     }
 
     public void saveAllUserDataSync(java.util.Collection<me.lovelace.loveclaims.model.UserData> allData) {
+        // См. комментарий в saveAllClaimsSync: сериализуем через dbExecutor, чтобы не трогать
+        // claimsConnection параллельно с ещё не отработавшими async-задачами в очереди executor'а
+        // во время onDisable.
+        runOnDbExecutorAndAwait(() -> saveAllUserDataSyncInternal(allData));
+    }
+
+    private void saveAllUserDataSyncInternal(java.util.Collection<me.lovelace.loveclaims.model.UserData> allData) {
         if (claimsConnection == null) return;
 
         try {

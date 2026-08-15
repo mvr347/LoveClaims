@@ -120,7 +120,13 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(plugin.getConfigManager().getMessage("admin-expand-not-owner", "player", owner.getName()));
             return;
         }
-        claim.setBoundingBox(claim.getBoundingBox().expand(amount, amount, amount));
+        // Клонируем ДО expand(): BoundingBox#expand мутирует объект на месте и возвращает this,
+        // а getBoundingBox() отдаёт internal-ссылку без копии - без clone() тут же затёрлись бы
+        // и старые границы (нечем будет обновить чанковый кэш), и claim.boundingBox оказался бы
+        // изменён ещё до setBoundingBox().
+        org.bukkit.util.BoundingBox oldBox = claim.getBoundingBox().clone();
+        claim.setBoundingBox(oldBox.clone().expand(amount, amount, amount));
+        plugin.getClaimManager().resizeClaimInCache(claim, oldBox);
         plugin.getStorage().saveClaimAsync(claim);
         player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-expand-success", "amount", String.valueOf(amount)));
         me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, player, claim.getBoundingBox(), 100);
