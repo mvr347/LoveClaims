@@ -405,6 +405,23 @@ public final class LoveClaimsAPI {
     }
 
     /**
+     * Показать игроку визуальные границы вокруг BoundingBox для конкретного привата.
+     * В отличие от {@link #showBorder(Player, BoundingBox, long)}, зная claimId, можно
+     * применить особые правила отображения — например, клановая территория всегда
+     * подсвечивается красным стеклом вне зависимости от {@code border.material} в конфиге
+     * (см. {@link me.lovelace.loveclaims.task.BorderDisplayTask#showBorder(LoveClaims, Player, BoundingBox, long, UUID)}).
+     *
+     * @param player Игрок, которому нужно показать границы
+     * @param box BoundingBox (область), которую нужно подсветить
+     * @param durationTicks Время отображения в тиках (20 тиков = 1 секунда)
+     * @param claimId ID привата, которому принадлежит эта граница
+     */
+    public void showBorder(Player player, BoundingBox box, long durationTicks, java.util.UUID claimId) {
+        if (player == null || !player.isOnline() || box == null) return;
+        me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, player, box, durationTicks, claimId);
+    }
+
+    /**
      * Принудительно скрыть визуальные границы для игрока.
      *
      * @param player Игрок
