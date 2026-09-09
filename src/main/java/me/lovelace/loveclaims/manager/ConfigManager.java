@@ -55,6 +55,20 @@ public class ConfigManager {
             plugin.getLogger().info("Debug mode enabled");
         }
         plugin.getLogger().info("Language: " + language);
+
+        // isInsideSpawnClaim() сравнивает loc.getWorld().getName() с этим значением и молча
+        // возвращает false при несовпадении - раньше это означало, что неверно указанный или
+        // переставший существовать мир полностью отключал спавн-приват без единой строки в
+        // консоли. Paper/Purpur 26.1+ изменили структуру хранения миров/измерений
+        // (<мир>/dimensions/<namespace>/<key>/ вместо отдельных папок), из-за чего имя мира,
+        // указанное в config.yml, могло перестать резолвиться после обновления сервера.
+        if (config.getBoolean("spawn-claim.enabled", false)) {
+            String spawnWorldName = config.getString("spawn-claim.world", "world");
+            if (org.bukkit.Bukkit.getWorld(spawnWorldName) == null) {
+                plugin.getLogger().warning("spawn-claim.world '" + spawnWorldName + "' не найден среди загруженных миров - "
+                        + "защита спавна НЕ БУДЕТ работать, пока имя мира в config.yml не будет исправлено!");
+            }
+        }
     }
 
     public FileConfiguration getConfig() { return config; }
