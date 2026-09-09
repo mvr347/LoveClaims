@@ -93,7 +93,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
                 }
 
                 if (params.equalsIgnoreCase("is_pvp")) {
-                    return claim.getFlag(ClaimFlag.PVP) ? " &cВключено" : " &aВыключено";
+                    return " &aВыключено";
                 }
             } else {
                 if (params.startsWith("current_ ")) return "Свободная территория";
@@ -103,10 +103,6 @@ public class PAPIExpansion extends PlaceholderExpansion {
 
         // --- 3. Аренда ---
         if (params.equalsIgnoreCase("rented_days")) {
-            return "0";
-        }
-
-        if (params.equalsIgnoreCase("quests_completed")) {
             return "0";
         }
 

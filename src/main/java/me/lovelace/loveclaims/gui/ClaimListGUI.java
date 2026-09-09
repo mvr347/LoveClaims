@@ -28,7 +28,7 @@ public class ClaimListGUI extends AbstractGUI {
         this.viewer = viewer;
 
         for (Claim c : plugin.getClaimManager().getAllClaims()) {
-            if (c.getOwnerUuid().equals(viewer.getUniqueId()) || c.getTrust(viewer.getUniqueId()) != me.lovelace.loveclaims.model.TrustLevel.NONE) {
+            if ((c.getOwnerUuid() != null && c.getOwnerUuid().equals(viewer.getUniqueId())) || c.getMembers().containsKey(viewer.getUniqueId())) {
                 accessibleClaims.add(c);
             }
         }

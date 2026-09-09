@@ -36,9 +36,3 @@ permissions:
   loveclaims.rental.bypasslimit:
     description: Обход лимита на количество арендуемых участков
     default: op
-  loveclaims.bypass.expand:
-    description: Расширение привата без ограничений по тиру
-    default: op
-  loveclaims.bypass.flags:
-    description: Доступ ко всем флагам привата без открытия их через квесты
-    default: op

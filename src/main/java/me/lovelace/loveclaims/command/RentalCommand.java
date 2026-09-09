@@ -233,7 +233,7 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
             return;
         }
         plugin.getClaimManager().getClaimById(plotId).ifPresentOrElse(plot -> {
-            if (plot.getTrust(player.getUniqueId()) == me.lovelace.loveclaims.model.TrustLevel.NONE && !player.hasPermission("loveclaims.admin")) {
+            if (!plot.isOwner(player.getUniqueId()) && !plot.getMembers().containsKey(player.getUniqueId()) && !player.hasPermission("loveclaims.admin")) {
                 player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
                 return;
             }

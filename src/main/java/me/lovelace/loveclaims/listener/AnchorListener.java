@@ -7,6 +7,7 @@ import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.ClaimTier;
 import me.lovelace.loveclaims.model.TrustLevel;
 import me.lovelace.loveclaims.task.BlockPreviewTask;
+import me.lovelace.loveclaims.task.BorderDisplayTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -125,7 +126,7 @@ public class AnchorListener implements Listener {
                     return;
                 }
 
-                if (claim.getTrust(player.getUniqueId()).ordinal() >= TrustLevel.MANAGER.ordinal()) {
+                if (claim.isManager(player.getUniqueId())) {
                     event.setCancelled(true);
                     player.openInventory(new MainClaimGUI(plugin, player, claim).getInventory());
                 }
@@ -152,13 +153,17 @@ public class AnchorListener implements Listener {
         for (Claim existingClaim : plugin.getClaimManager().getAllClaims()) {
             if (existingClaim.isClanTerritory() && newBox.overlaps(existingClaim.getBoundingBox())) {
                 player.sendMessage(plugin.getConfigManager().getMessage("clan-overlap-deny"));
+                BorderDisplayTask.showBorder(plugin, player, existingClaim.getBoundingBox(), 140L, existingClaim.getId());
                 return;
             }
         }
 
         // Проверка на пересечение с существующими приватами других игроков (и рентой)
-        if (plugin.getClaimManager().checkOverlap(targetLoc.getWorld(), newBox)) {
+        java.util.Optional<Claim> conflictingOpt = plugin.getClaimManager().getFirstOverlappingClaim(targetLoc.getWorld(), newBox, null);
+        if (conflictingOpt.isPresent()) {
+            Claim conflict = conflictingOpt.get();
             player.sendMessage(plugin.getConfigManager().getMessage("claim-overlap"));
+            BorderDisplayTask.showBorder(plugin, player, conflict.getBoundingBox(), 140L, conflict.getId());
             return;
         }
 
@@ -180,8 +185,8 @@ public class AnchorListener implements Listener {
 
         int maxClaims = 1;
 
-        if (plugin.getQuestManager() != null) {
-            me.lovelace.loveclaims.model.UserData userData = plugin.getQuestManager().getUserData(player.getUniqueId());
+        if (plugin.getUserManager() != null) {
+            me.lovelace.loveclaims.model.UserData userData = plugin.getUserManager().getUserData(player.getUniqueId());
             maxClaims += userData.getBonusClaimSlots();
         }
 

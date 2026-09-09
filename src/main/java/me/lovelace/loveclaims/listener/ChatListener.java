@@ -96,7 +96,7 @@ public class ChatListener implements Listener {
                     return;
                 }
 
-                if (claim.getTrust(target.getUniqueId()) != TrustLevel.NONE) {
+                if (claim.isOwner(target.getUniqueId()) || claim.getMembers().containsKey(target.getUniqueId())) {
                     player.sendMessage(plugin.getConfigManager().getMessage("member-already-exists"));
                     if (claim.isRentalPlot()) {
                         player.openInventory(new me.lovelace.loveclaims.gui.RentalMembersGUI(plugin, player, claim).getInventory());
@@ -109,7 +109,7 @@ public class ChatListener implements Listener {
                 // ПРОВЕРКА ЛИМИТОВ: Не более 5 чужих приватов и не более 5 чужих плотов
                 int memberCount = 0;
                 for (Claim c : plugin.getClaimManager().getAllClaims()) {
-                    if (c.isRentalPlot() == claim.isRentalPlot() && c.getTrust(target.getUniqueId()) != TrustLevel.NONE && (c.getOwnerUuid() == null || !c.getOwnerUuid().equals(target.getUniqueId()))) {
+                    if (c.isRentalPlot() == claim.isRentalPlot() && c.getMembers().containsKey(target.getUniqueId()) && (c.getOwnerUuid() == null || !c.getOwnerUuid().equals(target.getUniqueId()))) {
                         memberCount++;
                     }
                 }

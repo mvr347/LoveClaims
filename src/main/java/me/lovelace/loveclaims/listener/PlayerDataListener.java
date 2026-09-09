@@ -17,10 +17,15 @@ public class PlayerDataListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        plugin.getStorage().loadUserData(player.getUniqueId())
+        java.util.UUID playerUuid = player.getUniqueId();
+        plugin.getStorage().loadUserData(playerUuid)
                 .thenAccept(userData -> {
-                    plugin.getQuestManager().getUserData(player.getUniqueId()).loadFrom(userData);
+                    plugin.getUserManager().getUserData(playerUuid).loadFrom(userData);
                 });
+
+        // Обновляем активность приватов игрока при входе на сервер
+        plugin.getClaimManager().getClaimsByOwner(playerUuid).forEach(me.lovelace.loveclaims.model.Claim::updateLastActive);
+        plugin.getClaimManager().getClaimsByPlayer(playerUuid).forEach(me.lovelace.loveclaims.model.Claim::updateLastActive);
 
         if (isAuthenticated(player)) {
             giveStarterAnchorIfFirstJoin(player);
@@ -58,9 +63,9 @@ public class PlayerDataListener implements Listener {
         java.util.UUID uuid = player.getUniqueId();
 
         // 1. Асинхронное сохранение данных при выходе
-        me.lovelace.loveclaims.model.UserData data = plugin.getQuestManager().getUserData(uuid);
+        me.lovelace.loveclaims.model.UserData data = plugin.getUserManager().getUserData(uuid);
         plugin.getStorage().saveUserDataAsync(data);
-        plugin.getQuestManager().unloadUser(uuid);
+        plugin.getUserManager().unloadUser(uuid);
 
         // 2. Очистка кэшей, тасков и утечек памяти (Memory Leaks)
         plugin.getAnchorListener().cleanupPlayer(player);

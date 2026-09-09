@@ -45,13 +45,12 @@ public class MembersGUI extends AbstractGUI {
         inventory.clear();
         renderedEntries.clear();
 
-        me.lovelace.loveclaims.model.UserData userData = plugin.getQuestManager().getUserData(claim.getOwnerUuid());
+        me.lovelace.loveclaims.model.UserData userData = plugin.getUserManager().getUserData(claim.getOwnerUuid());
         int defaultLimit = plugin.getConfigManager().getConfig().getInt("claim.members.default-limit", 5);
         int absoluteLimit = plugin.getConfigManager().getConfig().getInt("claim.members.absolute-limit", 24);
         int maxMembers = Math.min(absoluteLimit, defaultLimit + userData.getBonusMemberLimit());
 
-        boolean isManagerOrOwner = viewer.getUniqueId().equals(claim.getOwnerUuid()) ||
-                claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER;
+        boolean isManagerOrOwner = claim.isManager(viewer.getUniqueId());
 
         // gui-gen-5 RULE 3: слот 0 — тематическая иконка (список участников привата).
         inventory.setItem(0, createHead(HEAD_MEMBERS, plugin.getConfigManager().getComponent("members.title"), null));
@@ -97,7 +96,7 @@ public class MembersGUI extends AbstractGUI {
             if (meta != null) {
                 meta.setOwningPlayer(target);
                 String name = target.getName() != null ? target.getName() : "Неизвестный";
-                TrustLevel level = claim.getMembers().get(entryId);
+                TrustLevel level = claim.getTrust(entryId);
                 String roleName = plugin.getConfigManager().getConfig().getString("claim.roles." + level.name(), level.name());
 
                 if (roleName.equals(level.name())) {
@@ -175,8 +174,7 @@ public class MembersGUI extends AbstractGUI {
         int entryIndex = page * PAGE_SIZE + slotIndex;
         if (entryIndex >= renderedEntries.size()) return;
 
-        boolean isManagerOrOwner = viewer.getUniqueId().equals(claim.getOwnerUuid()) ||
-                claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER;
+        boolean isManagerOrOwner = claim.isManager(viewer.getUniqueId());
 
         UUID entryId = renderedEntries.get(entryIndex);
         if (entryId == ADD_MEMBER_MARKER) {
@@ -193,7 +191,7 @@ public class MembersGUI extends AbstractGUI {
             return;
         }
 
-        if (entryId.equals(viewer.getUniqueId()) && claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER) {
+        if (entryId.equals(viewer.getUniqueId()) && !claim.isOwner(viewer.getUniqueId())) {
             viewer.sendMessage(plugin.getConfigManager().getMessage("manager-role-error"));
             plugin.getConfigManager().playSound(viewer, "gui-error");
             return;

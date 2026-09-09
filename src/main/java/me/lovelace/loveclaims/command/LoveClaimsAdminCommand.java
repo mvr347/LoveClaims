@@ -34,9 +34,8 @@ import java.util.Optional;
  */
 public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "expand", "addmembers", "claim", "help");
+    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "expand", "addmembers", "help");
     private static final List<String> ANCHOR_TIERS = List.of("tier-1", "tier-2", "tier-3");
-    private static final List<String> LIMIT_ACTIONS = List.of("add", "remove");
 
     private final LoveClaims plugin;
 
@@ -65,7 +64,6 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
             case "give" -> handleGive(player, args);
             case "expand" -> handleExpand(player, args);
             case "addmembers" -> handleAddMembers(player, args);
-            case "claim" -> handleClaimLimit(player, args);
             default -> sendHelp(player);
         }
         return true;
@@ -74,7 +72,6 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
     private void handleReload(@NotNull Player player) {
         plugin.getConfigManager().loadAll();
         plugin.getAnchorManager().loadTiers();
-        plugin.getQuestManager().loadQuests();
         player.sendMessage(plugin.getConfigManager().getMessage("admin-reloaded"));
     }
 
@@ -111,7 +108,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
 
         Optional<Claim> opt = plugin.getClaimManager().getClaimAt(player.getLocation());
         if (opt.isEmpty()) {
-            player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-expand-fail"));
+            player.sendMessage(plugin.getConfigManager().getMessage("admin-expand-fail"));
             return;
         }
         Claim claim = opt.get();
@@ -128,7 +125,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         claim.setBoundingBox(oldBox.clone().expand(amount, amount, amount));
         plugin.getClaimManager().resizeClaimInCache(claim, oldBox);
         plugin.getStorage().saveClaimAsync(claim);
-        player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-expand-success", "amount", String.valueOf(amount)));
+        player.sendMessage(plugin.getConfigManager().getMessage("admin-expand-success", "amount", String.valueOf(amount)));
         me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, player, claim.getBoundingBox(), 100);
     }
 
@@ -148,47 +145,10 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        UserData data = plugin.getQuestManager().getUserData(target.getUniqueId());
+        UserData data = plugin.getUserManager().getUserData(target.getUniqueId());
         data.addBonusMemberLimit(amount);
         plugin.getStorage().saveUserDataAsync(data);
         player.sendMessage(plugin.getConfigManager().getMessage("admin-limit-success", "player", target.getName(), "amount", String.valueOf(amount)));
-    }
-
-    private void handleClaimLimit(@NotNull Player player, @NotNull String[] args) {
-        if (args.length < 4 || !args[1].equalsIgnoreCase("limit")) {
-            sendHelp(player);
-            return;
-        }
-        String action = args[2];
-        Player target = Bukkit.getPlayer(args[3]);
-        if (target == null) {
-            player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-player-not-found"));
-            return;
-        }
-
-        int count = 1;
-        if (args.length >= 5) {
-            try {
-                count = Integer.parseInt(args[4]);
-            } catch (NumberFormatException e) {
-                sendHelp(player);
-                return;
-            }
-        }
-
-        UserData data = plugin.getQuestManager().getUserData(target.getUniqueId());
-        if (action.equalsIgnoreCase("add")) {
-            data.addExpansionBlocks(count);
-            player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-limit-add", "count", String.valueOf(count), "player", target.getName()));
-        } else if (action.equalsIgnoreCase("remove")) {
-            if (data.getExpansionBlocks() >= count) {
-                data.removeExpansionBlocks(count);
-                player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-limit-remove", "count", String.valueOf(count), "player", target.getName()));
-            } else {
-                player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-limit-insufficient"));
-            }
-        }
-        plugin.getStorage().saveUserDataAsync(data);
     }
 
     private void sendHelp(@NotNull CommandSender sender) {
@@ -217,15 +177,6 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && sub.equals("give")) {
             return StringUtil.copyPartialMatches(args[2], ANCHOR_TIERS, new ArrayList<>());
-        }
-        if (args.length == 2 && sub.equals("claim")) {
-            return StringUtil.copyPartialMatches(args[1], List.of("limit"), new ArrayList<>());
-        }
-        if (args.length == 3 && sub.equals("claim") && args[1].equalsIgnoreCase("limit")) {
-            return StringUtil.copyPartialMatches(args[2], LIMIT_ACTIONS, new ArrayList<>());
-        }
-        if (args.length == 4 && sub.equals("claim") && args[1].equalsIgnoreCase("limit")) {
-            return StringUtil.copyPartialMatches(args[3], onlineNames, new ArrayList<>());
         }
         return Collections.emptyList();
     }

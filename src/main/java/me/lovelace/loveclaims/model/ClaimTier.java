@@ -19,7 +19,6 @@ import java.util.Optional;
  * @param radiusX         Радиус привата по оси X
  * @param radiusY         Радиус привата по оси Y (высота)
  * @param radiusZ         Радиус привата по оси Z
- * @param maxRadius       Максимальный радиус для расширения
  * @param customModelData CustomModelData для кастомной текстуры
  * @param permission      Требуемая пермишн для использования
  * @param createCost      Стоимость создания привата
@@ -37,7 +36,6 @@ public record ClaimTier(
     int radiusX,
     int radiusY,
     int radiusZ,
-    int maxRadius,
     int customModelData,
     String permission,
     long createCost,
@@ -67,8 +65,8 @@ public record ClaimTier(
      * Конструктор с минимальными параметрами.
      */
     public ClaimTier(String id, Material material, String name, List<String> lore,
-                     int radiusX, int radiusY, int radiusZ, int maxRadius, int customModelData) {
-        this(id, material, name, lore, radiusX, radiusY, radiusZ, maxRadius,
+                     int radiusX, int radiusY, int radiusZ, int customModelData) {
+        this(id, material, name, lore, radiusX, radiusY, radiusZ,
              customModelData, "none", 0, 0, 255, 0,
              "BLOCK_BEACON_ACTIVATE", "BLOCK_NOTE_BLOCK_BASS");
     }
@@ -95,14 +93,6 @@ public record ClaimTier(
      */
     public int getSizeZ() {
         return radiusZ * 2 + 1;
-    }
-
-    /**
-     * Получить максимальный размер привата.
-     * @return Полный максимальный размер (maxRadius * 2 + 1)
-     */
-    public int getMaxSize() {
-        return maxRadius * 2 + 1;
     }
 
     /**

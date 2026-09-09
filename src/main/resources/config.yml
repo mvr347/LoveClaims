@@ -1,7 +1,7 @@
 # ====================================================== #
 #               AdvancedClaims - Основной конфиг         #
 # ====================================================== #
-# Плагин для создания приватов с системой квестов, аренды
+# Плагин для создания приватов с системой аренды
 # и полной защитой территории.
 # 
 # Версия плагина: 1.0
@@ -12,7 +12,6 @@
 #           НАСТРОЙКИ ОБЫЧНЫХ ПРИВАТОВ (ЯКОРЯ)          #
 # ====================================================== #
 # Якоря - это блоки (костры), которые создают приваты.
-# Игроки могут расширять приваты через квесты.
 claim:
   # Лимиты участников привата
   members:
@@ -22,46 +21,12 @@ claim:
   # Названия ролей для отображения в GUI и чате
   # Порядок важен: NONE < ACCESS < CONTAINER < BUILD < MANAGER < OWNER
   roles:
-    OWNER: "Владелец"           # Полные права
-    MANAGER: "Менеджер"         # Может открывать GUI и добавлять участников
-    BUILD: "Строитель"          # Установка и разрушение блоков
-    CONTAINER: "Пользователь"   # Использование сундуков, печек
+    OWNER: "Хозяин"           # Полные права
+    MANAGER: "Смотрящий"         # Может открывать GUI и добавлять участников
+    BUILD: "Плотник"          # Установка и разрушение блоков
+    CONTAINER: "Участник"   # Использование сундуков, печек
     ACCESS: "Доступ"            # Двери, кнопки, люки
     NONE: "Нет"                 # Нет доступа
-
-  # Настройки уровней якорей (тиров)
-  # Каждый тир имеет свой размер и материал
-  tiers:
-    tier-1:
-      material: "CAMPFIRE"      # Блок якоря
-      radius-x: 8               # Радиус по X (размер 17x17)
-      radius-z: 8               # Радиус по Z
-      height: 32                # Высота привата
-      permission: "none"        # Требуемая пермишн (или "none")
-    tier-2:
-      material: "SOUL_CAMPFIRE"
-      radius-x: 16
-      radius-z: 16
-      height: 64
-      permission: "none"
-    tier-3:
-      material: "LANTERN"
-      radius-x: 32
-      radius-z: 32
-      height: 128
-      permission: "none"
-    tier-4:
-      material: "SOUL_LANTERN"
-      radius-x: 64
-      radius-z: 64
-      height: 256
-      permission: "none"
-
-  # Настройки расширения приватов
-  expansion:
-    enabled: true               # Включить ли расширение приватов
-    cost-per-block: 1           # Стоимость 1 очка расширения (в валюте)
-    max-expansion-per-day: 100  # Максимум расширения в день
 
 # ====================================================== #
 #           НАСТРОЙКИ АРЕНДНЫХ УЧАСТКОВ (RENTALS)       #
@@ -231,8 +196,6 @@ sounds:
   anchor-place: "BLOCK_BEACON_ACTIVATE"   # Установка якоря
   anchor-error: "BLOCK_NOTE_BLOCK_BASS"   # Ошибка якоря
   anchor-break: "BLOCK_NOTE_BLOCK_BASS"   # Разрушение якоря
-  anchor-claim-create: "BLOCK_BEACON_ACTIVATE"  # Создание привата
-  anchor-claim-delete: "BLOCK_END_PORTAL_SPAWN"  # Удаление привата
   
   # ===== ЗВУКИ НАЛОГОВ И ОПЛАТЫ =====
   tax-paid: "ENTITY_PLAYER_LEVELUP"       # Оплата налога
@@ -241,71 +204,12 @@ sounds:
   rental-expire: "BLOCK_NOTE_BLOCK_BASS"  # Истечение аренды
   insufficient-funds: "ENTITY_VILLAGER_NO"  # Недостаточно средств
   
-  # ===== ЗВУКИ КВЕСТОВ =====
-  quest-complete: "UI_TOAST_CHALLENGE_COMPLETE"  # Квест завершен
-  quest-progress: "ENTITY_EXPERIENCE_ORB_PICKUP"  # Прогресс квеста
-  quest-fail: "BLOCK_NOTE_BLOCK_BASS"     # Квест провален
-  
   # ===== ЗВУКИ ТЕЛЕПОРТАЦИИ =====
-  teleport: "ENTITY_ENDERMAN_TELEPORT"    # Телепортация
   teleport-home: "BLOCK_END_PORTAL_TRAVEL"  # Телепорт домой
-  teleport-denied: "BLOCK_NOTE_BLOCK_BASS"  # Телепорт запрещён
   
   # ===== ЗВУКИ ГРАНИЦ =====
   border-show: "BLOCK_NOTE_BLOCK_PLING"   # Показ границ
   border-hide: "BLOCK_NOTE_BLOCK_BASS"    # Скрытие границ
-  
-  # ===== ЗВУКИ УВЕДОМЛЕНИЙ =====
-  notification: "BLOCK_NOTE_BLOCK_PLING"  # Уведомление
-  warning: "BLOCK_NOTE_BLOCK_BASS"        # Предупреждение
-  success: "ENTITY_PLAYER_LEVELUP"        # Успех
-  error: "ENTITY_VILLAGER_NO"             # Ошибка
-  
-  # ===== ЗВУКИ ПРИВЕТСТВИЯ =====
-  welcome: "BLOCK_BEACON_ACTIVATE"        # Приветствие игрока
-  goodbye: "BLOCK_NOTE_BLOCK_BASS"        # Прощание
-  
-  # ===== ЗВУКИ КОМАНД =====
-  command-success: "ENTITY_PLAYER_LEVELUP"  # Команда выполнена
-  command-fail: "BLOCK_NOTE_BLOCK_BASS"   # Команда не выполнена
-  command-cooldown: "BLOCK_NOTE_BLOCK_BASS"  # Перезарядка команды
-  
-  # ===== ЗВУКИ СОБЫТИЙ =====
-  event-start: "BLOCK_BEACON_ACTIVATE"    # Начало события
-  event-end: "BLOCK_END_PORTAL_SPAWN"     # Конец события
-  event-join: "ENTITY_PLAYER_LEVELUP"     # Присоединение к событию
-  event-leave: "BLOCK_NOTE_BLOCK_BASS"    # Выход из события
-  
-  # ===== ЗВУКИ ИНВЕНТАРЯ =====
-  inventory-open: "BLOCK_CHEST_OPEN"      # Открытие инвентаря
-  inventory-close: "BLOCK_CHEST_CLOSE"    # Закрытие инвентаря
-  item-pickup: "ENTITY_ITEM_PICKUP"       # Подбор предмета
-  item-drop: "ENTITY_ITEM_THROW"          # Бросок предмета
-  
-  # ===== ЗВУКИ БОЯ =====
-  pvp-hit: "ENTITY_PLAYER_HURT"           # Удар по игроку
-  pvp-kill: "ENTITY_PLAYER_DEATH"         # Смерть игрока
-  mob-kill: "ENTITY_PLAYER_LEVELUP"       # Убийство моба
-  
-  # ===== ЗВУКИ ТОРГОВЛИ =====
-  trade: "ENTITY_VILLAGER_TRADE"          # Торговля
-  trade-success: "ENTITY_PLAYER_LEVELUP"  # Успешная торговля
-  trade-fail: "ENTITY_VILLAGER_NO"        # Неудачная торговля
-  
-  # ===== КАСТОМНЫЕ ЗВУКИ (для якорей) =====
-  # Эти звуки используются в anchors.yml
-  anchor-tier-1-place: "BLOCK_BEACON_ACTIVATE"
-  anchor-tier-1-break: "BLOCK_NOTE_BLOCK_BASS"
-  anchor-tier-2-place: "BLOCK_SOUL_SPAWN_PLACE"
-  anchor-tier-2-break: "BLOCK_SOUL_SPAWN_BREAK"
-  anchor-tier-3-place: "BLOCK_BELL_USE"
-  anchor-tier-3-break: "BLOCK_BELL_RESONATE"
-  anchor-tier-4-place: "BLOCK_BEACON_ACTIVATE"
-  anchor-tier-4-break: "BLOCK_BEACON_DEACTIVATE"
-  anchor-tier-5-place: "ENTITY_ENDER_DRAGON_GROWL"
-  anchor-tier-5-break: "ENTITY_ENDER_DRAGON_DEATH"
-  anchor-tier-6-place: "UI_TOAST_CHALLENGE_COMPLETE"
-  anchor-tier-6-break: "BLOCK_END_PORTAL_SPAWN"
 
 # ====================================================== #
 #                   АВТОСОХРАНЕНИЕ                       #
@@ -330,8 +234,6 @@ integrations:
     # %advancedclaims_claim_owner% - Владелец привата
     # %advancedclaims_claim_members% - Количество участников
     # %advancedclaims_claim_size% - Размер привата
-    # %advancedclaims_quest_progress% - Прогресс квеста
-    # %advancedclaims_quest_completed% - Завершенные квесты
   
   # Vault - поддержка экономики
   vault:
@@ -355,8 +257,6 @@ misc:
   # Проверка обновлений
   check-updates: false         # Проверять обновления при старте
   
-  # Метрики (bStats)
-  metrics: false               # Отправлять анонимную статистику
   
   # Отладка
   debug: false                # Режим отладки (логирование)
@@ -366,3 +266,21 @@ misc:
   
   # Отображаемое имя для кланового привата (если нет своего имени)
   clan-claim-display-name: "Клановая Территория"
+
+# ====================================================== #
+#          ОТОБРАЖЕНИЕ ГРАНИЦ ПРИ ПРИБЛИЖЕНИИ            #
+# ====================================================== #
+proximity-border:
+  enabled: true               # Включить систему отображения границ при приближении
+  default-enabled: true       # Включено ли по умолчанию для новых игроков
+  detection-distance: 8.0     # Дистанция до границы привата для отображения (в блоках)
+  mode: "PARTICLES"           # Режим: PARTICLES (партиклы, максимальная производительность) или ITEM_DISPLAY
+  particle-color: "#00E5FF"   # Цвет партиклов нейтрального привата (HEX)
+
+# ====================================================== #
+#            АВТОУДАЛЕНИЕ НЕАКТИВНЫХ ПРИВАТОВ            #
+# ====================================================== #
+auto-delete:
+  enabled: true               # Включить автоудаление неактивных приватов
+  days-inactive: 30           # Количество дней неактивности (по умолчанию: 30)
+  drop-anchor: false          # Выпадать ли якорю предметом при автоудалении

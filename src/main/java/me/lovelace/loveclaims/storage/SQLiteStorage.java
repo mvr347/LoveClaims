@@ -3,6 +3,7 @@ package me.lovelace.loveclaims.storage;
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.ClaimFlag;
+import me.lovelace.loveclaims.model.ClaimPermission;
 import me.lovelace.loveclaims.model.IndicatorType;
 import me.lovelace.loveclaims.model.TrustLevel;
 import me.lovelace.loveclaims.model.UserData;
@@ -14,15 +15,18 @@ import org.bukkit.util.BoundingBox;
 import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class SQLiteStorage {
     private final LoveClaims plugin;
@@ -31,25 +35,25 @@ public class SQLiteStorage {
     private final ExecutorService dbExecutor;
 
     private static final String CLAIMS_UPSERT =
-            "INSERT INTO claims (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, claim_type, is_clan_territory, is_under_siege, owner_display_name) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO claims (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, claim_type, is_clan_territory, is_under_siege, owner_display_name, default_permissions) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                     "ON CONFLICT(id) DO UPDATE SET " +
                     "world=excluded.world, min_x=excluded.min_x, min_y=excluded.min_y, min_z=excluded.min_z, " +
                     "max_x=excluded.max_x, max_y=excluded.max_y, max_z=excluded.max_z, " +
                     "owner_uuid=excluded.owner_uuid, name=excluded.name, description=excluded.description, " +
                     "anchor_x=excluded.anchor_x, anchor_y=excluded.anchor_y, anchor_z=excluded.anchor_z, " +
-                    "last_active=excluded.last_active, home_x=excluded.home_x, home_y=excluded.home_y, home_z=excluded.home_z, claim_type=excluded.claim_type, is_clan_territory=excluded.is_clan_territory, is_under_siege=excluded.is_under_siege, owner_display_name=excluded.owner_display_name";
+                    "last_active=excluded.last_active, home_x=excluded.home_x, home_y=excluded.home_y, home_z=excluded.home_z, claim_type=excluded.claim_type, is_clan_territory=excluded.is_clan_territory, is_under_siege=excluded.is_under_siege, owner_display_name=excluded.owner_display_name, default_permissions=excluded.default_permissions";
 
     private static final String RENTALS_UPSERT =
-            "INSERT INTO rentals (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, rental_price, rental_end_time, parent_claim_id, indicator_type, hologram_id, last_tax_time) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO rentals (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, rental_price, rental_end_time, parent_claim_id, indicator_type, hologram_id, last_tax_time, default_permissions) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                     "ON CONFLICT(id) DO UPDATE SET " +
                     "world=excluded.world, min_x=excluded.min_x, min_y=excluded.min_y, min_z=excluded.min_z, " +
                     "max_x=excluded.max_x, max_y=excluded.max_y, max_z=excluded.max_z, " +
                     "owner_uuid=excluded.owner_uuid, name=excluded.name, description=excluded.description, " +
                     "anchor_x=excluded.anchor_x, anchor_y=excluded.anchor_y, anchor_z=excluded.anchor_z, " +
                     "last_active=excluded.last_active, home_x=excluded.home_x, home_y=excluded.home_y, home_z=excluded.home_z, " +
-                    "rental_price=excluded.rental_price, rental_end_time=excluded.rental_end_time, parent_claim_id=excluded.parent_claim_id, indicator_type=excluded.indicator_type, hologram_id=excluded.hologram_id, last_tax_time=excluded.last_tax_time";
+                    "rental_price=excluded.rental_price, rental_end_time=excluded.rental_end_time, parent_claim_id=excluded.parent_claim_id, indicator_type=excluded.indicator_type, hologram_id=excluded.hologram_id, last_tax_time=excluded.last_tax_time, default_permissions=excluded.default_permissions";
 
     public SQLiteStorage(LoveClaims plugin) {
         this.plugin = plugin;
@@ -57,6 +61,43 @@ public class SQLiteStorage {
         // сериализуем все обращения к БД через единственный поток, чтобы избежать
         // "database is locked" и повреждения запросов при параллельных сохранениях.
         this.dbExecutor = Executors.newSingleThreadExecutor();
+    }
+
+    public static String serializePermissions(Set<ClaimPermission> perms) {
+        if (perms == null || perms.isEmpty()) return "";
+        return perms.stream().map(Enum::name).collect(Collectors.joining(","));
+    }
+
+    public static Set<ClaimPermission> parsePermissions(String raw) {
+        Set<ClaimPermission> set = EnumSet.noneOf(ClaimPermission.class);
+        if (raw == null || raw.trim().isEmpty()) return set;
+        String[] parts = raw.split(",");
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) continue;
+            try {
+                set.add(ClaimPermission.valueOf(trimmed));
+            } catch (IllegalArgumentException e) {
+                try {
+                    TrustLevel tl = TrustLevel.valueOf(trimmed);
+                    switch (tl) {
+                        case OWNER, MANAGER -> set.addAll(EnumSet.allOf(ClaimPermission.class));
+                        case BUILD -> {
+                            set.add(ClaimPermission.BUILD);
+                            set.add(ClaimPermission.CONTAINERS);
+                            set.add(ClaimPermission.INTERACT);
+                        }
+                        case CONTAINER -> {
+                            set.add(ClaimPermission.CONTAINERS);
+                            set.add(ClaimPermission.INTERACT);
+                        }
+                        case ACCESS -> set.add(ClaimPermission.INTERACT);
+                        case NONE -> {}
+                    }
+                } catch (IllegalArgumentException ignored) {}
+            }
+        }
+        return set;
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -95,8 +136,8 @@ public class SQLiteStorage {
 
     private void initClaimsTables(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS claims (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, claim_type VARCHAR(32) DEFAULT 'PLAYER', is_clan_territory BOOLEAN DEFAULT FALSE, is_under_siege BOOLEAN DEFAULT FALSE, owner_display_name VARCHAR(64));");
-            stmt.execute("CREATE TABLE IF NOT EXISTS claim_members (claim_id VARCHAR(36), player_uuid VARCHAR(36), trust_level VARCHAR(32), PRIMARY KEY (claim_id, player_uuid), FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE);");
+            stmt.execute("CREATE TABLE IF NOT EXISTS claims (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, claim_type VARCHAR(32) DEFAULT 'PLAYER', is_clan_territory BOOLEAN DEFAULT FALSE, is_under_siege BOOLEAN DEFAULT FALSE, owner_display_name VARCHAR(64), default_permissions VARCHAR(128) DEFAULT '');");
+            stmt.execute("CREATE TABLE IF NOT EXISTS claim_members (claim_id VARCHAR(36), player_uuid VARCHAR(36), trust_level VARCHAR(64), PRIMARY KEY (claim_id, player_uuid), FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE);");
             stmt.execute("CREATE TABLE IF NOT EXISTS claim_flags (claim_id VARCHAR(36), flag_name VARCHAR(64), state BOOLEAN, PRIMARY KEY (claim_id, flag_name), FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE);");
 
             // Добавление новых колонок, если их нет
@@ -104,17 +145,20 @@ public class SQLiteStorage {
             try { stmt.execute("ALTER TABLE claims ADD COLUMN is_clan_territory BOOLEAN DEFAULT FALSE;"); } catch (SQLException ignored) {}
             try { stmt.execute("ALTER TABLE claims ADD COLUMN is_under_siege BOOLEAN DEFAULT FALSE;"); } catch (SQLException ignored) {}
             try { stmt.execute("ALTER TABLE claims ADD COLUMN owner_display_name VARCHAR(64);"); } catch (SQLException ignored) {}
+            try { stmt.execute("ALTER TABLE claims ADD COLUMN default_permissions VARCHAR(128) DEFAULT '';"); } catch (SQLException ignored) {}
 
-            stmt.execute("CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36) PRIMARY KEY, expansion_blocks INT, bonus_members INT, bonus_slots INT, bonus_blocks INT);");
-            stmt.execute("CREATE TABLE IF NOT EXISTS user_quests (uuid VARCHAR(36), quest_id VARCHAR(64), progress INT, completed BOOLEAN, PRIMARY KEY (uuid, quest_id), FOREIGN KEY(uuid) REFERENCES users(uuid) ON DELETE CASCADE);");
-            stmt.execute("CREATE TABLE IF NOT EXISTS user_buffs (uuid VARCHAR(36), buff_name VARCHAR(64), PRIMARY KEY (uuid, buff_name), FOREIGN KEY(uuid) REFERENCES users(uuid) ON DELETE CASCADE);");
+            stmt.execute("CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36) PRIMARY KEY, bonus_members INT, bonus_slots INT, show_proximity_border BOOLEAN DEFAULT TRUE);");
+            try { stmt.execute("ALTER TABLE users ADD COLUMN show_proximity_border BOOLEAN DEFAULT TRUE;"); } catch (SQLException ignored) {}
+            try { stmt.execute("DROP TABLE IF EXISTS user_quests;"); } catch (SQLException ignored) {}
+            try { stmt.execute("DROP TABLE IF EXISTS user_buffs;"); } catch (SQLException ignored) {}
         }
     }
 
     private void initRentalsTables(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS rentals (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, rental_price BIGINT DEFAULT 0, rental_end_time BIGINT DEFAULT 0, parent_claim_id VARCHAR(36), indicator_type VARCHAR(32) DEFAULT 'NONE', hologram_id VARCHAR(64), last_tax_time BIGINT DEFAULT 0);");
-            stmt.execute("CREATE TABLE IF NOT EXISTS rental_members (rental_id VARCHAR(36), player_uuid VARCHAR(36), trust_level VARCHAR(32), PRIMARY KEY (rental_id, player_uuid), FOREIGN KEY(rental_id) REFERENCES rentals(id) ON DELETE CASCADE);");
+            stmt.execute("CREATE TABLE IF NOT EXISTS rentals (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, rental_price BIGINT DEFAULT 0, rental_end_time BIGINT DEFAULT 0, parent_claim_id VARCHAR(36), indicator_type VARCHAR(32) DEFAULT 'NONE', hologram_id VARCHAR(64), last_tax_time BIGINT DEFAULT 0, default_permissions VARCHAR(128) DEFAULT '');");
+            stmt.execute("CREATE TABLE IF NOT EXISTS rental_members (rental_id VARCHAR(36), player_uuid VARCHAR(36), trust_level VARCHAR(64), PRIMARY KEY (rental_id, player_uuid), FOREIGN KEY(rental_id) REFERENCES rentals(id) ON DELETE CASCADE);");
+            try { stmt.execute("ALTER TABLE rentals ADD COLUMN default_permissions VARCHAR(128) DEFAULT '';"); } catch (SQLException ignored) {}
         }
     }
 
@@ -162,6 +206,16 @@ public class SQLiteStorage {
                     claim.setOwnerDisplayName(rs.getString("owner_display_name"));
                 }
 
+                try {
+                    String defPerms = rs.getString("default_permissions");
+                    if (defPerms != null && !defPerms.isEmpty()) {
+                        claim.setDefaultPermissions(parsePermissions(defPerms));
+                    }
+                } catch (SQLException ignored) {}
+
+                long lastActive = rs.getLong("last_active");
+                if (lastActive > 0) claim.setLastActive(lastActive);
+
                 claimsMap.put(id, claim);
             }
         } catch (SQLException e) {
@@ -175,7 +229,7 @@ public class SQLiteStorage {
             while (rs.next()) {
                 Claim claim = claimsMap.get(UUID.fromString(rs.getString(idColumn)));
                 if (claim != null) {
-                    claim.getMembers().put(UUID.fromString(rs.getString("player_uuid")), TrustLevel.valueOf(rs.getString("trust_level")));
+                    claim.getMembers().put(UUID.fromString(rs.getString("player_uuid")), parsePermissions(rs.getString("trust_level")));
                 }
             }
         } catch (SQLException e) { plugin.getLogger().severe("Error loading members (" + tableName + "): " + e.getMessage()); }
@@ -241,6 +295,16 @@ public class SQLiteStorage {
                         claim.setUnderSiege(rs.getBoolean("is_under_siege"));
                         claim.setOwnerDisplayName(rs.getString("owner_display_name"));
                     }
+
+                    try {
+                        String defPerms = rs.getString("default_permissions");
+                        if (defPerms != null && !defPerms.isEmpty()) {
+                            claim.setDefaultPermissions(parsePermissions(defPerms));
+                        }
+                    } catch (SQLException ignored) {}
+
+                    long lastActive = rs.getLong("last_active");
+                    if (lastActive > 0) claim.setLastActive(lastActive);
                 }
             }
         } catch (SQLException e) {
@@ -256,7 +320,7 @@ public class SQLiteStorage {
             ps.setString(1, claimId.toString());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    claim.getMembers().put(UUID.fromString(rs.getString("player_uuid")), TrustLevel.valueOf(rs.getString("trust_level")));
+                    claim.getMembers().put(UUID.fromString(rs.getString("player_uuid")), parsePermissions(rs.getString("trust_level")));
                 }
             }
         } catch (SQLException e) { plugin.getLogger().severe("Error loading members for claim " + claimId + ": " + e.getMessage()); }
@@ -413,15 +477,17 @@ public class SQLiteStorage {
             ps.setString(23, claim.getIndicatorType().name());
             ps.setString(24, claim.getHologramId());
             ps.setLong(25, claim.getLastTaxTime());
+            ps.setString(26, serializePermissions(claim.getDefaultPermissions()));
         } else {
             ps.setString(20, claim.getClaimType().name());
             ps.setBoolean(21, claim.isClanTerritory());
             ps.setBoolean(22, claim.isUnderSiege());
             ps.setString(23, claim.getOwnerDisplayName());
+            ps.setString(24, serializePermissions(claim.getDefaultPermissions()));
         }
     }
 
-    public void saveMemberAsync(UUID claimId, UUID playerUuid, TrustLevel level) {
+    public void saveMemberPermissionsAsync(UUID claimId, UUID playerUuid, Set<ClaimPermission> perms) {
         boolean isRental = plugin.getClaimManager().getClaimById(claimId).map(Claim::isRentalPlot).orElse(false);
         Connection conn = isRental ? rentalsConnection : claimsConnection;
         String table = isRental ? "rental_members" : "claim_members";
@@ -431,10 +497,29 @@ public class SQLiteStorage {
             try (PreparedStatement ps = conn.prepareStatement("INSERT OR REPLACE INTO " + table + " (" + idCol + ", player_uuid, trust_level) VALUES (?, ?, ?)")) {
                 ps.setString(1, claimId.toString());
                 ps.setString(2, playerUuid.toString());
-                ps.setString(3, level.name());
+                ps.setString(3, serializePermissions(perms));
                 ps.executeUpdate();
             } catch (SQLException e) { plugin.getLogger().severe("SQL Error: " + e.getMessage()); }
         }, dbExecutor);
+    }
+
+    public void saveMemberAsync(UUID claimId, UUID playerUuid, TrustLevel level) {
+        Set<ClaimPermission> perms = EnumSet.noneOf(ClaimPermission.class);
+        switch (level) {
+            case OWNER, MANAGER -> perms.addAll(EnumSet.allOf(ClaimPermission.class));
+            case BUILD -> {
+                perms.add(ClaimPermission.BUILD);
+                perms.add(ClaimPermission.CONTAINERS);
+                perms.add(ClaimPermission.INTERACT);
+            }
+            case CONTAINER -> {
+                perms.add(ClaimPermission.CONTAINERS);
+                perms.add(ClaimPermission.INTERACT);
+            }
+            case ACCESS -> perms.add(ClaimPermission.INTERACT);
+            case NONE -> {}
+        }
+        saveMemberPermissionsAsync(claimId, playerUuid, perms);
     }
 
     public void removeMemberAsync(UUID claimId, UUID playerUuid) {
@@ -504,28 +589,11 @@ public class SQLiteStorage {
                 ps.setString(1, uuid.toString());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        data.setExpansionBlocks(rs.getInt("expansion_blocks"));
                         data.setBonusMemberLimit(rs.getInt("bonus_members"));
                         data.setBonusClaimSlots(rs.getInt("bonus_slots"));
-                        data.setBonusBlocks(rs.getInt("bonus_blocks"));
-                    }
-                }
-            } catch (SQLException e) { plugin.getLogger().severe("SQL Error: " + e.getMessage()); }
-            try (PreparedStatement ps = claimsConnection.prepareStatement("SELECT * FROM user_quests WHERE uuid = ?")) {
-                ps.setString(1, uuid.toString());
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        String qId = rs.getString("quest_id");
-                        data.setQuestProgress(qId, rs.getInt("progress"));
-                        data.setQuestCompleted(qId, rs.getBoolean("completed"));
-                    }
-                }
-            } catch (SQLException e) { plugin.getLogger().severe("SQL Error: " + e.getMessage()); }
-            try (PreparedStatement ps = claimsConnection.prepareStatement("SELECT * FROM user_buffs WHERE uuid = ?")) {
-                ps.setString(1, uuid.toString());
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        data.unlockBuff(rs.getString("buff_name"));
+                        try {
+                            data.setShowProximityBorder(rs.getBoolean("show_proximity_border"));
+                        } catch (SQLException ignored) {}
                     }
                 }
             } catch (SQLException e) { plugin.getLogger().severe("SQL Error: " + e.getMessage()); }
@@ -555,26 +623,12 @@ public class SQLiteStorage {
                 return;
             }
 
-            try (PreparedStatement ps = claimsConnection.prepareStatement("INSERT OR REPLACE INTO users (uuid, expansion_blocks, bonus_members, bonus_slots, bonus_blocks) VALUES (?, ?, ?, ?, ?)")) {
+            try (PreparedStatement ps = claimsConnection.prepareStatement("INSERT OR REPLACE INTO users (uuid, bonus_members, bonus_slots, show_proximity_border) VALUES (?, ?, ?, ?)")) {
                 ps.setString(1, data.getUuid().toString());
-                ps.setInt(2, data.getExpansionBlocks());
-                ps.setInt(3, data.getBonusMemberLimit());
-                ps.setInt(4, data.getBonusClaimSlots());
-                ps.setInt(5, data.getBonusBlocks());
+                ps.setInt(2, data.getBonusMemberLimit());
+                ps.setInt(3, data.getBonusClaimSlots());
+                ps.setBoolean(4, data.isShowProximityBorder());
                 ps.executeUpdate();
-            } catch (SQLException e) {
-                if (e.getMessage() == null || !e.getMessage().contains("closed")) plugin.getLogger().severe("SQL Error: " + e.getMessage());
-            }
-
-            try (PreparedStatement ps = claimsConnection.prepareStatement("INSERT OR REPLACE INTO user_quests (uuid, quest_id, progress, completed) VALUES (?, ?, ?, ?) ")) {
-                for (Map.Entry<String, Integer> entry : data.getProgressMap().entrySet()) {
-                    ps.setString(1, data.getUuid().toString());
-                    ps.setString(2, entry.getKey());
-                    ps.setInt(3, entry.getValue());
-                    ps.setBoolean(4, data.isQuestCompleted(entry.getKey()));
-                    ps.addBatch();
-                }
-                ps.executeBatch();
             } catch (SQLException e) {
                 if (e.getMessage() == null || !e.getMessage().contains("closed")) plugin.getLogger().severe("SQL Error: " + e.getMessage());
             }
@@ -588,31 +642,12 @@ public class SQLiteStorage {
             return;
         }
 
-        try (PreparedStatement ps = claimsConnection.prepareStatement("INSERT OR REPLACE INTO users (uuid, expansion_blocks, bonus_members, bonus_slots, bonus_blocks) VALUES (?, ?, ?, ?, ?)")) {
+        try (PreparedStatement ps = claimsConnection.prepareStatement("INSERT OR REPLACE INTO users (uuid, bonus_members, bonus_slots, show_proximity_border) VALUES (?, ?, ?, ?)")) {
             ps.setString(1, data.getUuid().toString());
-            ps.setInt(2, data.getExpansionBlocks());
-            ps.setInt(3, data.getBonusMemberLimit());
-            ps.setInt(4, data.getBonusClaimSlots());
-            ps.setInt(5, data.getBonusBlocks());
+            ps.setInt(2, data.getBonusMemberLimit());
+            ps.setInt(3, data.getBonusClaimSlots());
+            ps.setBoolean(4, data.isShowProximityBorder());
             ps.executeUpdate();
-        } catch (SQLException e) { plugin.getLogger().severe("SQL Error: " + e.getMessage()); }
-        try (PreparedStatement ps = claimsConnection.prepareStatement("INSERT OR REPLACE INTO user_quests (uuid, quest_id, progress, completed) VALUES (?, ?, ?, ?)")) {
-            for (Map.Entry<String, Integer> entry : data.getProgressMap().entrySet()) {
-                ps.setString(1, data.getUuid().toString());
-                ps.setString(2, entry.getKey());
-                ps.setInt(3, entry.getValue());
-                ps.setBoolean(4, data.isQuestCompleted(entry.getKey()));
-                ps.addBatch();
-            }
-            ps.executeBatch();
-        } catch (SQLException e) { plugin.getLogger().severe("SQL Error: " + e.getMessage()); }
-        try (PreparedStatement ps = claimsConnection.prepareStatement("INSERT OR IGNORE INTO user_buffs (uuid, buff_name) VALUES (?, ?)")) {
-            for (String buff : data.getUnlockedBuffs()) {
-                ps.setString(1, data.getUuid().toString());
-                ps.setString(2, buff);
-                ps.addBatch();
-            }
-            ps.executeBatch();
         } catch (SQLException e) { plugin.getLogger().severe("SQL Error: " + e.getMessage()); }
     }
 
@@ -633,36 +668,17 @@ public class SQLiteStorage {
             return;
         }
 
-        try (PreparedStatement psUser = claimsConnection.prepareStatement("INSERT OR REPLACE INTO users (uuid, expansion_blocks, bonus_members, bonus_slots, bonus_blocks) VALUES (?, ?, ?, ?, ?)");
-             PreparedStatement psQuest = claimsConnection.prepareStatement("INSERT OR REPLACE INTO user_quests (uuid, quest_id, progress, completed) VALUES (?, ?, ?, ?)");
-             PreparedStatement psBuff = claimsConnection.prepareStatement("INSERT OR IGNORE INTO user_buffs (uuid, buff_name) VALUES (?, ?)")) {
+        try (PreparedStatement psUser = claimsConnection.prepareStatement("INSERT OR REPLACE INTO users (uuid, bonus_members, bonus_slots, show_proximity_border) VALUES (?, ?, ?, ?)")) {
 
             for (me.lovelace.loveclaims.model.UserData data : allData) {
                 psUser.setString(1, data.getUuid().toString());
-                psUser.setInt(2, data.getExpansionBlocks());
-                psUser.setInt(3, data.getBonusMemberLimit());
-                psUser.setInt(4, data.getBonusClaimSlots());
-                psUser.setInt(5, data.getBonusBlocks());
+                psUser.setInt(2, data.getBonusMemberLimit());
+                psUser.setInt(3, data.getBonusClaimSlots());
+                psUser.setBoolean(4, data.isShowProximityBorder());
                 psUser.addBatch();
-
-                for (java.util.Map.Entry<String, Integer> entry : data.getProgressMap().entrySet()) {
-                    psQuest.setString(1, data.getUuid().toString());
-                    psQuest.setString(2, entry.getKey());
-                    psQuest.setInt(3, entry.getValue());
-                    psQuest.setBoolean(4, data.isQuestCompleted(entry.getKey()));
-                    psQuest.addBatch();
-                }
-
-                for (String buff : data.getUnlockedBuffs()) {
-                    psBuff.setString(1, data.getUuid().toString());
-                    psBuff.setString(2, buff);
-                    psBuff.addBatch();
-                }
             }
 
             psUser.executeBatch();
-            psQuest.executeBatch();
-            psBuff.executeBatch();
             claimsConnection.commit();
 
         } catch (SQLException e) {

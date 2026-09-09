@@ -61,7 +61,6 @@ public class AnchorManager {
                 int rX = section.getInt(key + ".radius-x", 8);
                 int rY = section.getInt(key + ".radius-y", 8);
                 int rZ = section.getInt(key + ".radius-z", 8);
-                int maxRadius = section.getInt(key + ".max-radius", rX + 1);
                 int cmd = section.getInt(key + ".custom-model-data", 0);
 
                 // Чтение дополнительных настроек
@@ -82,7 +81,7 @@ public class AnchorManager {
 
                 tempTiers.add(new ClaimTier(
                     key, material, name, lore,
-                    rX, rY, rZ, maxRadius, cmd,
+                    rX, rY, rZ, cmd,
                     permission, createCost,
                     borderRed, borderGreen, borderBlue,
                     placeSound, breakSound
@@ -95,32 +94,8 @@ public class AnchorManager {
         // Сортировка тиров по радиусу (от меньшего к большему)
         tempTiers.sort(Comparator.comparingInt(ClaimTier::radiusX));
 
-        // Пересчет максимальных размеров
-        for (int i = 0; i < tempTiers.size(); i++) {
-            ClaimTier current = tempTiers.get(i);
-
-            // Если max-radius не задан, вычисляем его
-            int effectiveMaxRadius = current.maxRadius();
-            if (effectiveMaxRadius <= current.radiusX()) {
-                if (i < tempTiers.size() - 1) {
-                    // Максимум = следующий тир - 1
-                    effectiveMaxRadius = tempTiers.get(i + 1).radiusX() * 2 - 1;
-                } else {
-                    // Для последнего тира максимум = радиус + 16
-                    effectiveMaxRadius = current.radiusX() + 16;
-                }
-            }
-
-            // Создаем финальный тир с пересчитанным максимумом
-            ClaimTier finalTier = new ClaimTier(
-                current.id(), current.material(), current.name(), current.lore(),
-                current.radiusX(), current.radiusY(), current.radiusZ(),
-                effectiveMaxRadius, current.customModelData(),
-                current.permission(), current.createCost(),
-                current.borderRed(), current.borderGreen(), current.borderBlue(),
-                current.placeSound(), current.breakSound()
-            );
-            tiers.put(finalTier.id(), finalTier);
+        for (ClaimTier tier : tempTiers) {
+            tiers.put(tier.id(), tier);
         }
 
         plugin.getLogger().info("Loaded " + tiers.size() + " anchor tiers.");
@@ -128,8 +103,7 @@ public class AnchorManager {
         // Вывод информации о каждом тире
         for (ClaimTier tier : tiers.values()) {
             plugin.getLogger().info("  - " + tier.id() + ": " +
-                tier.getSizeX() + "x" + tier.getSizeY() + "x" + tier.getSizeZ() +
-                " (max: " + tier.getMaxSize() + ")");
+                tier.getSizeX() + "x" + tier.getSizeY() + "x" + tier.getSizeZ());
         }
     }
 
@@ -226,13 +200,20 @@ public class AnchorManager {
     public ClaimTier getTierBySize(int size) {
         ClaimTier bestMatch = null;
         for (ClaimTier tier : tiers.values()) {
-            if (tier.getSizeX() <= size) {
-                if (bestMatch == null || tier.getSizeX() > bestMatch.getSizeX()) {
+            int tierMinSize = Math.min(tier.getSizeX(), tier.radiusX() * 2);
+            if (tierMinSize <= size) {
+                if (bestMatch == null || tier.radiusX() > bestMatch.radiusX()) {
                     bestMatch = tier;
                 }
             }
         }
-        return bestMatch;
+        if (bestMatch != null) {
+            return bestMatch;
+        }
+        // Fallback: если размер меньше базового или тир не найден, возвращаем начальный тир (tier-1)
+        return tiers.values().stream()
+                .min(Comparator.comparingInt(ClaimTier::radiusX))
+                .orElse(null);
     }
 
     /**
@@ -241,6 +222,9 @@ public class AnchorManager {
      * @return Optional со следующим тиром
      */
     public Optional<ClaimTier> getNextTier(ClaimTier currentTier) {
+        if (currentTier == null) {
+            return tiers.values().stream().min(Comparator.comparingInt(ClaimTier::radiusX));
+        }
         List<ClaimTier> sortedTiers = new ArrayList<>(tiers.values());
         sortedTiers.sort(Comparator.comparingInt(ClaimTier::radiusX));
 

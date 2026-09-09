@@ -38,6 +38,13 @@ public class DeleteConfirmGUI extends AbstractGUI {
     @Override
     public void handleClick(InventoryClickEvent event) {
         if (event.getSlot() == CONFIRM_SLOT) {
+            if (!claim.isOwner(viewer.getUniqueId())) {
+                viewer.closeInventory();
+                viewer.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
+                plugin.getConfigManager().playSound(viewer, "gui-error");
+                return;
+            }
+
             viewer.closeInventory();
             if (claim.getAnchorLocation().getBlock().getType() != Material.AIR) {
                 claim.getAnchorLocation().getBlock().setType(Material.AIR);

@@ -32,7 +32,6 @@
 # - radius-x/y/z: Размер привата (обязательно)
 # - name: Название предмета (MiniMessage)
 # - lore: Описание предмета (список строк)
-# - max-radius: Максимальное расширение
 # - custom-model-data: Кастомная модель (0 = нет)
 # - permission: Требуемая пермишн ("none" = всем)
 # - create-cost: Стоимость создания (0 = бесплатно)
@@ -62,7 +61,6 @@ tiers:
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: 8 блоков</gray>"
       - "<gray>• Высота: 17 блоков</gray>"
-      - "<gray>• Макс. расширение: 9 блоков</gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
     
@@ -77,10 +75,6 @@ tiers:
     # Радиус привата по оси Z (половина длины)
     # Общий размер = radius-z * 2 + 1
     radius-z: 8
-    
-    # Максимальный радиус для расширения
-    # Игроки могут расширить приват до этого значения
-    max-radius: 9
     
     # CustomModelData для кастомной текстуры
     # 0 = без кастомной модели
@@ -121,13 +115,11 @@ tiers:
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: 10 блоков</gray>"
       - "<gray>• Высота: 21 блоков</gray>"
-      - "<gray>• Макс. расширение: 15 блоков</gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
     radius-x: 10
     radius-y: 10
     radius-z: 10
-    max-radius: 15
     custom-model-data: 0
     permission: "none"
     create-cost: 100
@@ -150,13 +142,11 @@ tiers:
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: 16 блоков</gray>"
       - "<gray>• Высота: 33 блоков</gray>"
-      - "<gray>• Макс. расширение: 32 блоков</gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
     radius-x: 16
     radius-y: 16
     radius-z: 16
-    max-radius: 32
     custom-model-data: 0
     permission: "none"
     create-cost: 500
@@ -179,13 +169,11 @@ tiers:
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: 32 блоков</gray>"
       - "<gray>• Высота: 65 блоков</gray>"
-      - "<gray>• Макс. расширение: 64 блоков</gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
     radius-x: 32
     radius-y: 32
     radius-z: 32
-    max-radius: 64
     custom-model-data: 0
     permission: "none"
     create-cost: 2000
@@ -208,13 +196,11 @@ tiers:
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: 64 блоков</gray>"
       - "<gray>• Высота: 129 блоков</gray>"
-      - "<gray>• Макс. расширение: 128 блоков</gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
     radius-x: 64
     radius-y: 64
     radius-z: 64
-    max-radius: 128
     custom-model-data: 0
     permission: "loveclaims.anchor.tier-5"
     create-cost: 10000
@@ -237,7 +223,6 @@ tiers:
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: 128 блоков</gray>"
       - "<gray>• Высота: 257 блоков</gray>"
-      - "<gray>• Макс. расширение: 256 блоков</gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
       - ""
@@ -245,7 +230,6 @@ tiers:
     radius-x: 128
     radius-y: 128
     radius-z: 128
-    max-radius: 256
     custom-model-data: 1
     permission: "loveclaims.anchor.tier-6"
     create-cost: 50000

@@ -72,24 +72,12 @@ public class PlayerMoveListener implements Listener {
         if (currentClaimId != null && !currentClaimId.equals(previousClaimId)) {
             Claim claim = claimOpt.get();
 
-            // Проверка флага запрета на вход (только для игроков без прав)
-            if (claim.getFlag(ClaimFlag.DENY_ENTRY) && claim.getTrust(playerId) == TrustLevel.NONE && !player.hasPermission("loveclaims.bypass")) {
-                // Проверяем, был ли игрок уже в этом привате (чтобы не телепортировать своих)
-                if (previousClaimId == null || !previousClaimId.equals(currentClaimId)) {
-                    if (event != null) {
-                        event.setCancelled(true);
-                    } else {
-                        player.teleport(from); // Если это был телепорт - возвращаем назад
-                    }
-                    if (isNotifyChannelEnabled(playerId, dev.lovelace.lovecore.api.notify.LoveNotify.Channel.ACTION_BAR)) {
-                        player.sendActionBar(plugin.getConfigManager().getMessage("deny-entry"));
-                    }
-                    return;
-                }
-            }
-
             lastClaim.put(playerId, currentClaimId);
             sendClaimMessage(player, claim, true);
+
+            if (playerId.equals(claim.getOwnerUuid()) || claim.getMembers().containsKey(playerId)) {
+                claim.updateLastActive();
+            }
 
         }
         else if (currentClaimId == null && previousClaimId != null) {
@@ -124,7 +112,7 @@ public class PlayerMoveListener implements Listener {
             claimDisplayName = claim.getName() != null ? claim.getName() : "Участок";
         }
 
-        if (claim.getFlag(ClaimFlag.MSG_SCREEN) && isNotifyChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.TITLE)) {
+        if (isNotifyChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.TITLE)) {
             Component titleComp = enter ?
                     plugin.getConfigManager().getComponent("title-enter", "name", claimDisplayName, "owner", ownerName) :
                     plugin.getConfigManager().getComponent("title-leave", "name", claimDisplayName, "owner", ownerName);
@@ -133,7 +121,7 @@ public class PlayerMoveListener implements Listener {
             player.showTitle(title);
         }
 
-        if (claim.getFlag(ClaimFlag.MSG_ACTIONBAR) && isNotifyChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.ACTION_BAR)) {
+        if (isNotifyChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.ACTION_BAR)) {
             Component actionbarComp = enter ?
                     plugin.getConfigManager().getComponent("actionbar-enter", "name", claimDisplayName, "owner", ownerName) :
                     plugin.getConfigManager().getComponent("actionbar-leave", "name", claimDisplayName, "owner", ownerName);

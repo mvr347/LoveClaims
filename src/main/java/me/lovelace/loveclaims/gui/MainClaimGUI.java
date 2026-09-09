@@ -32,27 +32,22 @@ public class MainClaimGUI extends AbstractGUI {
     @Override
     protected void setMenuItems() {
         int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
-        me.lovelace.loveclaims.model.UserData userData = plugin.getQuestManager().getUserData(viewer.getUniqueId());
         String ownerName = Bukkit.getOfflinePlayer(claim.getOwnerUuid()).getName();
         if (ownerName == null) ownerName = "???";
 
         // gui-gen-5 RULE 3: слот 0 — тематическая иконка/профиль меню (инфо привата, ЛКМ=телепорт, ПКМ=границы).
         inventory.setItem(0, createHead(HEAD_INFO,
                 plugin.getConfigManager().getComponent("main.info-name"),
-                plugin.getConfigManager().getHelpMessage("main.info-lore", "owner", ownerName, "size", String.valueOf(currentSize), "points", String.valueOf(userData.getExpansionBlocks()))));
+                plugin.getConfigManager().getHelpMessage("main.info-lore", "owner", ownerName, "size", String.valueOf(currentSize))));
 
-        // Рабочая зона (9-17): 3 контентные кнопки, центрированы 11/13/15.
-        inventory.setItem(11, createHead(HEAD_SETTINGS,
+        // Рабочая зона (9-17): 2 контентные кнопки, центрированы 12 и 14.
+        inventory.setItem(12, createHead(HEAD_SETTINGS,
                 plugin.getConfigManager().getComponent("main.settings-name"),
                 plugin.getConfigManager().getHelpMessage("main.settings-lore")));
 
-        inventory.setItem(13, createHead(HEAD_MEMBERS,
+        inventory.setItem(14, createHead(HEAD_MEMBERS,
                 plugin.getConfigManager().getComponent("main.members-name"),
                 plugin.getConfigManager().getHelpMessage("main.members-lore")));
-
-        inventory.setItem(15, createHead(HEAD_QUEST,
-                plugin.getConfigManager().getComponent("main.quests-name"),
-                plugin.getConfigManager().getHelpMessage("main.quests-lore")));
 
         // Footer: standalone-меню (открывается напрямую с якоря) — Back неактивен, только Close.
         setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
@@ -82,24 +77,20 @@ public class MainClaimGUI extends AbstractGUI {
                     if (System.currentTimeMillis() - lastTime > 15000L) {
                         plugin.getConfigManager().playSound(viewer, "gui-click");
                         viewer.closeInventory();
-                        me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, viewer, claim.getBoundingBox(), 200L);
+                        me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, viewer, claim.getBoundingBox(), 200L, claim.getId());
                         borderCooldown.put(viewer.getUniqueId(), System.currentTimeMillis());
                     } else {
                         plugin.getConfigManager().playSound(viewer, "gui-error");
                     }
                 }
             }
-            case 11 -> {
+            case 12 -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 viewer.openInventory(new SettingsGUI(plugin, viewer, claim).getInventory());
             }
-            case 13 -> {
+            case 14 -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 viewer.openInventory(new MembersGUI(plugin, viewer, claim).getInventory());
-            }
-            case 15 -> {
-                plugin.getConfigManager().playSound(viewer, "gui-click");
-                viewer.openInventory(new QuestsGUI(plugin, viewer, claim).getInventory());
             }
             case 26 -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");

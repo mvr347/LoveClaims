@@ -43,8 +43,7 @@ public class RentalMembersGUI extends AbstractGUI {
         // Для аренды используем фиксированный лимит, без бонусов игрока — как и раньше.
         int maxMembers = 10;
 
-        boolean isManagerOrOwner = viewer.getUniqueId().equals(claim.getOwnerUuid()) ||
-                claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER;
+        boolean isManagerOrOwner = claim.isManager(viewer.getUniqueId());
 
         // gui-gen-5 RULE 3: слот 0 — тематическая иконка (участники арендного плота).
         inventory.setItem(0, createHead(HEAD_MEMBERS, plugin.getConfigManager().getComponent("members.title"), null));
@@ -76,7 +75,7 @@ public class RentalMembersGUI extends AbstractGUI {
             if (meta != null) {
                 meta.setOwningPlayer(target);
                 String name = target.getName() != null ? target.getName() : "Неизвестный";
-                TrustLevel level = claim.getMembers().get(entryId);
+                TrustLevel level = claim.getTrust(entryId);
                 String roleName = plugin.getConfigManager().getConfig().getString("claim.roles." + level.name(), level.name());
 
                 if (roleName.equals(level.name())) {
@@ -128,8 +127,7 @@ public class RentalMembersGUI extends AbstractGUI {
         int entryIndex = indexOfContentSlot(slot);
         if (entryIndex < 0 || entryIndex >= renderedEntries.size()) return;
 
-        boolean isManagerOrOwner = viewer.getUniqueId().equals(claim.getOwnerUuid()) ||
-                claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER;
+        boolean isManagerOrOwner = claim.isManager(viewer.getUniqueId());
 
         UUID entryId = renderedEntries.get(entryIndex);
         if (entryId == ADD_MEMBER_MARKER) {
@@ -146,7 +144,7 @@ public class RentalMembersGUI extends AbstractGUI {
             return;
         }
 
-        if (entryId.equals(viewer.getUniqueId()) && claim.getTrust(viewer.getUniqueId()) == TrustLevel.MANAGER) {
+        if (entryId.equals(viewer.getUniqueId()) && !claim.isOwner(viewer.getUniqueId())) {
             viewer.sendMessage(plugin.getConfigManager().getMessage("manager-role-error"));
             plugin.getConfigManager().playSound(viewer, "gui-error");
             return;

@@ -3,7 +3,7 @@ package me.lovelace.loveclaims.gui;
 import me.lovelace.loveclaims.LoveClaims;
 import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
-import me.lovelace.loveclaims.model.TrustLevel;
+import me.lovelace.loveclaims.model.ClaimPermission;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -11,8 +11,11 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class MemberActionGUI extends AbstractGUI {
@@ -22,7 +25,7 @@ public class MemberActionGUI extends AbstractGUI {
     private final UUID targetId;
 
     public MemberActionGUI(LoveClaims plugin, Player viewer, Claim claim, UUID targetId) {
-        super(27, Component.text("Управление участником"));
+        super(27, Component.text(plugin.getConfigManager().getGuiText("member-action.title")));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -34,56 +37,72 @@ public class MemberActionGUI extends AbstractGUI {
     protected void setMenuItems() {
         inventory.clear();
 
-        org.bukkit.OfflinePlayer target = org.bukkit.Bukkit.getOfflinePlayer(targetId);
-        TrustLevel currentRole = claim.getTrust(targetId);
-        String roleName = getColoredRoleName(currentRole);
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetId);
+        String targetName = target.getName() != null ? target.getName() : "Неизвестный";
 
-        // gui-gen-5 RULE 3: слот 0 — профиль напрямую (меню про конкретного участника).
-        // Клик по голове по-прежнему выгоняет игрока — сохранено с прежнего центрального слота.
+        // gui-gen-5: Слот 0 — голова настраиваемого участника
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-        org.bukkit.inventory.meta.SkullMeta headMeta = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
+        SkullMeta headMeta = (SkullMeta) head.getItemMeta();
         if (headMeta != null) {
             headMeta.setOwningPlayer(target);
-            headMeta.displayName(Component.text("§e" + (target.getName() != null ? target.getName() : "Неизвестный")));
-            headMeta.lore(java.util.List.of(
-                    plugin.getConfigManager().getComponent("member-action.kick-lore-1", "role", roleName),
-                    Component.empty(),
-                    plugin.getConfigManager().getComponent("member-action.kick-lore-2")
-            ));
+            headMeta.displayName(Component.text("§e" + targetName));
+            List<Component> headLore = new ArrayList<>();
+            headLore.add(Component.text("§7Настройка прав доступа"));
+            headMeta.lore(headLore);
             head.setItemMeta(headMeta);
         }
         inventory.setItem(0, head);
 
-        // Рабочая зона (9-17): повысить/понизить, центрированы 11/15.
-        boolean canPromote = currentRole.ordinal() < TrustLevel.MANAGER.ordinal();
-        String promoteLoreKey = canPromote ? "member-action.promote-lore-yes" : "member-action.promote-lore-no";
-        inventory.setItem(11, createHead(canPromote ? HEAD_EXPAND : HEAD_BARRIER,
-            plugin.getConfigManager().getComponent("member-action.promote-name"),
-            java.util.List.of(plugin.getConfigManager().getComponent(promoteLoreKey))));
+        // Рабочая зона: ряд 1 (слоты 9-17). Слоты 9 и 17 пустые.
+        // 4 кнопки переключения прав: 10, 12, 14, 16
+        inventory.setItem(10, createPermissionToggle(ClaimPermission.BUILD, Material.IRON_PICKAXE));
+        inventory.setItem(12, createPermissionToggle(ClaimPermission.CONTAINERS, Material.CHEST));
+        inventory.setItem(14, createPermissionToggle(ClaimPermission.INTERACT, Material.OAK_DOOR));
+        inventory.setItem(16, createPermissionToggle(ClaimPermission.MANAGE, Material.NAME_TAG));
 
-        boolean canDemote = currentRole.ordinal() > TrustLevel.ACCESS.ordinal();
-        String demoteLoreKey = canDemote ? "member-action.demote-lore-yes" : "member-action.demote-lore-no";
-        inventory.setItem(15, createHead(canDemote ? HEAD_DEMOTE : HEAD_BARRIER,
-            plugin.getConfigManager().getComponent("member-action.demote-name"),
-            java.util.List.of(plugin.getConfigManager().getComponent(demoteLoreKey))));
+        // Footer (слоты 18-26):
+        // Слот 24 — кнопка выгнать
+        // Слот 25 — Назад
+        // Слот 26 — Закрыть
+        ItemStack kickBtn = createHead(HEAD_BARRIER,
+                Component.text(plugin.getConfigManager().getGuiText("member-action.kick-button")),
+                List.of(Component.text(plugin.getConfigManager().getGuiText("member-action.kick-button-lore"))));
 
         setFooterButtons(
-                null,
-                createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null),
-                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
+                kickBtn,
+                createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null),
+                createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null)
         );
+
         fillFrameGlass();
     }
 
-    private String getColoredRoleName(TrustLevel level) {
-        return plugin.getConfigManager().getString(switch (level) {
-            case OWNER -> "members.role-owner";
-            case MANAGER -> "members.role-manager";
-            case BUILD -> "members.role-build";
-            case CONTAINER -> "members.role-container";
-            case ACCESS -> "members.role-access";
-            case NONE -> "members.role-none";
-        });
+    private ItemStack createPermissionToggle(ClaimPermission permission, Material material) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            String nameKey = "permissions." + permission.name().toLowerCase() + ".name";
+            String descKey = "permissions." + permission.name().toLowerCase() + ".desc";
+
+            meta.displayName(Component.text(plugin.getConfigManager().getGuiText(nameKey)));
+
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text(plugin.getConfigManager().getGuiText(descKey)));
+            lore.add(Component.text(" "));
+
+            boolean enabled = claim.hasPermission(targetId, permission);
+            String status = enabled
+                    ? plugin.getConfigManager().getGuiText("permissions.status-enabled")
+                    : plugin.getConfigManager().getGuiText("permissions.status-disabled");
+
+            lore.add(Component.text("§7Статус: " + status));
+            lore.add(Component.text(" "));
+            lore.add(Component.text(plugin.getConfigManager().getGuiText("permissions.click-toggle")));
+
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private void openCorrectMembersGUI() {
@@ -97,7 +116,6 @@ public class MemberActionGUI extends AbstractGUI {
     @Override
     public void handleClick(InventoryClickEvent event) {
         int slot = event.getSlot();
-        TrustLevel currentRole = claim.getTrust(targetId);
 
         if (slot == 26) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
@@ -111,8 +129,28 @@ public class MemberActionGUI extends AbstractGUI {
             return;
         }
 
-        // Клик по голове (Слот 0) - ВЫГОНЯЕТ ИГРОКА
-        if (slot == 0) {
+        boolean isOwner = viewer.getUniqueId().equals(claim.getOwnerUuid());
+        boolean isManager = claim.isManager(viewer.getUniqueId());
+
+        if (!isOwner && !isManager) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            viewer.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
+            return;
+        }
+
+        if (targetId.equals(claim.getOwnerUuid())) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            return;
+        }
+
+        // Кнопка "Выгнать" на слоте 24
+        if (slot == 24) {
+            if (targetId.equals(viewer.getUniqueId())) {
+                plugin.getConfigManager().playSound(viewer, "gui-error");
+                viewer.sendMessage(plugin.getConfigManager().getMessage("manager-role-error"));
+                return;
+            }
+
             claim.getMembers().remove(targetId);
             plugin.getClaimManager().syncTrustRevoked(claim, targetId);
             plugin.getStorage().removeMemberAsync(claim.getId(), targetId);
@@ -129,35 +167,37 @@ public class MemberActionGUI extends AbstractGUI {
             return;
         }
 
-        if (slot == 11) {
-            if (currentRole.ordinal() >= TrustLevel.MANAGER.ordinal()) {
+        ClaimPermission permToToggle = null;
+        if (slot == 10) permToToggle = ClaimPermission.BUILD;
+        else if (slot == 12) permToToggle = ClaimPermission.CONTAINERS;
+        else if (slot == 14) permToToggle = ClaimPermission.INTERACT;
+        else if (slot == 16) permToToggle = ClaimPermission.MANAGE;
+
+        if (permToToggle != null) {
+            if (permToToggle == ClaimPermission.MANAGE && !isOwner) {
                 plugin.getConfigManager().playSound(viewer, "gui-error");
+                viewer.sendMessage(plugin.getConfigManager().getComponent("permissions.owner-only-manage"));
                 return;
             }
-            changeRole(TrustLevel.values()[currentRole.ordinal() + 1]);
-        }
 
-        if (slot == 15) {
-            if (currentRole.ordinal() <= TrustLevel.ACCESS.ordinal()) {
+            if (targetId.equals(viewer.getUniqueId())) {
                 plugin.getConfigManager().playSound(viewer, "gui-error");
+                viewer.sendMessage(plugin.getConfigManager().getMessage("manager-role-error"));
                 return;
             }
-            changeRole(TrustLevel.values()[currentRole.ordinal() - 1]);
-        }
-    }
 
-    private void changeRole(TrustLevel newRole) {
-        claim.setTrust(targetId, newRole);
-        plugin.getClaimManager().syncTrustGranted(claim, targetId);
-        plugin.getStorage().saveMemberAsync(claim.getId(), targetId, newRole);
-        claim.setModified(true);
-        plugin.getConfigManager().playSound(viewer, "gui-click");
+            boolean current = claim.hasPermission(targetId, permToToggle);
+            claim.setPermission(targetId, permToToggle, !current);
+            plugin.getStorage().saveMemberPermissionsAsync(claim.getId(), targetId, claim.getPermissions(targetId));
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            setMenuItems();
 
-        Player onlineTarget = Bukkit.getPlayer(targetId);
-        String roleName = plugin.getConfigManager().getConfig().getString("claim.roles." + newRole.name(), newRole.name());
-        if (onlineTarget != null) {
-            onlineTarget.sendMessage(plugin.getConfigManager().getComponent("chat-role-changed", "player", viewer.getName(), "role", roleName));
+            Player onlineTarget = Bukkit.getPlayer(targetId);
+            if (onlineTarget != null) {
+                String permName = plugin.getConfigManager().getGuiText("permissions." + permToToggle.name().toLowerCase() + ".name");
+                String stateText = !current ? "разрешено" : "запрещено";
+                onlineTarget.sendMessage(Component.text("§7[§bLoveClaims§7] §fПраво " + permName + " §fдля вас было изменено: " + (!current ? "§a" : "§c") + stateText));
+            }
         }
-        setMenuItems();
     }
 }

@@ -27,7 +27,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
             List<Claim> accessibleClaims = plugin.getClaimManager().getAllClaims().stream()
                     .filter(c -> !c.isRentalPlot())
                     .filter(c -> !c.isClanTerritory()) // Игнорируем клановые приваты для стандартных команд
-                    .filter(c -> c.getTrust(player.getUniqueId()) != me.lovelace.loveclaims.model.TrustLevel.NONE)
+                    .filter(c -> c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))
                     .toList();
 
             if (accessibleClaims.isEmpty()) {
@@ -74,7 +74,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                 // Если нет своего, ищем приват, где есть доступ
                 if (targetClaim == null) {
                     for (Claim c : plugin.getClaimManager().getAllClaims()) {
-                        if (!c.isRentalPlot() && !c.isClanTerritory() && c.getTrust(player.getUniqueId()) != me.lovelace.loveclaims.model.TrustLevel.NONE) {
+                        if (!c.isRentalPlot() && !c.isClanTerritory() && (c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))) {
                             targetClaim = c;
                             break;
                         }
@@ -200,8 +200,11 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     // исходная проверка в AnchorListener к моменту confirm уже устарела. Без
                     // повторной проверки здесь оба привата регистрируются с пересекающимися
                     // границами.
-                    if (plugin.getClaimManager().checkOverlap(pending.location().getWorld(), pending.previewTask().getBox())) {
+                    java.util.Optional<Claim> conflictOpt = plugin.getClaimManager().getFirstOverlappingClaim(pending.location().getWorld(), pending.previewTask().getBox(), null);
+                    if (conflictOpt.isPresent()) {
+                        Claim conflict = conflictOpt.get();
                         player.sendMessage(plugin.getConfigManager().getMessage("claim-overlap"));
+                        me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, player, conflict.getBoundingBox(), 140L, conflict.getId());
                         return true;
                     }
 
@@ -213,6 +216,20 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     player.getInventory().getItemInMainHand().setAmount(player.getInventory().getItemInMainHand().getAmount() - 1);
                     player.sendMessage(plugin.getConfigManager().getMessage("claim-created"));
                     plugin.getConfigManager().playSound(player, "anchor-place");
+                }
+                return true;
+            }
+            case "border", "proximity" -> {
+                me.lovelace.loveclaims.model.UserData data = plugin.getUserManager().getUserData(player.getUniqueId());
+                boolean newState = !data.isShowProximityBorder();
+                data.setShowProximityBorder(newState);
+                plugin.getStorage().saveUserDataAsync(data);
+                plugin.getConfigManager().playSound(player, "gui-click");
+
+                if (newState) {
+                    player.sendMessage(plugin.getConfigManager().getComponent("proximity-border.enabled-msg"));
+                } else {
+                    player.sendMessage(plugin.getConfigManager().getComponent("proximity-border.disabled-msg"));
                 }
                 return true;
             }
@@ -254,14 +271,6 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
 
                 int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
                 me.lovelace.loveclaims.model.ClaimTier currentTier = plugin.getAnchorManager().getTierBySize(currentSize);
-
-                int baseSize = currentTier != null ? currentTier.radiusX() * 2 : 16;
-                int expansions = (currentSize - baseSize);
-                if (expansions > 0) {
-                    me.lovelace.loveclaims.model.UserData data = plugin.getQuestManager().getUserData(player.getUniqueId());
-                    data.addExpansionBlocks(expansions);
-                    plugin.getStorage().saveUserDataAsync(data);
-                }
 
                 org.bukkit.inventory.ItemStack anchor = plugin.getAnchorManager().createAnchorItem(currentTier != null ? currentTier.id() : "tier-1");
                 if (anchor != null) {
@@ -313,7 +322,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         java.util.List<String> completions = new java.util.ArrayList<>();
         if (args.length == 1) {
-            completions.addAll(java.util.List.of("home", "show", "confirm", "invite", "move", "help"));
+            completions.addAll(java.util.List.of("home", "show", "confirm", "invite", "move", "border", "help"));
             if (sender instanceof Player player) {
                 plugin.getClaimManager().getAllClaims().stream()
                         .filter(c -> !c.isRentalPlot())

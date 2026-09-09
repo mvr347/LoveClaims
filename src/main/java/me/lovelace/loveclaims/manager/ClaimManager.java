@@ -37,8 +37,6 @@ public class ClaimManager {
     // ===== ВРЕМЕННЫЕ КЭШИ (Caffeine) =====
     // Кэш профилей UserData (истекает через 10 минут после последнего доступа)
     private final Cache<UUID, me.lovelace.loveclaims.model.UserData> userDataCache;
-    // Кэш прогресса квестов (истекает через 5 минут)
-    private final Cache<UUID, Map<String, Integer>> questProgressCache;
     // Кэш кулдаунов команд (истекает через 1 минуту)
     private final Cache<UUID, Long> commandCooldownsCache;
     // Кэш откатов действий (истекает через 15 минут)
@@ -53,13 +51,6 @@ public class ClaimManager {
             .maximumSize(10000)
             .recordStats()
             .build();
-
-        this.questProgressCache = Caffeine.newBuilder()
-            .expireAfterAccess(5, TimeUnit.MINUTES)
-            .maximumSize(50000)
-            .recordStats()
-            .build();
-
         this.commandCooldownsCache = Caffeine.newBuilder()
             .expireAfterAccess(1, TimeUnit.MINUTES)
             .maximumSize(100000)
@@ -357,7 +348,11 @@ public class ClaimManager {
     }
 
     public boolean checkOverlap(World world, BoundingBox box, UUID ignoreClaimId) {
-        if (world == null) return false;
+        return getFirstOverlappingClaim(world, box, ignoreClaimId).isPresent();
+    }
+
+    public Optional<Claim> getFirstOverlappingClaim(World world, BoundingBox box, UUID ignoreClaimId) {
+        if (world == null) return Optional.empty();
         int minCX = (int) Math.floor(box.getMinX());
         int maxCX = (int) Math.floor(box.getMaxX());
         int minCZ = (int) Math.floor(box.getMinZ());
@@ -366,7 +361,7 @@ public class ClaimManager {
         lock.readLock().lock();
         try {
             Long2ObjectOpenHashMap<List<Claim>> chunkMap = worldCaches.get(world.getUID());
-            if (chunkMap == null) return false;
+            if (chunkMap == null) return Optional.empty();
 
             for (int x = minCX >> 4; x <= maxCX >> 4; x++) {
                 for (int z = minCZ >> 4; z <= maxCZ >> 4; z++) {
@@ -375,7 +370,7 @@ public class ClaimManager {
                     if (claimsInChunk != null) {
                         for (Claim claim : claimsInChunk) {
                             if (!Objects.equals(claim.getId(), ignoreClaimId) && claim.getBoundingBox().overlaps(box)) {
-                                return true;
+                                return Optional.of(claim);
                             }
                         }
                     }
@@ -384,7 +379,41 @@ public class ClaimManager {
         } finally {
             lock.readLock().unlock();
         }
-        return false;
+        return Optional.empty();
+    }
+
+    public List<Claim> getClaimsNear(Location loc, double radius) {
+        if (loc == null || loc.getWorld() == null) return Collections.emptyList();
+        int minCX = ((int) Math.floor(loc.getX() - radius)) >> 4;
+        int maxCX = ((int) Math.floor(loc.getX() + radius)) >> 4;
+        int minCZ = ((int) Math.floor(loc.getZ() - radius)) >> 4;
+        int maxCZ = ((int) Math.floor(loc.getZ() + radius)) >> 4;
+
+        List<Claim> result = new ArrayList<>();
+        Set<UUID> seen = new HashSet<>();
+
+        lock.readLock().lock();
+        try {
+            Long2ObjectOpenHashMap<List<Claim>> chunkMap = worldCaches.get(loc.getWorld().getUID());
+            if (chunkMap == null) return Collections.emptyList();
+
+            for (int x = minCX; x <= maxCX; x++) {
+                for (int z = minCZ; z <= maxCZ; z++) {
+                    long chunkKey = getChunkKey(x, z);
+                    List<Claim> claimsInChunk = chunkMap.get(chunkKey);
+                    if (claimsInChunk != null) {
+                        for (Claim claim : claimsInChunk) {
+                            if (seen.add(claim.getId())) {
+                                result.add(claim);
+                            }
+                        }
+                    }
+                }
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+        return result;
     }
 
     private long getChunkKey(int x, int z) {
@@ -523,28 +552,6 @@ public class ClaimManager {
         }
     }
 
-    /**
-     * Получить прогресс квеста из кэша.
-     * @param uuid UUID игрока
-     * @param questId ID квеста
-     * @return Прогресс или 0
-     */
-    public int getCachedQuestProgress(UUID uuid, String questId) {
-        Map<String, Integer> progress = questProgressCache.getIfPresent(uuid);
-        return progress != null ? progress.getOrDefault(questId, 0) : 0;
-    }
-
-    /**
-     * Обновить прогресс квеста в кэше.
-     * @param uuid UUID игрока
-     * @param questId ID квеста
-     * @param progress Прогресс
-     */
-    public void updateQuestProgress(UUID uuid, String questId, int progress) {
-        Map<String, Integer> playerProgress = questProgressCache.get(uuid, k -> new ConcurrentHashMap<>());
-        playerProgress.put(questId, progress);
-        questProgressCache.put(uuid, playerProgress);
-    }
 
     /**
      * Проверить кулдаун команды.
@@ -595,7 +602,6 @@ public class ClaimManager {
      */
     public void invalidateAllCaches() {
         userDataCache.invalidateAll();
-        questProgressCache.invalidateAll();
         commandCooldownsCache.invalidateAll();
         rollbackCache.invalidateAll();
     }
@@ -606,9 +612,8 @@ public class ClaimManager {
      */
     public String getCacheStats() {
         return String.format(
-            "UserData: %d | Quests: %d | Cooldowns: %d | Rollback: %d",
+            "UserData: %d | Cooldowns: %d | Rollback: %d",
             userDataCache.estimatedSize(),
-            questProgressCache.estimatedSize(),
             commandCooldownsCache.estimatedSize(),
             rollbackCache.estimatedSize()
         );

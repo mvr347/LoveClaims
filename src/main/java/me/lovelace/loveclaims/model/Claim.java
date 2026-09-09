@@ -4,7 +4,9 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.BoundingBox;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,7 +26,8 @@ public class Claim {
     private String description;
     private Location homeLocation;
     private long lastActive;
-    private final Map<UUID, TrustLevel> members = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<ClaimPermission>> members = new ConcurrentHashMap<>();
+    private final Set<ClaimPermission> defaultPermissions = EnumSet.noneOf(ClaimPermission.class);
     private final Map<ClaimFlag, Boolean> flags = new EnumMap<>(ClaimFlag.class);
     private ClaimType claimType = ClaimType.PLAYER; // По умолчанию - приват игрока
     private boolean isClanTerritory = false; // Новое поле
@@ -106,22 +109,97 @@ public class Claim {
     }
 
     public long getLastActive() { return lastActive; }
+    public void setLastActive(long lastActive) {
+        this.lastActive = lastActive;
+    }
     public void updateLastActive() {
         this.lastActive = System.currentTimeMillis();
         this.modified = true;
     }
 
+    public boolean hasPermission(UUID playerUuid, ClaimPermission permission) {
+        if (playerUuid == null) return false;
+        if (playerUuid.equals(ownerUuid)) return true;
+        Set<ClaimPermission> perms = members.get(playerUuid);
+        if (perms != null) {
+            return perms.contains(permission);
+        }
+        return defaultPermissions.contains(permission);
+    }
+
+    public boolean isOwner(UUID playerUuid) {
+        return playerUuid != null && playerUuid.equals(ownerUuid);
+    }
+
+    public boolean isManager(UUID playerUuid) {
+        return isOwner(playerUuid) || hasPermission(playerUuid, ClaimPermission.MANAGE);
+    }
+
+    public Set<ClaimPermission> getPermissions(UUID playerUuid) {
+        if (isOwner(playerUuid)) return EnumSet.allOf(ClaimPermission.class);
+        return members.computeIfAbsent(playerUuid, k -> EnumSet.noneOf(ClaimPermission.class));
+    }
+
+    public void setPermission(UUID playerUuid, ClaimPermission permission, boolean state) {
+        if (isOwner(playerUuid)) return;
+        Set<ClaimPermission> perms = members.computeIfAbsent(playerUuid, k -> EnumSet.noneOf(ClaimPermission.class));
+        if (state) perms.add(permission);
+        else perms.remove(permission);
+        this.modified = true;
+    }
+
+    public Set<ClaimPermission> getDefaultPermissions() {
+        return defaultPermissions;
+    }
+
+    public void setDefaultPermissions(Set<ClaimPermission> perms) {
+        this.defaultPermissions.clear();
+        if (perms != null) {
+            this.defaultPermissions.addAll(perms);
+        }
+        this.modified = true;
+    }
+
+    public void setDefaultPermission(ClaimPermission permission, boolean state) {
+        if (state) defaultPermissions.add(permission);
+        else defaultPermissions.remove(permission);
+        this.modified = true;
+    }
+
     public void setTrust(UUID player, TrustLevel level) {
-        members.put(player, level);
+        if (player.equals(ownerUuid)) return;
+        Set<ClaimPermission> perms = EnumSet.noneOf(ClaimPermission.class);
+        switch (level) {
+            case OWNER, MANAGER -> perms.addAll(EnumSet.allOf(ClaimPermission.class));
+            case BUILD -> {
+                perms.add(ClaimPermission.BUILD);
+                perms.add(ClaimPermission.CONTAINERS);
+                perms.add(ClaimPermission.INTERACT);
+            }
+            case CONTAINER -> {
+                perms.add(ClaimPermission.CONTAINERS);
+                perms.add(ClaimPermission.INTERACT);
+            }
+            case ACCESS -> perms.add(ClaimPermission.INTERACT);
+            case NONE -> {}
+        }
+        members.put(player, perms);
         this.modified = true;
     }
 
     public TrustLevel getTrust(UUID player) {
+        if (player == null) return TrustLevel.NONE;
         if (player.equals(ownerUuid)) return TrustLevel.OWNER;
-        return members.getOrDefault(player, TrustLevel.NONE);
+        Set<ClaimPermission> perms = members.get(player);
+        if (perms == null) perms = defaultPermissions;
+        if (perms.contains(ClaimPermission.MANAGE)) return TrustLevel.MANAGER;
+        if (perms.contains(ClaimPermission.BUILD)) return TrustLevel.BUILD;
+        if (perms.contains(ClaimPermission.CONTAINERS)) return TrustLevel.CONTAINER;
+        if (perms.contains(ClaimPermission.INTERACT)) return TrustLevel.ACCESS;
+        return TrustLevel.NONE;
     }
 
-    public Map<UUID, TrustLevel> getMembers() { return members; }
+    public Map<UUID, Set<ClaimPermission>> getMembers() { return members; }
 
     /**
      * Удаляет игрока из списка участников привата и устанавливает флаг modified.

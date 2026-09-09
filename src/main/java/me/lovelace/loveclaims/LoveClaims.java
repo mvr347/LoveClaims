@@ -9,17 +9,17 @@ import me.lovelace.loveclaims.listener.AnchorListener;
 import me.lovelace.loveclaims.listener.GuiListener;
 import me.lovelace.loveclaims.listener.PlayerDataListener;
 import me.lovelace.loveclaims.listener.ProtectionListener;
-import me.lovelace.loveclaims.listener.QuestTrackerListener;
 import me.lovelace.loveclaims.listener.PlayerMoveListener;
 import me.lovelace.loveclaims.listener.RentalInteractListener;
 import me.lovelace.loveclaims.manager.ConfigManager;
 import me.lovelace.loveclaims.manager.ClaimManager;
 import me.lovelace.loveclaims.manager.AnchorManager;
-import me.lovelace.loveclaims.manager.QuestManager;
+import me.lovelace.loveclaims.manager.UserManager;
 import me.lovelace.loveclaims.manager.RentalManager;
 import me.lovelace.loveclaims.manager.ItemCurrencyManager;
 import me.lovelace.loveclaims.task.AutoDeleteTask;
 import me.lovelace.loveclaims.task.GlobalTickManager;
+import me.lovelace.loveclaims.task.ProximityBorderTask;
 import me.lovelace.loveclaims.task.RentalExpirationTask;
 import me.lovelace.loveclaims.storage.SQLiteStorage;
 import org.bukkit.Bukkit;
@@ -33,7 +33,7 @@ public final class LoveClaims extends JavaPlugin {
     private ConfigManager configManager;
     private ClaimManager claimManager;
     private AnchorManager anchorManager;
-    private QuestManager questManager;
+    private UserManager userManager;
     private RentalManager rentalManager;
     private ItemCurrencyManager currencyManager;
     private ChatListener chatListener;
@@ -41,7 +41,7 @@ public final class LoveClaims extends JavaPlugin {
     private RentalExpirationTask rentalExpirationTask;
     private AutoDeleteTask autoDeleteTask;
     private GlobalTickManager globalTickManager;
-    private org.bukkit.configuration.file.FileConfiguration questsConfig;
+    private ProximityBorderTask proximityBorderTask;
 
     @Override
     public void onEnable() {
@@ -54,12 +54,6 @@ public final class LoveClaims extends JavaPlugin {
             this.configManager.loadAll();
             getLogger().info("Config loaded successfully!");
 
-            // Загрузка quests.yml
-            this.saveResource("quests.yml", false);
-            this.questsConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(
-                new java.io.File(getDataFolder(), "quests.yml"));
-            getLogger().info("Quests loaded successfully!");
-
             // 2. Инициализация БД
             this.storage = new SQLiteStorage(this);
             this.storage.initDatabase().join();
@@ -69,7 +63,7 @@ public final class LoveClaims extends JavaPlugin {
             this.chatListener = new ChatListener(this);
             this.anchorManager = new AnchorManager(this);
             this.claimManager = new ClaimManager(this);
-            this.questManager = new QuestManager(this);
+            this.userManager = new UserManager(this);
             this.rentalManager = new RentalManager(this);
             this.currencyManager = new ItemCurrencyManager(this);
 
@@ -108,7 +102,6 @@ public final class LoveClaims extends JavaPlugin {
             pm.registerEvents(new ProtectionListener(this), this);
             pm.registerEvents(new GuiListener(this), this);
             pm.registerEvents(new PlayerDataListener(this), this);
-            pm.registerEvents(new QuestTrackerListener(this), this);
             pm.registerEvents(new PlayerMoveListener(this), this);
             pm.registerEvents(new RentalInteractListener(this), this);
             getLogger().info("Listeners registered!");
@@ -143,6 +136,9 @@ public final class LoveClaims extends JavaPlugin {
             this.rentalExpirationTask = new RentalExpirationTask(this);
             this.rentalExpirationTask.start();
 
+            this.proximityBorderTask = new ProximityBorderTask(this);
+            this.proximityBorderTask.start();
+
             getLogger().info("LoveClaims enabled successfully!");
 
         } catch (Exception e) {
@@ -162,11 +158,12 @@ public final class LoveClaims extends JavaPlugin {
             if (globalTickManager != null) globalTickManager.cancel();
             if (rentalExpirationTask != null) rentalExpirationTask.cancel();
             if (autoDeleteTask != null && !autoDeleteTask.isCancelled()) autoDeleteTask.cancel();
+            if (proximityBorderTask != null) proximityBorderTask.cancel();
             getLogger().info("Tasks stopped!");
 
-            // 2. СИНХРОННОЕ Сохранение всех данных пользователей (ИСПРАВЛЕН БАГ ПОТЕРИ ДАННЫХ)
-            if (questManager != null) {
-                questManager.saveUsersSync();
+            // 2. СИНХРОННОЕ Сохранение всех данных пользователей
+            if (userManager != null) {
+                userManager.saveUsersSync();
                 getLogger().info("User data saved synchronously!");
             }
 
@@ -204,10 +201,10 @@ public final class LoveClaims extends JavaPlugin {
     public ConfigManager getConfigManager() { return configManager; }
     public ClaimManager getClaimManager() { return claimManager; }
     public AnchorManager getAnchorManager() { return anchorManager; }
-    public QuestManager getQuestManager() { return questManager; }
+    public UserManager getUserManager() { return userManager; }
     public RentalManager getRentalManager() { return rentalManager; }
     public ItemCurrencyManager getCurrencyManager() { return currencyManager; }
     public ChatListener getChatListener() { return chatListener; }
     public AnchorListener getAnchorListener() { return anchorListener; }
-    public org.bukkit.configuration.file.FileConfiguration getQuestsConfig() { return questsConfig; }
+    public ProximityBorderTask getProximityBorderTask() { return proximityBorderTask; }
 }

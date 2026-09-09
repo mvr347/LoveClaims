@@ -16,7 +16,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -43,7 +42,7 @@ public class ProtectionListener implements Listener {
         boolean actionBarAllowed = dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.notify.LoveNotify.class)
                 .map(n -> n.isChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.ACTION_BAR))
                 .orElse(true);
-        if ((claim == null || !claim.getFlag(ClaimFlag.SILENT_DENY)) && actionBarAllowed) {
+        if (actionBarAllowed) {
             player.sendActionBar(message);
         }
     }
@@ -75,10 +74,8 @@ public class ProtectionListener implements Listener {
                     continue;
                 }
 
-                // 2. ЗАЩИТА ТЕРРИТОРИИ: Зависит от флага привата. Для клановых приватов взрывы всегда запрещены.
-                if (claim.isClanTerritory() || !claim.getFlag(ClaimFlag.EXPLOSIONS)) {
-                    it.remove();
-                }
+                // 2. ЗАЩИТА ТЕРРИТОРИИ: Взрывы всегда блокируются на защищённой территории (кроме осад кланов)
+                it.remove();
             } else if (isSpawnProtected(block.getLocation())) {
                 // Защита спавна от взрывов
                 if (!plugin.getConfigManager().getSpawnFlag("explosions")) {
@@ -134,7 +131,7 @@ public class ProtectionListener implements Listener {
             }
 
             // Обычная логика привата
-            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
                 deny(player, claim, plugin.getConfigManager().getMessage("deny-break"));
             }
@@ -176,7 +173,7 @@ public class ProtectionListener implements Listener {
             }
 
             // Обычная логика привата
-            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
                 deny(player, claim, plugin.getConfigManager().getMessage("deny-place"));
             }
@@ -281,20 +278,20 @@ public class ProtectionListener implements Listener {
             // Обычная логика привата
             Material type = block.getType();
             if (isContainerBlock(type)) {
-                if (claim.getTrust(event.getPlayer().getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+                if (!claim.hasPermission(event.getPlayer().getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.CONTAINERS)) {
                     event.setCancelled(true);
                     deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact"));
                     return;
                 }
             }
             if (isDoorOrButtonBlock(type)) {
-                if (claim.getTrust(event.getPlayer().getUniqueId()).ordinal() < TrustLevel.ACCESS.ordinal()) {
+                if (!claim.hasPermission(event.getPlayer().getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.INTERACT)) {
                     event.setCancelled(true);
                     deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact"));
                     return;
                 }
             }
-            if (claim.getTrust(event.getPlayer().getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+            if (!claim.hasPermission(event.getPlayer().getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
                 deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact"));
             }
@@ -369,37 +366,13 @@ public class ProtectionListener implements Listener {
                 event.setCancelled(false);
                 return;
             }
-            // Обычная логика PvP
-            if (!claim.getFlag(ClaimFlag.PVP)) {
-                event.setCancelled(true);
-            }
+            // В обычном привате PvP по умолчанию выключено
+            event.setCancelled(true);
         } else if (isSpawnProtected(victim.getLocation()) && !plugin.getConfigManager().getSpawnFlag("pvp")) {
             event.setCancelled(true);
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onCropGrow(BlockGrowEvent event) {
-        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(event.getBlock().getLocation());
-        claimOpt.ifPresent(claim -> {
-            // Если приват клановый, перк роста растений не применяется
-            if (claim.isClanTerritory()) {
-                // Ничего не делаем, перк не срабатывает
-                return;
-            }
-
-            // Обычная логика привата
-            if (claim.getFlag(ClaimFlag.PERK_CROP_GROWTH)) {
-                org.bukkit.block.data.BlockData data = event.getNewState().getBlockData();
-                if (data instanceof org.bukkit.block.data.Ageable ageable) {
-                    if (ageable.getAge() < ageable.getMaximumAge() && Math.random() < 0.5) {
-                        ageable.setAge(Math.min(ageable.getAge() + 1, ageable.getMaximumAge()));
-                        event.getNewState().setBlockData(ageable);
-                    }
-                }
-            }
-        });
-    }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBucketEmpty(PlayerBucketEmptyEvent event) {
@@ -416,7 +389,7 @@ public class ProtectionListener implements Listener {
                 return;
             }
 
-            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
                 deny(player, claim, plugin.getConfigManager().getMessage("deny-place"));
             }
@@ -443,7 +416,7 @@ public class ProtectionListener implements Listener {
                 return;
             }
 
-            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
                 deny(player, claim, plugin.getConfigManager().getMessage("deny-break"));
             }
@@ -477,17 +450,15 @@ public class ProtectionListener implements Listener {
                 return;
             }
 
-            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
                 deny(player, claim, plugin.getConfigManager().getMessage("deny-break"));
             }
             return;
         }
 
-        // Не игрок (например, взрыв) - используем ту же логику, что и для взрывов
-        if (claim.isClanTerritory() || !claim.getFlag(ClaimFlag.EXPLOSIONS)) {
-            event.setCancelled(true);
-        }
+        // Не игрок (например, взрыв)
+        event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -504,16 +475,14 @@ public class ProtectionListener implements Listener {
                 return;
             }
 
-            if (claim.getTrust(player.getUniqueId()).ordinal() < TrustLevel.BUILD.ordinal()) {
+            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
             }
             return;
         }
 
         // Грифинг со стороны существ (эндермены, зомби ломающие двери и т.д.)
-        if (claim.isClanTerritory() || !claim.getFlag(ClaimFlag.MOB_GRIEFING)) {
-            event.setCancelled(true);
-        }
+        event.setCancelled(true);
     }
 
     private boolean hasBypass(Player player) {

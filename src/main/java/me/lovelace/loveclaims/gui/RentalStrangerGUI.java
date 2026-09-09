@@ -28,10 +28,9 @@ public class RentalStrangerGUI extends AbstractGUI {
 
         int sizeX = (int) Math.round(plot.getBoundingBox().getMaxX() - plot.getBoundingBox().getMinX());
 
-        // gui-gen-5 RULE 3: слот 0 — тематическая иконка (просмотр чужого арендного плота, только инфо).
         inventory.setItem(0, createHead(HEAD_INFO,
                 plugin.getConfigManager().getComponent("gui.rental-edit.info-name"),
-                plugin.getConfigManager().getHelpMessage("gui.main.info-lore", "owner", ownerName, "size", String.valueOf(sizeX), "points", "0")));
+                plugin.getConfigManager().getHelpMessage("main.info-lore", "owner", ownerName, "size", String.valueOf(sizeX))));
 
         // Standalone-меню, доступ только на просмотр — Back неактивен, только Close.
         setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));

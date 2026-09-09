@@ -3,9 +3,8 @@ package me.lovelace.loveclaims.textures;
 /**
  * Централизованное хранилище base64 текстур голов (skull textures), используемых в GUI LoveClaims.
  * <p>
- * Все base64-литералы текстур голов должны объявляться здесь, а не хардкодиться по месту
- * использования — так плагин следует единой точке правды для GUI-текстур, вместо дублирования
- * одних и тех же строк в разных классах.
+ * Все base64-литералы текстур голов объявляются здесь, а не хардкодятся по месту
+ * использования — единая точка правды для GUI-текстур.
  */
 public final class HeadTextures {
 
@@ -23,22 +22,6 @@ public final class HeadTextures {
             HeadsConfig.get("members", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjFhZTgwMzg0YTAwYjZmOWY2NGRkODMwN2E5MDY3NjU0NGM5N2E3OTI5NzE2NWVhNzEzMjYyYzdkODgzMzg0NyJ9fX0=");
     public static final String HEAD_INFO =
             HeadsConfig.get("info", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjgwZDMyOTVkM2Q5YWJkNjI3NzZhYmNiOGRhNzU2ZjI5OGE1NDVmZWU5NDk4YzRmNjlhMWMyYzc4NTI0YzgyNCJ9fX0=");
-    public static final String HEAD_DESC =
-            HeadsConfig.get("desc", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmRkMmViMGM2ZjhhOTU0M2VmNWZkNzI1MjVjYzJmYWIzNTY2M2NkNzA5MTM1ZTQzYjhlMjU3ZGMwYjc1ODk0OCJ9fX0=");
-    public static final String HEAD_EXPAND =
-            HeadsConfig.get("expand", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzA0MGZlODM2YTZjMmZiZDJjN2E5YzhlYzZiZTUxNzRmZGRmMWFjMjBmNTVlMzY2MTU2ZmE1ZjcxMmUxMCJ9fX0=");
-    public static final String HEAD_MSG =
-            HeadsConfig.get("msg", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDc1N2U5NzJjNzYzMTQ5NDc2YmM1NTZjZmJhZDM2MTRjMWQ0OTk1NGYxM2Y4ODkzZWI5ZDEwNTg0NTc1M2YyZSJ9fX0=");
-    public static final String HEAD_SATURATION =
-            HeadsConfig.get("saturation", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODdhMzk4N2M1Y2RiMzVhYmE5YWU2ZjJlMjM0ODlhYTk2ZTA4MGU5M2ZhYzQzNWRjNjQwZjczN2I1Y2E0MDFkMyJ9fX0=");
-    public static final String HEAD_DENY_ENTRY =
-            HeadsConfig.get("deny-entry", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWFlMGU0ODZkYjRlYzQ5ZmYxYjUyY2ZlY2VkYTRjM2YzNmZkZTIzYzgzNWVhM2NjZmNhYWM5MzVlNDliNWYxMCJ9fX0=");
-    public static final String HEAD_REGEN =
-            HeadsConfig.get("regen", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWVmNTM5YjE2NTEyNWNmYTQ2YjA2ZmZiOTY1OWU3Y2Y4OTA4NGJiZDNlZGUxYjMxNGVkYzhmNDQzMzQzZDYxYyJ9fX0=");
-    public static final String HEAD_HASTE =
-            HeadsConfig.get("haste", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTRlNDM1OGQ3MzRhNmUwNjhlYjA3Y2I4ZmM1ZmZkZThiOTQ4MDBlYjM5Njc3NzQyOGE0ZjU1OTMxNWExZmY0ZCJ9fX0=");
-    public static final String HEAD_QUEST =
-            HeadsConfig.get("quest", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTZkN2I3MjA0YmVhMWZmMGRmNzkzMGJkNDU1OWEzMGI1ZWE1NTllNTYyNDI5NDY5NGU4NjdiZjdiNWFlMDM2MSJ9fX0=");
     public static final String HEAD_ADD_MEMBER =
             HeadsConfig.get("add-member", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2VkZDIwYmU5MzUyMDk0OWU2Y2U3ODlkYzRmNDNlZmFlYjI4YzcxN2VlNmJmY2JiZTAyNzgwMTQyZjcxNiJ9fX0=");
     public static final String HEAD_DELETE_YES =
@@ -47,12 +30,12 @@ public final class HeadTextures {
             HeadsConfig.get("delete-no", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWE2Nzg3YmEzMjU2NGU3YzJmM2EwY2U2NDQ5OGVjYmIyM2I4OTg0NWU1YTY2YjVjZWM3NzM2ZjcyOWVkMzcifX19");
     public static final String HEAD_HIDE_ANCHOR =
             HeadsConfig.get("hide-anchor", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODI1MzBmMzAxZDFhNDA2NDcyNjEzY2UzNTgwNzgwYTUzYmFmZGI2MWM4NzE0ZGQzNWRmYTU0NDQwYmFhMjE2YiJ9fX0=");
+    public static final String HEAD_MOVE_ANCHOR =
+            HeadsConfig.get("move-anchor", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTZjYjhkM2UxZjgwNTNiN2Q1ODFkMzg5YjljYmY2MTI2Y2RkYjJjYjc1NDQ5N2U1NWYxY2FmNGI4ODU1YTMifX19");
+    public static final String HEAD_PROMOTE =
+            HeadsConfig.get("promote", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzA0MGZlODM2YTZjMmZiZDJjN2E5YzhlYzZiZTUxNzRmZGRmMWFjMjBmNTVlMzY2MTU2ZmE1ZjcxMmUxMCJ9fX0=");
     public static final String HEAD_DEMOTE =
             HeadsConfig.get("demote", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzQzNzM0NmQ4YmRhNzhkNTI1ZDE5ZjU0MGE5NWU0ZTc5ZGFlZGE3OTVjYmM1YTEzMjU2MjM2MzEyY2YifX19");
-    public static final String HEAD_CROP_GROWTH =
-            HeadsConfig.get("crop-growth", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTNjYjhmNjFlN2Y2YmY5NTdhMjEzNGU5NmZhZWIwZmM5MjQxMzdkNGJmZjg4ZDk1MThiMmJmNjYyNTg2YzkyZSJ9fX0=");
-    public static final String HEAD_PVP =
-            HeadsConfig.get("pvp", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmE1MzYxYjUyZGFmNGYxYzVjNTQ4MGEzOWZhYWExMDg5NzU5NWZhNTc2M2Y3NTdiZGRhMzk1NjU4OGZlYzY3OCJ9fX0=");
 
     // gui-gen-5: пагинация (только 54-слотовые меню, слоты 36/44)
     public static final String HEAD_ARROW_LEFT =
@@ -62,9 +45,11 @@ public final class HeadTextures {
 
     /**
      * Текстура «зелёного стекла» для голов-дисплеев предпросмотра границ привата
-     * (см. {@code task.BlockPreviewTask}) — визуально не связана с иконками GUI-меню,
-     * но использует тот же base64-механизм текстур голов.
+     * (см. {@code task.BlockPreviewTask}, {@code task.BorderDisplayTask}).
      */
     public static final String PREVIEW_GLASS_GREEN =
             HeadsConfig.get("preview-glass-green", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjQ5NjAxMTMwNzNiNTIwNDRkNzA3OTk2NTQxOTYyMTkyMjMxOGE5ZTk5ZDc2NzE3MGIxNDI4ZGVkNDhjN2NlNSJ9fX0=");
+
+    public static final String HEAD_BORDER =
+            HeadsConfig.get("border", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTRiZTVhN2NlMWE4YjVlYjQzNzRhYjhkOTM3MTQ0N2MzMjhhNWM4ZDI3NjI2YmE3NjE3NDYwY2NlNDcyNmNhNSJ9fX0=");
 }

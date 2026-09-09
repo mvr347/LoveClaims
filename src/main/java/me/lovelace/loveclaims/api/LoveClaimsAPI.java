@@ -2,10 +2,8 @@ package me.lovelace.loveclaims.api;
 
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.manager.ClaimManager;
-import me.lovelace.loveclaims.manager.QuestManager;
 import me.lovelace.loveclaims.manager.RentalManager;
 import me.lovelace.loveclaims.model.Claim;
-import me.lovelace.loveclaims.model.Quest;
 import me.lovelace.loveclaims.model.TrustLevel;
 import me.lovelace.loveclaims.model.UserData;
 import org.bukkit.Location;
@@ -504,51 +502,6 @@ public final class LoveClaimsAPI {
                 .orElse(true); // Если приват не найден, считаем, что локация "вне"
     }
 
-    // ===== QUESTS API =====
-
-    public Collection<Quest> getAllQuests() {
-        return plugin.getQuestManager().getAllQuests();
-    }
-
-    public Quest getQuestById(String questId) {
-        return plugin.getQuestManager().getQuestById(questId);
-    }
-
-    public List<Quest> getQuestsByTier(String tier) {
-        return plugin.getQuestManager().getQuestsByTier(tier);
-    }
-
-    public List<Quest> getQuestsByCategory(String category) {
-        return plugin.getQuestManager().getQuestsByCategory(category);
-    }
-
-    public List<Quest> getQuestsByDifficulty(Quest.Difficulty difficulty) {
-        return plugin.getQuestManager().getQuestsByDifficulty(difficulty);
-    }
-
-    public List<Quest> getDailyQuests() {
-        return plugin.getQuestManager().getDailyQuests();
-    }
-
-    public int getQuestProgress(OfflinePlayer player, String questId) {
-        return plugin.getQuestManager().getUserData(player.getUniqueId()).getQuestProgress(questId);
-    }
-
-    public boolean isQuestCompleted(OfflinePlayer player, String questId) {
-        return plugin.getQuestManager().getUserData(player.getUniqueId()).isQuestCompleted(questId);
-    }
-
-    public void addQuestProgress(OfflinePlayer player, Quest.QuestType type, String targetName, int amount) {
-        plugin.getQuestManager().addProgress(player.getUniqueId(), type, targetName, amount);
-    }
-
-    public void addQuestProgressById(OfflinePlayer player, String questId, int amount) {
-        Quest quest = getQuestById(questId);
-        if (quest != null) {
-            addQuestProgress(player, quest.type(), quest.targetName(), amount);
-        }
-    }
-
     // ===== USER DATA API =====
 
     public Optional<UserData> getUserData(OfflinePlayer player) {
@@ -556,23 +509,15 @@ public final class LoveClaimsAPI {
             return Optional.empty();
         }
         try {
-            return Optional.ofNullable(plugin.getQuestManager().getUserData(player.getUniqueId()));
+            return Optional.ofNullable(plugin.getUserManager().getUserData(player.getUniqueId()));
         } catch (Exception e) {
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "Failed to get user data for " + player.getName(), e);
             return Optional.empty();
         }
     }
 
-    public int getExpansionBlocks(OfflinePlayer player) {
-        return getUserData(player).map(UserData::getExpansionBlocks).orElse(0);
-    }
-
     public int getMemberLimit(OfflinePlayer player) {
         return getUserData(player).map(UserData::getBonusMemberLimit).orElse(0);
-    }
-
-    public boolean hasBuffUnlocked(OfflinePlayer player, String buffName) {
-        return getUserData(player).map(data -> data.hasBuffUnlocked(buffName)).orElse(false);
     }
 
     // ===== RENTAL API =====
@@ -601,15 +546,6 @@ public final class LoveClaimsAPI {
         return plot.getRentalPrice();
     }
 
-    // ===== EVENT API =====
-
-    public void registerQuestProgressListener(QuestManager.QuestProgressListener listener) {
-        plugin.getQuestManager().addProgressListener(listener);
-    }
-
-    public void unregisterQuestProgressListener(QuestManager.QuestProgressListener listener) {
-        plugin.getQuestManager().removeProgressListener(listener);
-    }
 
     // ===== ASYNC API =====
 
