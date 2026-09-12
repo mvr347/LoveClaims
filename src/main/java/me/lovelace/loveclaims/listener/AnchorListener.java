@@ -59,6 +59,24 @@ public class AnchorListener implements Listener {
                 .orElse(true);
     }
 
+    /**
+     * +N к радиусу привата по X/Z за высокую вежливость или добрый стиль игры
+     * (LoveCore.BehaviorLevels, ставит LoveBehavior). Без LoveCore/LoveBehavior — 0.
+     */
+    private int behaviorBonusRadius(UUID playerId) {
+        if (!plugin.getConfigManager().getConfig().getBoolean("integrations.behavior.enabled", true)) {
+            return 0;
+        }
+        int politenessThreshold = plugin.getConfigManager().getConfig().getInt("integrations.behavior.politeness-threshold", 5);
+        int playstyleThreshold = plugin.getConfigManager().getConfig().getInt("integrations.behavior.playstyle-threshold", 6);
+        int bonus = plugin.getConfigManager().getConfig().getInt("claim.behavior-bonus.radius", 2);
+        return dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.social.BehaviorLevels.class)
+                .filter(levels -> levels.politenessLevel(playerId) >= politenessThreshold
+                        || levels.playstyleLevel(playerId) >= playstyleThreshold)
+                .map(levels -> bonus)
+                .orElse(0);
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onAnchorBreak(BlockBreakEvent event) {
         Location loc = event.getBlock().getLocation();
@@ -144,9 +162,12 @@ public class AnchorListener implements Listener {
         ClaimTier tier = tierOpt.get();
         Location targetLoc = clickedBlock.getRelative(event.getBlockFace()).getLocation();
 
+        int bonusRadius = behaviorBonusRadius(player.getUniqueId());
+        int radiusX = tier.radiusX() + bonusRadius;
+        int radiusZ = tier.radiusZ() + bonusRadius;
         BoundingBox newBox = BoundingBox.of(
-                targetLoc.clone().add(-tier.radiusX(), -tier.radiusY(), -tier.radiusZ()),
-                targetLoc.clone().add(tier.radiusX(), tier.radiusY(), tier.radiusZ())
+                targetLoc.clone().add(-radiusX, -tier.radiusY(), -radiusZ),
+                targetLoc.clone().add(radiusX, tier.radiusY(), radiusZ)
         );
 
         // Проверка на пересечение с клановыми территориями
