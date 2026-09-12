@@ -17,7 +17,12 @@ claim:
   members:
     default-limit: 5        # Стандартный лимит участников в привате
     absolute-limit: 24      # Максимально возможное лимит (даже с бонусами)
-  
+
+  # Бонус к радиусу привата по X/Z за высокую вежливость или добрый стиль игры
+  # (см. integrations.behavior). Применяется при установке нового якоря.
+  behavior-bonus:
+    radius: 2
+
   # Названия ролей для отображения в GUI и чате
   # Порядок важен: NONE < ACCESS < CONTAINER < BUILD < MANAGER < OWNER
   roles:
@@ -242,6 +247,12 @@ integrations:
   # WorldGuard - совместимость с регионами
   worldguard:
     enabled: false            # Включить WorldGuard
+
+  # LoveCore.BehaviorLevels (ставит LoveBehavior) - бонус к размеру привата, см. claim.behavior-bonus.
+  behavior:
+    enabled: true
+    politeness-threshold: 5   # ступень вежливости 0-6, начиная с которой даётся бонус
+    playstyle-threshold: 6    # ступень стиля игры 0-6 ("добрый"), начиная с которой даётся бонус
 
 # ====================================================== #
 #                   РАЗНЫЕ НАСТРОЙКИ                     #
