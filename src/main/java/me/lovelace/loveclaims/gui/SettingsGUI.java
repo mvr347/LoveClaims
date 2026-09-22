@@ -208,8 +208,8 @@ public class SettingsGUI extends AbstractGUI {
                 viewer.getInventory().addItem(anchor).values().forEach(item -> viewer.getWorld().dropItemNaturally(viewer.getLocation(), item));
             }
 
-            plugin.getClaimManager().removeClaimFromCache(claim.getId());
             plugin.getStorage().deleteClaimAsync(claim.getId());
+            plugin.getClaimManager().removeClaimFromCache(claim.getId());
 
             if (claim.getAnchorLocation() != null) {
                 claim.getAnchorLocation().getBlock().setType(Material.AIR);

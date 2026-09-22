@@ -37,8 +37,10 @@ public class RentalExpirationTask {
                     // 2. Check taxes
                     if (claim.isRented()) {
                         if (claim.getLastTaxTime() == 0) {
-                            claim.setLastTaxTime(now);
-                            plugin.getStorage().saveClaimAsync(claim);
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                claim.setLastTaxTime(now);
+                                plugin.getStorage().saveClaimAsync(claim);
+                            });
                         }
 
                         if (now - claim.getLastTaxTime() >= taxInterval) {

@@ -429,7 +429,12 @@ public class ClaimManager {
      */
     public List<Claim> getClaimsByOwner(UUID ownerUuid) {
         if (ownerUuid == null) return Collections.emptyList();
-        return Collections.unmodifiableList(claimsByOwner.getOrDefault(ownerUuid, Collections.emptyList()));
+        lock.readLock().lock();
+        try {
+            return Collections.unmodifiableList(claimsByOwner.getOrDefault(ownerUuid, Collections.emptyList()));
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     /**
@@ -439,7 +444,12 @@ public class ClaimManager {
      */
     public List<Claim> getClaimsByPlayer(UUID playerUuid) {
         if (playerUuid == null) return Collections.emptyList();
-        return Collections.unmodifiableList(claimsByPlayer.getOrDefault(playerUuid, Collections.emptyList()));
+        lock.readLock().lock();
+        try {
+            return Collections.unmodifiableList(claimsByPlayer.getOrDefault(playerUuid, Collections.emptyList()));
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     /**
@@ -491,7 +501,12 @@ public class ClaimManager {
      * @return Список арендных приватов
      */
     public List<Claim> getAllRentalPlots() {
-        return Collections.unmodifiableList(rentalPlotsCache);
+        lock.readLock().lock();
+        try {
+            return Collections.unmodifiableList(rentalPlotsCache);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     /**
@@ -509,7 +524,12 @@ public class ClaimManager {
      * @return Список всех клановых приватов
      */
     public List<Claim> getAllClanClaims() {
-        return Collections.unmodifiableList(allClanClaimsCache);
+        lock.readLock().lock();
+        try {
+            return Collections.unmodifiableList(allClanClaimsCache);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     // Метод updatePlayerClaimsCache() больше не нужен, так как кэши обновляются напрямую.
