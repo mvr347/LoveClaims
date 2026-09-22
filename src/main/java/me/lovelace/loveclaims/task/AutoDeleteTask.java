@@ -45,8 +45,8 @@ public class AutoDeleteTask {
             }
 
             for (Claim claim : toDelete) {
-                plugin.getClaimManager().removeClaimFromCache(claim.getId());
                 plugin.getStorage().deleteClaimAsync(claim.getId());
+                plugin.getClaimManager().removeClaimFromCache(claim.getId());
 
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
                     if (claim.getAnchorLocation() != null && claim.getAnchorLocation().getWorld() != null) {

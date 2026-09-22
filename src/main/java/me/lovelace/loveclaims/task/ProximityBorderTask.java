@@ -66,7 +66,7 @@ public class ProximityBorderTask {
                         });
                     } else {
                         // Режим PARTICLES: спавним легкие партиклы по ребрам на высоте игрока
-                        spawnBorderParticles(player, pLoc, box, claim, detectionDist);
+                        Bukkit.getScheduler().runTask(plugin, () -> spawnBorderParticles(player, pLoc, box, claim, detectionDist));
                     }
                 }
             }

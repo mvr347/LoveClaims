@@ -239,8 +239,8 @@ public final class LoveClaimsAPI {
      */
     public void deleteClaim(UUID claimId) {
         plugin.getClaimManager().getClaimById(claimId).ifPresent(claim -> {
-            plugin.getClaimManager().removeClaimFromCache(claimId);
             plugin.getStorage().deleteClaimAsync(claimId);
+            plugin.getClaimManager().removeClaimFromCache(claimId);
         });
     }
 

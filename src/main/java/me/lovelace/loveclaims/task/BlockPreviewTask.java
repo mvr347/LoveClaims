@@ -218,7 +218,6 @@ public class BlockPreviewTask {
 
             if (tierOpt.isEmpty() || !tierOpt.get().id().equals(tier.id())) {
                 revert();
-                if (onCancel != null) onCancel.run();
                 player.sendMessage(plugin.getConfigManager().getComponent("msg-anchor-cancel"));
             }
         }, null, 1L, 10L);
