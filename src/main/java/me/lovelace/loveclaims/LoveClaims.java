@@ -11,6 +11,7 @@ import me.lovelace.loveclaims.listener.PlayerDataListener;
 import me.lovelace.loveclaims.listener.ProtectionListener;
 import me.lovelace.loveclaims.listener.PlayerMoveListener;
 import me.lovelace.loveclaims.listener.RentalInteractListener;
+import me.lovelace.loveclaims.listener.SpawnFoodListener;
 import me.lovelace.loveclaims.manager.ConfigManager;
 import me.lovelace.loveclaims.manager.ClaimManager;
 import me.lovelace.loveclaims.manager.AnchorManager;
@@ -104,6 +105,7 @@ public final class LoveClaims extends JavaPlugin {
             pm.registerEvents(new PlayerDataListener(this), this);
             pm.registerEvents(new PlayerMoveListener(this), this);
             pm.registerEvents(new RentalInteractListener(this), this);
+            pm.registerEvents(new SpawnFoodListener(this), this);
             getLogger().info("Listeners registered!");
 
             // 7. Проверка и регистрация PAPI
