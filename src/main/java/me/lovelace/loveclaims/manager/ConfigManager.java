@@ -308,6 +308,21 @@ public class ConfigManager {
         return config.getBoolean("spawn-claim.flags." + flag, false);
     }
 
+    /**
+     * Доля событий уменьшения голода (FoodLevelChangeEvent), которые гасятся на территории
+     * спавна - см. spawn-claim.food-depletion-reduction. 0.35 означает, что ~35% попыток
+     * уменьшить foodLevel подавляются, остальные проходят как в ванили - в среднем на длинной
+     * дистанции голод падает на 35% медленнее. Значение зажимается в [0.0, 1.0]: 0.0 = как
+     * в ваниле, 1.0 = голод на спавне не падает вообще.
+     * @return доля подавляемых событий, 0.0-1.0
+     */
+    public double getSpawnFoodDepletionReduction() {
+        double value = config.getDouble("spawn-claim.food-depletion-reduction", 0.35);
+        if (value < 0.0) return 0.0;
+        if (value > 1.0) return 1.0;
+        return value;
+    }
+
     public String getString(String path, String... placeholders) {
         // Пробуем получить как список, если нет - как одну строку
         List<String> list = lang.getStringList(path);
