@@ -295,6 +295,21 @@ public class ProtectionListener implements Listener {
                 event.setCancelled(true);
                 deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact"));
             }
+            return;
+        }
+
+        // Защита спавна - раньше этой ветки не было вовсе, поэтому двери/люки/кнопки/рычаги и
+        // контейнеры на территории спавна (она не входит ни в один Claim, isSpawnProtected()
+        // проверяется отдельно) открывались всем без ограничений, хотя точно такое же
+        // взаимодействие внутри обычного привата корректно требует прав.
+        if (isSpawnProtected(block.getLocation()) && !plugin.getConfigManager().getSpawnFlag("interact")) {
+            Material type = block.getType();
+            if (isContainerBlock(type) || isDoorOrButtonBlock(type)) {
+                event.setCancelled(true);
+                if (plugin.getConfigManager().getConfig().getBoolean("spawn-claim.say-break-message", false)) {
+                    deny(event.getPlayer(), null, plugin.getConfigManager().getMessage("deny-interact"));
+                }
+            }
         }
     }
 
@@ -439,7 +454,24 @@ public class ProtectionListener implements Listener {
         }
 
         Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(event.getEntity().getLocation());
-        if (claimOpt.isEmpty()) return;
+        if (claimOpt.isEmpty()) {
+            // Раньше здесь был голый return - рамки/картины на территории спавна не входят ни
+            // в один Claim (спавн защищается отдельно, через isSpawnProtected()), поэтому эта
+            // ветка никогда не доходила до проверки спавна: рамки там можно было свободно
+            // ломать. Тот же break-blocks флаг, что и для обычных блоков (см. onBlockBreak).
+            if (isSpawnProtected(event.getEntity().getLocation()) && !plugin.getConfigManager().getSpawnFlag("break-blocks")) {
+                if (player != null) {
+                    if (hasBypass(player)) return;
+                    event.setCancelled(true);
+                    if (plugin.getConfigManager().getConfig().getBoolean("spawn-claim.say-break-message", false)) {
+                        deny(player, null, plugin.getConfigManager().getMessage("deny-break"));
+                    }
+                } else {
+                    event.setCancelled(true);
+                }
+            }
+            return;
+        }
         Claim claim = claimOpt.get();
 
         if (player != null) {
@@ -459,6 +491,55 @@ public class ProtectionListener implements Listener {
 
         // Не игрок (например, взрыв)
         event.setCancelled(true);
+    }
+
+    /**
+     * Извлечение/установка/поворот предмета в рамке - отдельное от {@link #onHangingBreak}
+     * действие: снятие предмета с занятой рамки не ломает саму рамку и никогда не порождает
+     * HangingBreakByEntityEvent, поэтому без этого хендлера было полностью незащищено и внутри
+     * приватов, и на спавне (см. javadoc PlayerItemFrameChangeEvent - Paper добавил его именно
+     * из-за этого пробела в ванильном Bukkit API).
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onItemFrameChange(io.papermc.paper.event.player.PlayerItemFrameChangeEvent event) {
+        Player player = event.getPlayer();
+        if (hasBypass(player)) return;
+
+        Location loc = event.getItemFrame().getLocation();
+        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(loc);
+        if (claimOpt.isPresent()) {
+            Claim claim = claimOpt.get();
+
+            if (claim.isClanTerritory()) {
+                if (claim.isUnderSiege()) {
+                    event.setCancelled(true);
+                    deny(player, claim, plugin.getConfigManager().getMessage("siege-interact-deny"));
+                } else {
+                    event.setCancelled(true);
+                }
+                return;
+            }
+
+            // Поворот предмета уже в рамке ничего не удаляет и не добавляет - не требует прав.
+            if (event.getAction() == io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.ROTATE) {
+                return;
+            }
+            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.CONTAINERS)) {
+                event.setCancelled(true);
+                deny(player, claim, plugin.getConfigManager().getMessage("deny-interact"));
+            }
+            return;
+        }
+
+        if (!isSpawnProtected(loc)) return;
+        io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction action = event.getAction();
+        if (action == io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.REMOVE
+                && !plugin.getConfigManager().getSpawnFlag("break-blocks")) {
+            event.setCancelled(true);
+        } else if (action == io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.PLACE
+                && !plugin.getConfigManager().getSpawnFlag("place-blocks")) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
