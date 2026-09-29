@@ -12,7 +12,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Фоновая задача для отображения границ привата при приближении игрока.
@@ -32,7 +31,10 @@ public class ProximityBorderTask {
     }
 
     public void start() {
-        task = plugin.getServer().getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> {
+        // Runs on the main thread: it iterates Bukkit.getOnlinePlayers() and reads player.getLocation(),
+        // which is not safe from the async scheduler while players join, quit or move. The work per tick
+        // is a cheap distance check, so there is nothing worth moving off-thread.
+        task = plugin.getServer().getGlobalRegionScheduler().runAtFixedRate(plugin, scheduledTask -> {
             boolean enabled = plugin.getConfigManager().getConfig().getBoolean("proximity-border.enabled", true);
             if (!enabled) return;
 
@@ -59,18 +61,14 @@ public class ProximityBorderTask {
                     if (dist > detectionDist) continue;
 
                     if ("ITEM_DISPLAY".equals(mode)) {
-                        plugin.getServer().getScheduler().runTask(plugin, () -> {
-                            if (player.isOnline()) {
-                                BorderDisplayTask.showBorder(plugin, player, box, 30L, claim.getId());
-                            }
-                        });
+                        BorderDisplayTask.showBorder(plugin, player, box, 30L, claim.getId());
                     } else {
                         // Режим PARTICLES: спавним легкие партиклы по ребрам на высоте игрока
-                        Bukkit.getScheduler().runTask(plugin, () -> spawnBorderParticles(player, pLoc, box, claim, detectionDist));
+                        spawnBorderParticles(player, pLoc, box, claim, detectionDist);
                     }
                 }
             }
-        }, 500, 500, TimeUnit.MILLISECONDS); // Каждые 10 тиков (0.5 сек)
+        }, 10L, 10L); // Каждые 10 тиков (0.5 сек)
     }
 
     public void cancel() {
