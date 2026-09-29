@@ -53,7 +53,7 @@ public class ClaimManager {
             .build();
         this.commandCooldownsCache = Caffeine.newBuilder()
             .expireAfterAccess(1, TimeUnit.MINUTES)
-            .maximumSize(100000)
+            .maximumSize(5000) // one entry per player for at most a minute; 100k was orders of magnitude above any real player count
             .recordStats()
             .build();
 

@@ -4,6 +4,7 @@ import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.model.Claim;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class RentalExpirationTask {
@@ -45,22 +46,24 @@ public class RentalExpirationTask {
 
                         if (now - claim.getLastTaxTime() >= taxInterval) {
                             long taxAmount = Math.round(claim.getRentalPrice() * (plugin.getRentalManager().getTaxPercentage() / 100.0));
-                            Player renter = Bukkit.getPlayer(claim.getOwnerUuid());
+                            UUID renterId = claim.getOwnerUuid();
 
-                            if (renter != null) {
-                                Bukkit.getScheduler().runTask(plugin, () -> {
-                                    if (plugin.getCurrencyManager().hasEnough(renter, taxAmount)) {
-                                        if (plugin.getCurrencyManager().takeCurrency(renter, taxAmount)) {
-                                            claim.setLastTaxTime(now);
-                                            plugin.getStorage().saveClaimAsync(claim);
-                                            renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-paid", "amount", String.valueOf(taxAmount)));
-                                        }
-                                    } else {
-                                        terminateRent(claim);
-                                        renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-failed", "amount", String.valueOf(taxAmount)));
+                            // Bukkit.getPlayer() and everything after it touch live server state, so the
+                            // lookup happens on the main thread, not on this async scheduler thread.
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                Player renter = Bukkit.getPlayer(renterId);
+                                if (renter == null) return;
+                                if (plugin.getCurrencyManager().hasEnough(renter, taxAmount)) {
+                                    if (plugin.getCurrencyManager().takeCurrency(renter, taxAmount)) {
+                                        claim.setLastTaxTime(now);
+                                        plugin.getStorage().saveClaimAsync(claim);
+                                        renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-paid", "amount", String.valueOf(taxAmount)));
                                     }
-                                });
-                            }
+                                } else {
+                                    terminateRent(claim);
+                                    renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-failed", "amount", String.valueOf(taxAmount)));
+                                }
+                            });
                         }
                     }
                 } catch (Exception ex) {
