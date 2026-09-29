@@ -5,6 +5,7 @@ import me.lovelace.loveclaims.command.MainCommand;
 import me.lovelace.loveclaims.command.RentalCommand;
 import me.lovelace.loveclaims.hook.PAPIExpansion;
 import me.lovelace.loveclaims.listener.ChatListener;
+import me.lovelace.loveclaims.listener.BedrockGuardListener;
 import me.lovelace.loveclaims.listener.DupeGuardListener;
 import me.lovelace.loveclaims.listener.EntitySpawnListener;
 import me.lovelace.loveclaims.listener.AnchorListener;
@@ -110,6 +111,7 @@ public final class LoveClaims extends JavaPlugin {
             pm.registerEvents(new SpawnFoodListener(this), this);
             pm.registerEvents(new EntitySpawnListener(this), this);
             pm.registerEvents(new DupeGuardListener(this), this);
+            pm.registerEvents(new BedrockGuardListener(this), this);
             getLogger().info("Listeners registered!");
 
             // 7. Проверка и регистрация PAPI
