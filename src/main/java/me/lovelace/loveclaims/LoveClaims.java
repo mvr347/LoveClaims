@@ -106,6 +106,8 @@ public final class LoveClaims extends JavaPlugin {
             pm.registerEvents(new PlayerMoveListener(this), this);
             pm.registerEvents(new RentalInteractListener(this), this);
             pm.registerEvents(new SpawnFoodListener(this), this);
+            pm.registerEvents(new me.lovelace.loveclaims.listener.SpawnEntityListener(this), this);
+            pm.registerEvents(new me.lovelace.loveclaims.listener.DupeFixListener(this), this);
             getLogger().info("Listeners registered!");
 
             // 7. Проверка и регистрация PAPI
