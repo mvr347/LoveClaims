@@ -3,7 +3,6 @@ package me.lovelace.loveclaims.gui;
 import me.lovelace.loveclaims.LoveClaims;
 import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
-import me.lovelace.loveclaims.model.TrustLevel;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -90,15 +89,18 @@ public class RentalPaymentGUI extends AbstractGUI {
                 return;
             }
 
-            if (plugin.getCurrencyManager().hasEnough(player, price)) {
-                if (plugin.getCurrencyManager().takeCurrency(player, price)) {
-                    plot.setOwnerUuid(player.getUniqueId());
-                    plot.setRentalEndTime(System.currentTimeMillis() + plugin.getRentalManager().getTaxDays() * 86400000L);
-                    plot.setTrust(player.getUniqueId(), TrustLevel.OWNER);
-                    plugin.getClaimManager().syncTrustGranted(plot, player.getUniqueId());
-                    plugin.getStorage().saveMemberAsync(plot.getId(), player.getUniqueId(), TrustLevel.OWNER);
-                    plugin.getStorage().saveClaimAsync(plot);
-                    plugin.getRentalManager().updateIndicator(plot);
+            var rentals = plugin.getRentalManager();
+            var denied = rentals.checkRentAllowed(player, plot);
+            if (denied.isPresent()) {
+                player.sendMessage(denied.get());
+                plugin.getConfigManager().playSound(player, "anchor-error");
+                player.closeInventory();
+                return;
+            }
+
+            if (rentals.hasFunds(player, plot, price)) {
+                if (rentals.charge(player, plot, price)) {
+                    rentals.assign(plot, player.getUniqueId(), System.currentTimeMillis() + rentals.getPeriodMillis(plot));
                     player.closeInventory();
                     player.sendMessage(plugin.getConfigManager().getMessage("rental-buy-success", "name", plot.getName()));
                     plugin.getConfigManager().playSound(player, "tax-paid");
@@ -109,7 +111,7 @@ public class RentalPaymentGUI extends AbstractGUI {
                 }
             } else {
                 processing = false;
-                player.sendMessage(plugin.getConfigManager().getMessage("rental-paytax-needed", "needed", plugin.getCurrencyManager().getNeededCoinsString(price)));
+                player.sendMessage(plugin.getConfigManager().getMessage("rental-paytax-needed", "needed", rentals.describeAmount(plot, price)));
                 plugin.getConfigManager().playSound(player, "anchor-error");
                 player.closeInventory();
             }

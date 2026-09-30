@@ -1,17 +1,32 @@
 package me.lovelace.loveclaims.manager;
 
+import dev.lovelace.lovecore.api.LoveCore;
+import dev.lovelace.lovecore.api.economy.LoveEconomy;
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.api.ReleaseReason;
+import me.lovelace.loveclaims.api.TradePointRentPayer;
+import me.lovelace.loveclaims.api.event.TradePointExpiryWarningEvent;
+import me.lovelace.loveclaims.api.event.TradePointReleasedEvent;
+import me.lovelace.loveclaims.api.event.TradePointRentRequestEvent;
+import me.lovelace.loveclaims.api.event.TradePointRentedEvent;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.IndicatorType;
+import me.lovelace.loveclaims.model.PlotType;
+import me.lovelace.loveclaims.model.TrustLevel;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -214,4 +229,242 @@ public class RentalManager {
 
     public double getTaxPercentage() { return plugin.getConfigManager().getConfig().getDouble("rental.tax-percentage", 5.0); }
     public int getTaxDays() { return plugin.getConfigManager().getConfig().getInt("rental.tax-days", 3); }
+
+    // =====================================================================================
+    //  Rental state changes. EVERY change of who rents a plot or until when goes through
+    //  assign / extend / release below - GUIs, commands and the expiry task never touch
+    //  ownerUuid / rentalEndTime directly, so trade-point events cannot be missed.
+    // =====================================================================================
+
+    /**
+     * Gives {@code plot} to {@code renter} until {@code endTime}. The caller has already taken the
+     * payment (or is an admin). Main thread only.
+     */
+    public void assign(Claim plot, UUID renter, long endTime) {
+        // Leftovers of a previous tenant must never carry over to the new one.
+        clearMembers(plot);
+        plot.setOwnerUuid(renter);
+        plot.setRentalEndTime(endTime);
+        plot.setExpiryWarned(false);
+        if (plot.isTradePoint()) {
+            plot.setLastTaxTime(System.currentTimeMillis());
+        }
+        plugin.getClaimManager().syncTrustGranted(plot, renter);
+        plugin.getStorage().saveMemberAsync(plot.getId(), renter, TrustLevel.OWNER);
+        updateIndicator(plot);
+        if (plot.isTradePoint()) {
+            Bukkit.getPluginManager().callEvent(new TradePointRentedEvent(renter, plot));
+        }
+    }
+
+    /** Pushes the end of the current term back by {@code millis}. Main thread only. */
+    public void extend(Claim plot, long millis) {
+        plot.setRentalEndTime(plot.getRentalEndTime() + millis);
+        plot.setExpiryWarned(false);
+        updateIndicator(plot);
+    }
+
+    /** Takes the plot back to the landlord. Main thread only. */
+    public void release(Claim plot, ReleaseReason reason) {
+        UUID former = plot.getOwnerUuid();
+        UUID landlord = plot.getParentClaimId();
+        plot.setRentalEndTime(0);
+        plot.setOwnerUuid(landlord);
+        plot.setExpiryWarned(false);
+        clearMembers(plot);
+        updateIndicator(plot);
+        if (plot.isTradePoint() && former != null && !former.equals(landlord)) {
+            Bukkit.getPluginManager().callEvent(new TradePointReleasedEvent(former, plot, reason));
+        }
+    }
+
+    private void clearMembers(Claim plot) {
+        for (UUID member : new ArrayList<>(plot.getMembers().keySet())) {
+            plugin.getClaimManager().syncTrustRevoked(plot, member);
+            plugin.getStorage().removeMemberAsync(plot.getId(), member);
+        }
+        plot.getMembers().clear();
+    }
+
+    // =====================================================================================
+    //  Trade points
+    // =====================================================================================
+
+    private volatile TradePointRentPayer tradePointRentPayer;
+
+    public void setTradePointRentPayer(TradePointRentPayer payer) { this.tradePointRentPayer = payer; }
+    public TradePointRentPayer getTradePointRentPayer() { return tradePointRentPayer; }
+
+    private org.bukkit.configuration.file.FileConfiguration cfg() { return plugin.getConfigManager().getConfig(); }
+
+    public boolean isTradePointsEnabled() { return cfg().getBoolean("rental.trade-points.enabled", true); }
+    public int getTradePointMaxPerPlayer() { return Math.max(1, cfg().getInt("rental.trade-points.max-per-player", 1)); }
+    public long getTradePointPeriodMillis() { return Math.max(1L, cfg().getLong("rental.trade-points.period-days", 7)) * 86_400_000L; }
+    public long getTradePointGraceMillis() { return Math.max(0L, cfg().getLong("rental.trade-points.grace-hours", 12)) * 3_600_000L; }
+    public long getTradePointWarnMillis() { return Math.max(0L, cfg().getLong("rental.trade-points.warn-hours", 24)) * 3_600_000L; }
+    public long getTradePointRenewLeadMillis() { return Math.max(0L, cfg().getLong("rental.trade-points.auto-renew-lead-hours", 2)) * 3_600_000L; }
+    public boolean isTradePointAutoRenew() { return cfg().getBoolean("rental.trade-points.auto-renew", true); }
+    public int getTradePointMaxPrepaidPeriods() { return Math.max(1, cfg().getInt("rental.trade-points.max-prepaid-periods", 4)); }
+    public double getTradePointRenewPercent() { return Math.max(0.0, cfg().getDouble("rental.trade-points.renewal-percent", 100.0)); }
+
+    /** Length of one rental period in millis: the trade-point period or the classic tax period. */
+    public long getPeriodMillis(Claim plot) {
+        return plot.isTradePoint() ? getTradePointPeriodMillis() : getTaxDays() * 86_400_000L;
+    }
+
+    /**
+     * What one extension costs. Classic plots pay a tax percentage of the rental price; a trade
+     * point pays rent per period ({@code renewal-percent} of its price, 100% by default).
+     */
+    public long getRenewCost(Claim plot) {
+        double percent = plot.isTradePoint() ? getTradePointRenewPercent() : getTaxPercentage();
+        return Math.round(plot.getRentalPrice() * (percent / 100.0));
+    }
+
+    /** {@code false} once a trade point is already prepaid for {@code max-prepaid-periods}. */
+    public boolean canExtend(Claim plot) {
+        if (!plot.isTradePoint()) return true;
+        long ahead = plot.getRentalEndTime() - System.currentTimeMillis();
+        return ahead < getTradePointPeriodMillis() * getTradePointMaxPrepaidPeriods();
+    }
+
+    /** True when the plot has a tenant whose term is over but who is still inside the grace time. */
+    public boolean isInGrace(Claim plot) {
+        if (!plot.isTradePoint() || plot.getRentalEndTime() <= 0) return false;
+        long now = System.currentTimeMillis();
+        UUID owner = plot.getOwnerUuid();
+        return owner != null && !owner.equals(plot.getParentClaimId())
+                && plot.getRentalEndTime() <= now
+                && now <= plot.getRentalEndTime() + getTradePointGraceMillis();
+    }
+
+    /** {@code true} when the plot currently has a tenant (rented, or in the grace period). */
+    public boolean hasTenant(Claim plot) {
+        UUID owner = plot.getOwnerUuid();
+        return owner != null && !owner.equals(plot.getParentClaimId())
+                && (plot.isRented() || isInGrace(plot));
+    }
+
+    /**
+     * Trade-point rules that must hold before the buyer is charged. Classic plots return empty
+     * (their limits stay where they were). Returns the message to show when renting is refused.
+     */
+    public Optional<Component> checkRentAllowed(Player player, Claim plot) {
+        if (!plot.isTradePoint()) return Optional.empty();
+        if (hasTenant(plot)) {
+            // Term is over but the tenant is still inside the grace period: not up for rent yet.
+            boolean self = player.getUniqueId().equals(plot.getOwnerUuid());
+            return Optional.of(plugin.getConfigManager().getMessage(self ? "trade-point-use-taxer" : "rental-already-taken"));
+        }
+        if (!isTradePointsEnabled()) {
+            return Optional.of(plugin.getConfigManager().getMessage("trade-point-disabled"));
+        }
+        if (!player.hasPermission("loveclaims.rental.bypasslimit")) {
+            long owned = plugin.getClaimManager().getAllClaims().stream()
+                    .filter(Claim::isTradePoint)
+                    .filter(c -> player.getUniqueId().equals(c.getOwnerUuid()))
+                    .filter(this::hasTenant)
+                    .count();
+            if (owned >= getTradePointMaxPerPlayer()) {
+                return Optional.of(plugin.getConfigManager().getMessage("trade-point-limit-reached"));
+            }
+        }
+        TradePointRentRequestEvent request = new TradePointRentRequestEvent(player, plot);
+        Bukkit.getPluginManager().callEvent(request);
+        if (request.isCancelled()) {
+            String custom = request.getDenyMessage();
+            return Optional.of(custom != null && !custom.isBlank()
+                    ? MiniMessage.miniMessage().deserialize(custom)
+                    : plugin.getConfigManager().getMessage("trade-point-denied"));
+        }
+        return Optional.empty();
+    }
+
+    // ----- money -------------------------------------------------------------------------
+
+    /** LoveCore is a soft dependency: touch its classes only from here and only when it is enabled. */
+    private Optional<LoveEconomy> tradeEconomy() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("LoveCore")) return Optional.empty();
+        try {
+            return LoveCore.service(LoveEconomy.class);
+        } catch (Throwable t) {
+            return Optional.empty();
+        }
+    }
+
+    /** Trade points are paid in the ecosystem currency (LoveEconomy); classic plots keep their own coins. */
+    public boolean hasFunds(Player player, Claim plot, long amount) {
+        if (amount <= 0) return true;
+        if (plot.isTradePoint()) {
+            Optional<LoveEconomy> economy = tradeEconomy();
+            if (economy.isPresent()) return economy.get().has(player, amount);
+        }
+        return plugin.getCurrencyManager().hasEnough(player, amount);
+    }
+
+    /** Takes {@code amount} from the player. {@code false} means nothing was taken. */
+    public boolean charge(Player player, Claim plot, long amount) {
+        if (amount <= 0) return true;
+        if (plot.isTradePoint()) {
+            Optional<LoveEconomy> economy = tradeEconomy();
+            if (economy.isPresent()) return economy.get().charge(player, amount);
+        }
+        return plugin.getCurrencyManager().takeCurrency(player, amount);
+    }
+
+    /** Text for "you need N": ecosystem currency for trade points, classic coin list otherwise. */
+    public String describeAmount(Claim plot, long amount) {
+        if (plot.isTradePoint()) {
+            Optional<LoveEconomy> economy = tradeEconomy();
+            if (economy.isPresent()) return amount + " " + economy.get().currencyName();
+        }
+        return plugin.getCurrencyManager().getNeededCoinsString(amount);
+    }
+
+    /**
+     * Renews a trade point for one more period: from the till the tenant keeps in LoveShops first
+     * (works while the tenant is offline), then from the tenant's inventory if they are online.
+     * Main thread only.
+     *
+     * @return {@code true} if the rent was paid and the term extended
+     */
+    public boolean renewTradePoint(Claim plot) {
+        if (!canExtend(plot)) return false;
+        long cost = getRenewCost(plot);
+        boolean paid = cost <= 0;
+        if (!paid) {
+            TradePointRentPayer payer = tradePointRentPayer;
+            if (payer != null) {
+                try {
+                    paid = payer.payFromTill(plot, cost);
+                } catch (Throwable t) {
+                    plugin.getLogger().warning("TradePointRentPayer failed for " + plot.getName() + ": " + t.getMessage());
+                }
+            }
+            if (!paid) {
+                Player tenant = plot.getOwnerUuid() == null ? null : Bukkit.getPlayer(plot.getOwnerUuid());
+                if (tenant != null && hasFunds(tenant, plot, cost)) {
+                    paid = charge(tenant, plot, cost);
+                }
+            }
+        }
+        if (!paid) return false;
+        extend(plot, getTradePointPeriodMillis());
+        Player tenant = plot.getOwnerUuid() == null ? null : Bukkit.getPlayer(plot.getOwnerUuid());
+        if (tenant != null) {
+            tenant.sendMessage(plugin.getConfigManager().getMessage("trade-point-renewed",
+                    "name", String.valueOf(plot.getName()), "amount", describeAmount(plot, cost)));
+        }
+        return true;
+    }
+
+    /** Fires the pre-expiry warning once per term. Main thread only. */
+    public void warnExpiry(Claim plot) {
+        if (plot.isExpiryWarned()) return;
+        UUID owner = plot.getOwnerUuid();
+        if (owner == null) return;
+        plot.setExpiryWarned(true);
+        Bukkit.getPluginManager().callEvent(new TradePointExpiryWarningEvent(
+                owner, plot, Math.max(0L, plot.getRentalEndTime() - System.currentTimeMillis())));
+    }
 }

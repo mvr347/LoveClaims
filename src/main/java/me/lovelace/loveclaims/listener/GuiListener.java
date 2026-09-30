@@ -2,11 +2,7 @@ package me.lovelace.loveclaims.listener;
 
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.gui.AbstractGUI;
-import me.lovelace.loveclaims.gui.RentalPaymentGUI;
 import me.lovelace.loveclaims.gui.RentalPlayerGUI;
-import me.lovelace.loveclaims.model.Claim;
-import me.lovelace.loveclaims.model.TrustLevel;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -26,52 +22,11 @@ public class GuiListener implements Listener {
             if (event.getClickedInventory().equals(event.getView().getBottomInventory())) return;
 
             gui.handleClick(event);
-        } else if (event.getInventory().getHolder() instanceof RentalPaymentGUI gui) {
-            if (event.getClickedInventory() == null) return;
-
-            if (event.getSlot() == 22 && event.getClickedInventory().equals(event.getInventory())) {
-                event.setCancelled(true);
-                handleRentalPayment(event, gui);
-            } else if (event.getSlot() == 4 && event.getClickedInventory().equals(event.getInventory())) {
-                event.setCancelled(true);
-            }
         } else if (event.getInventory().getHolder() instanceof RentalPlayerGUI gui) {
             if (event.getClickedInventory() == null) return;
             if (event.getClickedInventory().equals(event.getView().getBottomInventory())) return;
 
             gui.handleClick(event);
-        }
-    }
-
-    private void handleRentalPayment(InventoryClickEvent event, RentalPaymentGUI gui) {
-        Player player = (Player) event.getWhoClicked();
-        Claim claim = gui.getClaim();
-        if (claim == null) return;
-
-        long ownedPlots = plugin.getClaimManager().getAllClaims().stream()
-                .filter(clm -> clm.isRentalPlot())
-                .filter(clm -> clm.getOwnerUuid() != null && clm.getOwnerUuid().equals(player.getUniqueId()))
-                .count();
-
-        if (ownedPlots >= 1) {
-            player.sendMessage(plugin.getConfigManager().getMessage("rental-limit-reached"));
-            return;
-        }
-
-        long value = plugin.getCurrencyManager().calculateValue(event.getInventory());
-        if (value >= claim.getRentalPrice()) {
-            event.getInventory().clear();
-            player.closeInventory();
-
-            claim.setRentalEndTime(System.currentTimeMillis() + 86400000L);
-            claim.setTrust(player.getUniqueId(), TrustLevel.OWNER);
-            plugin.getClaimManager().syncTrustGranted(claim, player.getUniqueId());
-            plugin.getStorage().saveClaimAsync(claim);
-            plugin.getRentalManager().updateIndicator(claim);
-
-            player.sendMessage(plugin.getConfigManager().getMessage("rental-payment-success"));
-        } else {
-            player.sendMessage(plugin.getConfigManager().getMessage("rental-insufficient-funds", "price", String.valueOf(claim.getRentalPrice())));
         }
     }
 }

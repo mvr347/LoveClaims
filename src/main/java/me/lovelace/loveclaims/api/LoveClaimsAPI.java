@@ -546,6 +546,48 @@ public final class LoveClaimsAPI {
         return plot.getRentalPrice();
     }
 
+    // ----- Trade points (market stalls) -----
+
+    /** {@code true} if the claim is a rentable market stall (not a classic rental plot). */
+    public boolean isTradePoint(Claim claim) {
+        return claim != null && claim.isTradePoint();
+    }
+
+    /** All trade points, free and rented. */
+    public List<Claim> getTradePoints() {
+        return plugin.getClaimManager().getAllRentalPlots().stream().filter(Claim::isTradePoint).toList();
+    }
+
+    /** {@code true} while the point has a tenant: rented, or past its term but inside the grace period. */
+    public boolean hasTenant(Claim point) {
+        return point != null && plugin.getRentalManager().hasTenant(point);
+    }
+
+    /** {@code true} when the tenant's term is over and only the grace period keeps them on the point. */
+    public boolean isInGrace(Claim point) {
+        return point != null && plugin.getRentalManager().isInGrace(point);
+    }
+
+    /** Cost of one more rental period for this point. */
+    public long getRenewCost(Claim point) {
+        return plugin.getRentalManager().getRenewCost(point);
+    }
+
+    /**
+     * Registers who may pay a trade point's rent from stored funds while the tenant is offline.
+     * One payer per server; a later registration replaces the earlier one.
+     */
+    public void registerTradePointRentPayer(TradePointRentPayer payer) {
+        plugin.getRentalManager().setTradePointRentPayer(payer);
+    }
+
+    /** Removes {@code payer} if it is still the registered one (call from the owning plugin's onDisable). */
+    public void unregisterTradePointRentPayer(TradePointRentPayer payer) {
+        if (plugin.getRentalManager().getTradePointRentPayer() == payer) {
+            plugin.getRentalManager().setTradePointRentPayer(null);
+        }
+    }
+
 
     // ===== ASYNC API =====
 

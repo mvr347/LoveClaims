@@ -85,6 +85,11 @@ public class ChatListener implements Listener {
                 if (claimOpt.isEmpty()) return;
                 Claim claim = claimOpt.get();
 
+                if (claim.isTradePoint()) {
+                    player.sendMessage(plugin.getConfigManager().getMessage("trade-point-no-members"));
+                    return;
+                }
+
                 OfflinePlayer target = Bukkit.getOfflinePlayer(text);
                 if (target == null || (!target.hasPlayedBefore() && !target.isOnline())) {
                     player.sendMessage(plugin.getConfigManager().getMessage("member-not-found"));

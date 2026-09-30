@@ -40,6 +40,9 @@ public class Claim {
     private long rentalPrice = 0;
     private long rentalEndTime = 0;
     private UUID parentClaimId = null;
+    private PlotType plotType = PlotType.RENTAL_PLOT;
+    /** Rental-period warning already sent for this term (not persisted: a restart may warn again). */
+    private volatile boolean expiryWarned = false;
     private IndicatorType indicatorType = IndicatorType.NONE;
     private String hologramId = null;
     private long lastTaxTime = 0;
@@ -119,6 +122,13 @@ public class Claim {
 
     public boolean hasPermission(UUID playerUuid, ClaimPermission permission) {
         if (playerUuid == null) return false;
+        // A trade point is a fixed market stall: nobody (tenant included) builds in it or opens
+        // containers - the goods live in the shop's database, not in chests. Admin bypass is
+        // handled by the listeners before this is asked.
+        if (plotType == PlotType.TRADE_POINT
+                && (permission == ClaimPermission.BUILD || permission == ClaimPermission.CONTAINERS)) {
+            return false;
+        }
         if (playerUuid.equals(ownerUuid)) return true;
         Set<ClaimPermission> perms = members.get(playerUuid);
         if (perms != null) {
@@ -142,6 +152,7 @@ public class Claim {
 
     public void setPermission(UUID playerUuid, ClaimPermission permission, boolean state) {
         if (isOwner(playerUuid)) return;
+        if (plotType == PlotType.TRADE_POINT) return; // a trade point is personal: no members
         Set<ClaimPermission> perms = members.computeIfAbsent(playerUuid, k -> EnumSet.noneOf(ClaimPermission.class));
         if (state) perms.add(permission);
         else perms.remove(permission);
@@ -168,6 +179,7 @@ public class Claim {
 
     public void setTrust(UUID player, TrustLevel level) {
         if (player.equals(ownerUuid)) return;
+        if (plotType == PlotType.TRADE_POINT) return; // a trade point is personal: no members
         Set<ClaimPermission> perms = EnumSet.noneOf(ClaimPermission.class);
         switch (level) {
             case OWNER, MANAGER -> perms.addAll(EnumSet.allOf(ClaimPermission.class));
@@ -285,6 +297,16 @@ public class Claim {
     }
 
     public boolean isRentalPlot() { return parentClaimId != null; }
+
+    public PlotType getPlotType() { return plotType; }
+    public void setPlotType(PlotType plotType) {
+        this.plotType = plotType == null ? PlotType.RENTAL_PLOT : plotType;
+        this.modified = true;
+    }
+    public boolean isTradePoint() { return isRentalPlot() && plotType == PlotType.TRADE_POINT; }
+
+    public boolean isExpiryWarned() { return expiryWarned; }
+    public void setExpiryWarned(boolean expiryWarned) { this.expiryWarned = expiryWarned; }
     public boolean isRented() {
         return rentalEndTime > System.currentTimeMillis() && rentalEndTime > 0;
     }
