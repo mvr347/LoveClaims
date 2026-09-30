@@ -104,21 +104,24 @@ public class TaxerGUI extends AbstractGUI {
         if (idStr != null) {
             UUID plotId = UUID.fromString(idStr);
             plugin.getClaimManager().getClaimById(plotId).ifPresent(plot -> {
-                long taxAmount = Math.round(plot.getRentalPrice() * (plugin.getRentalManager().getTaxPercentage() / 100.0));
+                var rentals = plugin.getRentalManager();
+                if (!rentals.canExtend(plot)) {
+                    viewer.sendMessage(plugin.getConfigManager().getMessage("trade-point-prepaid-max"));
+                    plugin.getConfigManager().playSound(viewer, "anchor-error");
+                    return;
+                }
+                long taxAmount = rentals.getRenewCost(plot);
 
-                if (plugin.getCurrencyManager().hasEnough(viewer, taxAmount)) {
-                    if (plugin.getCurrencyManager().takeCurrency(viewer, taxAmount)) {
-                        long extendTime = plugin.getRentalManager().getTaxDays() * 86400000L;
-                        plot.setRentalEndTime(plot.getRentalEndTime() + extendTime);
-                        plugin.getStorage().saveClaimAsync(plot);
-                        plugin.getRentalManager().updateIndicator(plot);
+                if (rentals.hasFunds(viewer, plot, taxAmount)) {
+                    if (rentals.charge(viewer, plot, taxAmount)) {
+                        rentals.extend(plot, rentals.getPeriodMillis(plot));
 
-                        viewer.sendMessage(plugin.getConfigManager().getMessage("rental-paytax-success", "days", String.valueOf(plugin.getRentalManager().getTaxDays())));
+                        viewer.sendMessage(plugin.getConfigManager().getMessage("rental-paytax-success", "days", String.valueOf(rentals.getPeriodMillis(plot) / 86400000L)));
                         plugin.getConfigManager().playSound(viewer, "tax-paid");
                         setMenuItems(); // Обновляем GUI
                     }
                 } else {
-                    viewer.sendMessage(plugin.getConfigManager().getMessage("rental-paytax-needed", "needed", plugin.getCurrencyManager().getNeededCoinsString(taxAmount)));
+                    viewer.sendMessage(plugin.getConfigManager().getMessage("rental-paytax-needed", "needed", rentals.describeAmount(plot, taxAmount)));
                     plugin.getConfigManager().playSound(viewer, "anchor-error");
                     viewer.closeInventory();
                 }

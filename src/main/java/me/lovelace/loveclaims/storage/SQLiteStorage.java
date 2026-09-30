@@ -5,6 +5,7 @@ import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.ClaimFlag;
 import me.lovelace.loveclaims.model.ClaimPermission;
 import me.lovelace.loveclaims.model.IndicatorType;
+import me.lovelace.loveclaims.model.PlotType;
 import me.lovelace.loveclaims.model.TrustLevel;
 import me.lovelace.loveclaims.model.UserData;
 import org.bukkit.Bukkit;
@@ -45,15 +46,15 @@ public class SQLiteStorage {
                     "last_active=excluded.last_active, home_x=excluded.home_x, home_y=excluded.home_y, home_z=excluded.home_z, claim_type=excluded.claim_type, is_clan_territory=excluded.is_clan_territory, is_under_siege=excluded.is_under_siege, owner_display_name=excluded.owner_display_name, default_permissions=excluded.default_permissions";
 
     private static final String RENTALS_UPSERT =
-            "INSERT INTO rentals (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, rental_price, rental_end_time, parent_claim_id, indicator_type, hologram_id, last_tax_time, default_permissions) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO rentals (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, rental_price, rental_end_time, parent_claim_id, indicator_type, hologram_id, last_tax_time, default_permissions, plot_type) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                     "ON CONFLICT(id) DO UPDATE SET " +
                     "world=excluded.world, min_x=excluded.min_x, min_y=excluded.min_y, min_z=excluded.min_z, " +
                     "max_x=excluded.max_x, max_y=excluded.max_y, max_z=excluded.max_z, " +
                     "owner_uuid=excluded.owner_uuid, name=excluded.name, description=excluded.description, " +
                     "anchor_x=excluded.anchor_x, anchor_y=excluded.anchor_y, anchor_z=excluded.anchor_z, " +
                     "last_active=excluded.last_active, home_x=excluded.home_x, home_y=excluded.home_y, home_z=excluded.home_z, " +
-                    "rental_price=excluded.rental_price, rental_end_time=excluded.rental_end_time, parent_claim_id=excluded.parent_claim_id, indicator_type=excluded.indicator_type, hologram_id=excluded.hologram_id, last_tax_time=excluded.last_tax_time, default_permissions=excluded.default_permissions";
+                    "rental_price=excluded.rental_price, rental_end_time=excluded.rental_end_time, parent_claim_id=excluded.parent_claim_id, indicator_type=excluded.indicator_type, hologram_id=excluded.hologram_id, last_tax_time=excluded.last_tax_time, default_permissions=excluded.default_permissions, plot_type=excluded.plot_type";
 
     public SQLiteStorage(LoveClaims plugin) {
         this.plugin = plugin;
@@ -159,6 +160,9 @@ public class SQLiteStorage {
             stmt.execute("CREATE TABLE IF NOT EXISTS rentals (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, rental_price BIGINT DEFAULT 0, rental_end_time BIGINT DEFAULT 0, parent_claim_id VARCHAR(36), indicator_type VARCHAR(32) DEFAULT 'NONE', hologram_id VARCHAR(64), last_tax_time BIGINT DEFAULT 0, default_permissions VARCHAR(128) DEFAULT '');");
             stmt.execute("CREATE TABLE IF NOT EXISTS rental_members (rental_id VARCHAR(36), player_uuid VARCHAR(36), trust_level VARCHAR(64), PRIMARY KEY (rental_id, player_uuid), FOREIGN KEY(rental_id) REFERENCES rentals(id) ON DELETE CASCADE);");
             try { stmt.execute("ALTER TABLE rentals ADD COLUMN default_permissions VARCHAR(128) DEFAULT '';"); } catch (SQLException ignored) {}
+            // Trade points (market stalls). Old rows keep RENTAL_PLOT via the column default;
+            // the ALTER fails harmlessly when the column already exists.
+            try { stmt.execute("ALTER TABLE rentals ADD COLUMN plot_type VARCHAR(32) DEFAULT 'RENTAL_PLOT';"); } catch (SQLException ignored) {}
         }
     }
 
@@ -199,6 +203,7 @@ public class SQLiteStorage {
                     claim.setIndicatorType(IndicatorType.valueOf(rs.getString("indicator_type")));
                     claim.setHologramId(rs.getString("hologram_id"));
                     claim.setLastTaxTime(rs.getLong("last_tax_time"));
+                    claim.setPlotType(PlotType.parse(rs.getString("plot_type")));
                 } else {
                     claim.setClaimType(Claim.ClaimType.valueOf(rs.getString("claim_type")));
                     claim.setClanTerritory(rs.getBoolean("is_clan_territory") || claim.getClaimType() == Claim.ClaimType.CLAN);
@@ -289,6 +294,7 @@ public class SQLiteStorage {
                         claim.setIndicatorType(IndicatorType.valueOf(rs.getString("indicator_type")));
                         claim.setHologramId(rs.getString("hologram_id"));
                         claim.setLastTaxTime(rs.getLong("last_tax_time"));
+                    claim.setPlotType(PlotType.parse(rs.getString("plot_type")));
                     } else {
                         claim.setClaimType(Claim.ClaimType.valueOf(rs.getString("claim_type")));
                         claim.setClanTerritory(rs.getBoolean("is_clan_territory") || claim.getClaimType() == Claim.ClaimType.CLAN);
@@ -478,6 +484,7 @@ public class SQLiteStorage {
             ps.setString(24, claim.getHologramId());
             ps.setLong(25, claim.getLastTaxTime());
             ps.setString(26, serializePermissions(claim.getDefaultPermissions()));
+            ps.setString(27, claim.getPlotType().name());
         } else {
             ps.setString(20, claim.getClaimType().name());
             ps.setBoolean(21, claim.isClanTerritory());

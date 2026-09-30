@@ -445,4 +445,15 @@ msg-price-number: "<red>Введите число!"
 msg-claim-title: "<gold>{claim}"
 msg-claim-actionbar: "<gold>{claim} <gray>| <white>{desc}"
 
-
+# ===== Торговые точки (рынок, совместно с LoveShops) =====
+rental-already-taken: "<red>Этот участок уже арендован!"
+trade-point-disabled: "<red>Торговые точки сейчас отключены."
+trade-point-limit-reached: "<red>У вас уже есть торговая точка. Можно арендовать только одну."
+trade-point-denied: "<red>Вам сейчас нельзя арендовать торговую точку."
+trade-point-use-taxer: "<yellow>Эта точка ещё за вами: продлите аренду у налоговика."
+trade-point-prepaid-max: "<red>Аренда уже оплачена на максимальный срок вперёд."
+trade-point-renewed: "<green>Аренда точки <yellow>{name}</yellow> продлена автоматически: <yellow>{amount}</yellow>."
+trade-point-no-members: "<red>В торговую точку нельзя добавлять участников."
+rental-admin-settype-usage: "<red>Использование: /rental admin settype <плот> <rental|trade_point>"
+rental-admin-settype-success: "<green>Тип плота <yellow>{name}</yellow> теперь: <yellow>{type}</yellow>."
+rental-admin-settype-tenant: "<red>Нельзя менять тип, пока плот занят арендатором."

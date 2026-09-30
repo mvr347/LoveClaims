@@ -1,15 +1,23 @@
 package me.lovelace.loveclaims.task;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.api.ReleaseReason;
 import me.lovelace.loveclaims.model.Claim;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class RentalExpirationTask {
     private final LoveClaims plugin;
     private ScheduledTask task;
+
+    /** Minimum gap between two automatic renewal attempts for one trade point. */
+    private static final long RENEW_RETRY_MILLIS = 10 * 60_000L;
+    /** Last automatic renewal attempt per trade point; entries are dropped once the point has no tenant. */
+    private final Map<UUID, Long> lastRenewAttempt = new ConcurrentHashMap<>();
 
     public RentalExpirationTask(LoveClaims plugin) {
         this.plugin = plugin;
@@ -23,6 +31,11 @@ public class RentalExpirationTask {
             for (Claim claim : plugin.getClaimManager().getAllClaims()) {
                 if (!claim.isRentalPlot()) continue;
 
+                if (claim.isTradePoint()) {
+                    processTradePoint(claim, now);
+                    continue;
+                }
+
                 // Каждый плот обрабатывается независимо: необработанное исключение на ОДНОМ
                 // плоте (например, из-за повреждённых данных) раньше прерывало бы весь foreach и
                 // все последующие плоты пропускали бы сбор аренды/налога в этом тике - жилец мог
@@ -31,7 +44,7 @@ public class RentalExpirationTask {
                 try {
                     // 1. Check expiration
                     if (claim.isRented() && claim.getRentalEndTime() < now) {
-                        Bukkit.getScheduler().runTask(plugin, () -> terminateRent(claim));
+                        Bukkit.getScheduler().runTask(plugin, () -> terminateRent(claim, ReleaseReason.EXPIRED));
                         continue;
                     }
 
@@ -60,7 +73,7 @@ public class RentalExpirationTask {
                                         renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-paid", "amount", String.valueOf(taxAmount)));
                                     }
                                 } else {
-                                    terminateRent(claim);
+                                    terminateRent(claim, ReleaseReason.EVICTED);
                                     renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-failed", "amount", String.valueOf(taxAmount)));
                                 }
                             });
@@ -83,10 +96,47 @@ public class RentalExpirationTask {
         return task == null || task.isCancelled();
     }
 
-    private void terminateRent(Claim claim) {
-        claim.setRentalEndTime(0);
-        claim.setOwnerUuid(claim.getParentClaimId());
-        plugin.getStorage().saveClaimAsync(claim);
-        plugin.getRentalManager().updateIndicator(claim);
+    /**
+     * A trade point pays rent per period. Shortly before the term ends the rent is renewed
+     * automatically (from the till kept in LoveShops, else from the online tenant's pocket); if
+     * that fails the point stays with the tenant for the grace period - the shop is closed by
+     * LoveShops meanwhile - and is only then released. Runs on the async scheduler: everything
+     * that touches the world or players is handed to the main thread.
+     */
+    private void processTradePoint(Claim claim, long now) {
+        var rentals = plugin.getRentalManager();
+        if (!rentals.hasTenant(claim)) {
+            lastRenewAttempt.remove(claim.getId());
+            return;
+        }
+        long end = claim.getRentalEndTime();
+
+        if (now > end + rentals.getTradePointGraceMillis()) {
+            lastRenewAttempt.remove(claim.getId());
+            Bukkit.getScheduler().runTask(plugin, () -> terminateRent(claim, ReleaseReason.EXPIRED));
+            return;
+        }
+
+        if (end > now && end - now <= rentals.getTradePointWarnMillis() && !claim.isExpiryWarned()) {
+            Bukkit.getScheduler().runTask(plugin, () -> rentals.warnExpiry(claim));
+        }
+
+        if (rentals.isTradePointAutoRenew() && end - now <= rentals.getTradePointRenewLeadMillis()) {
+            Long last = lastRenewAttempt.get(claim.getId());
+            if (last != null && now - last < RENEW_RETRY_MILLIS) return;
+            lastRenewAttempt.put(claim.getId(), now);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                // Re-check on the main thread: a manual payment may have extended the term meanwhile.
+                if (!rentals.hasTenant(claim)) return;
+                if (claim.getRentalEndTime() - System.currentTimeMillis() > rentals.getTradePointRenewLeadMillis()) return;
+                if (rentals.renewTradePoint(claim)) {
+                    lastRenewAttempt.remove(claim.getId());
+                }
+            });
+        }
+    }
+
+    private void terminateRent(Claim claim, ReleaseReason reason) {
+        plugin.getRentalManager().release(claim, reason);
     }
 }

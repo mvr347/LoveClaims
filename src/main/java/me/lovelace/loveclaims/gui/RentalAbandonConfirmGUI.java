@@ -58,15 +58,7 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
             player.openInventory(new RentalPlayerGUI(plugin, player, plot).getInventory());
         } else if (event.getSlot() == CONFIRM_SLOT) {
             player.closeInventory();
-            plot.setRentalEndTime(0);
-            plot.setOwnerUuid(plot.getParentClaimId());
-            for (java.util.UUID oldMember : new java.util.ArrayList<>(plot.getMembers().keySet())) {
-                plugin.getClaimManager().syncTrustRevoked(plot, oldMember);
-                plugin.getStorage().removeMemberAsync(plot.getId(), oldMember);
-            }
-            plot.getMembers().clear();
-            plugin.getStorage().saveClaimAsync(plot);
-            plugin.getRentalManager().updateIndicator(plot);
+            plugin.getRentalManager().release(plot, me.lovelace.loveclaims.api.ReleaseReason.ABANDONED);
             player.sendMessage(plugin.getConfigManager().getMessage("rental-refuse-success"));
             plugin.getConfigManager().playSound(player, "gui-click");
         }

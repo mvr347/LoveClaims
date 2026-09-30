@@ -185,18 +185,8 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
                 return;
             }
 
-            // Удаляем всех участников
-            for (UUID memberId : new ArrayList<>(plot.getMembers().keySet())) {
-                plot.getMembers().remove(memberId);
-                plugin.getClaimManager().syncTrustRevoked(plot, memberId);
-                plugin.getStorage().removeMemberAsync(plot.getId(), memberId);
-            }
-
-            // Сбрасываем владельца
-            plot.setOwnerUuid(null);
-            plot.setRentalEndTime(0);
-            plugin.getStorage().saveClaimAsync(plot);
-            plugin.getRentalManager().updateIndicator(plot);
+            // Снимает участников и возвращает плот арендодателю (как и отказ через меню)
+            plugin.getRentalManager().release(plot, me.lovelace.loveclaims.api.ReleaseReason.ABANDONED);
 
             player.sendMessage(plugin.getConfigManager().getMessage("rental-sold"));
             plugin.getConfigManager().playSound(player, "tax-paid");
@@ -320,18 +310,8 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
                 if (plotId == null) { player.sendMessage(plugin.getConfigManager().getMessage("rental-claim-not-found")); return; }
                 plugin.getClaimManager().getClaimById(plotId).ifPresent(plot -> {
                     org.bukkit.OfflinePlayer target = org.bukkit.Bukkit.getOfflinePlayer(args[3]);
-                    plot.setOwnerUuid(target.getUniqueId());
-                    plot.setRentalEndTime(System.currentTimeMillis() + plugin.getRentalManager().getTaxDays() * 86400000L);
-                    for (UUID oldMember : new ArrayList<>(plot.getMembers().keySet())) {
-                        plugin.getClaimManager().syncTrustRevoked(plot, oldMember);
-                        plugin.getStorage().removeMemberAsync(plot.getId(), oldMember);
-                    }
-                    plot.getMembers().clear();
-                    plot.setTrust(target.getUniqueId(), me.lovelace.loveclaims.model.TrustLevel.OWNER);
-                    plugin.getClaimManager().syncTrustGranted(plot, target.getUniqueId());
-                    plugin.getStorage().saveClaimAsync(plot);
-                    plugin.getStorage().saveMemberAsync(plot.getId(), target.getUniqueId(), me.lovelace.loveclaims.model.TrustLevel.OWNER);
-                    plugin.getRentalManager().updateIndicator(plot);
+                    plugin.getRentalManager().assign(plot, target.getUniqueId(),
+                            System.currentTimeMillis() + plugin.getRentalManager().getPeriodMillis(plot));
                     player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-setowner-success", "target", target.getName()));
                 });
             }
@@ -339,16 +319,33 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
                 if (args.length < 3) return;
                 UUID plotId = plugin.getRentalManager().getPlotIdByName(args[2]);
                 if (plotId != null) plugin.getClaimManager().getClaimById(plotId).ifPresent(plot -> {
-                    plot.setOwnerUuid(plot.getParentClaimId());
-                    plot.setRentalEndTime(0);
-                    for (UUID oldMember : new ArrayList<>(plot.getMembers().keySet())) {
-                        plugin.getClaimManager().syncTrustRevoked(plot, oldMember);
-                        plugin.getStorage().removeMemberAsync(plot.getId(), oldMember);
-                    }
-                    plot.getMembers().clear();
-                    plugin.getStorage().saveClaimAsync(plot);
-                    plugin.getRentalManager().updateIndicator(plot);
+                    plugin.getRentalManager().release(plot, me.lovelace.loveclaims.api.ReleaseReason.ADMIN);
                     player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-removeowner-success"));
+                });
+            }
+            case "settype" -> {
+                if (args.length != 4) {
+                    player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-settype-usage"));
+                    return;
+                }
+                UUID plotId = plugin.getRentalManager().getPlotIdByName(args[2]);
+                if (plotId == null) { player.sendMessage(plugin.getConfigManager().getMessage("rental-claim-not-found")); return; }
+                me.lovelace.loveclaims.model.PlotType newType = switch (args[3].toLowerCase()) {
+                    case "trade_point", "trade-point", "tradepoint", "point" -> me.lovelace.loveclaims.model.PlotType.TRADE_POINT;
+                    case "rental", "rental_plot", "plot" -> me.lovelace.loveclaims.model.PlotType.RENTAL_PLOT;
+                    default -> null;
+                };
+                if (newType == null) { player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-settype-usage")); return; }
+                plugin.getClaimManager().getClaimById(plotId).ifPresent(plot -> {
+                    // A tenant would silently gain/lose rights (members, building) mid-term.
+                    if (plugin.getRentalManager().hasTenant(plot)) {
+                        player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-settype-tenant"));
+                        return;
+                    }
+                    plot.setPlotType(newType);
+                    plugin.getStorage().saveClaimAsync(plot);
+                    player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-settype-success",
+                            "name", plot.getName(), "type", newType.name()));
                 });
             }
             case "create" -> {
@@ -426,7 +423,11 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 2 && args[0].equalsIgnoreCase("sell")) {
             completions.add("<игрок>");
         } else if (args.length == 2 && args[0].equalsIgnoreCase("admin") && sender.hasPermission("loveclaims.rental.admin")) {
-            completions.addAll(List.of("create", "delete", "list", "setowner", "removeowner", "set", "remove", "show"));
+            completions.addAll(List.of("create", "delete", "list", "setowner", "removeowner", "set", "remove", "show", "settype"));
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("settype") && sender.hasPermission("loveclaims.rental.admin")) {
+            for (Claim c : plugin.getClaimManager().getAllClaims()) if (c.isRentalPlot() && c.getName() != null) completions.add(c.getName());
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("settype") && sender.hasPermission("loveclaims.rental.admin")) {
+            completions.addAll(List.of("rental", "trade_point"));
         } else if (args.length == 3 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("set") && sender.hasPermission("loveclaims.rental.admin")) {
             completions.addAll(List.of("landlord", "taxer"));
         } else if (args.length == 3 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("remove") && sender.hasPermission("loveclaims.rental.admin")) {

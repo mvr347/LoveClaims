@@ -44,6 +44,16 @@ public class ConfigManager {
         File langFile = new File(plugin.getDataFolder(), "lang.yml");
         if (!langFile.exists()) plugin.saveResource("lang.yml", false);
         lang = YamlConfiguration.loadConfiguration(langFile);
+        // Keys added in later versions must not show up as "Error: <key>" on servers that keep an
+        // older lang.yml: the bundled file is the fallback for every key the server file lacks.
+        try (java.io.InputStream bundled = plugin.getResource("lang.yml")) {
+            if (bundled != null) {
+                lang.setDefaults(YamlConfiguration.loadConfiguration(
+                        new java.io.InputStreamReader(bundled, java.nio.charset.StandardCharsets.UTF_8)));
+            }
+        } catch (java.io.IOException e) {
+            plugin.getLogger().warning("Could not read bundled lang.yml defaults: " + e.getMessage());
+        }
 
         File anchorsFile = new File(plugin.getDataFolder(), "anchors.yml");
         if (!anchorsFile.exists()) plugin.saveResource("anchors.yml", false);
