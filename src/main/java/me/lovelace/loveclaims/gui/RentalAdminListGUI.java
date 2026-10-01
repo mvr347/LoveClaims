@@ -3,6 +3,7 @@ package me.lovelace.loveclaims.gui;
 import me.lovelace.loveclaims.LoveClaims;
 import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
+import me.lovelace.loveclaims.util.CoinFormat;
 import net.kyori.adventure.text.Component;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -61,7 +62,7 @@ public class RentalAdminListGUI extends AbstractGUI {
                     plugin.getConfigManager().getComponent("rental-list.plot-name", "name", plot.getName()),
                     List.of(
                             plugin.getConfigManager().getComponent("rental-list.plot-lore-owner", "owner", ownerName),
-                            plugin.getConfigManager().getComponent("rental-list.plot-lore-price", "price", String.valueOf(plot.getRentalPrice())),
+                            plugin.getConfigManager().getComponent("rental-list.plot-lore-price", "price", CoinFormat.formatGlyphs(plot.getRentalPrice())),
                             plugin.getConfigManager().getComponent(statusKey),
                             Component.empty(),
                             plugin.getConfigManager().getComponent("rental-list.plot-lore-click")

@@ -4,6 +4,7 @@ import me.lovelace.loveclaims.LoveClaims;
 import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.IndicatorType;
+import me.lovelace.loveclaims.util.CoinFormat;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -36,7 +37,7 @@ public class RentalEditGUI extends AbstractGUI {
         // gui-gen-5 RULE 3: слот 0 — тематическая иконка (админ-редактирование конкретного плота).
         ItemStack info = createHead(HEAD_INFO, plugin.getConfigManager().getComponent("rental-edit.info-name"), List.of(
                 plugin.getConfigManager().getComponent("rental-edit.info-lore-owner", "owner", ownerName),
-                plugin.getConfigManager().getComponent("rental-edit.info-lore-price", "price", String.valueOf(plot.getRentalPrice())),
+                plugin.getConfigManager().getComponent("rental-edit.info-lore-price", "price", CoinFormat.formatGlyphs(plot.getRentalPrice())),
                 plugin.getConfigManager().getComponent(statusKey),
                 Component.empty(),
                 plugin.getConfigManager().getComponent("rental-list.plot-lore-click")

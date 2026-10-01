@@ -103,8 +103,8 @@ rental-insufficient-funds: "<red>Недостаточно средств в ме
 rental-multiple-claims: "<yellow>У вас есть доступ к нескольким плотам:"
 rental-multiple-claims-hint: "<yellow>Используйте <gold>/ac <ник><yellow>, чтобы открыть меню нужного плота."
 rental-claim-not-found: "<red>Арендный плот с таким именем не найден!"
-rental-tax-paid: "<green>С вашего инвентаря списан налог за аренду: <yellow>{amount} очков."
-rental-tax-failed: "<red>У вас недостаточно средств для оплаты налога ({amount} очков)! Аренда аннулирована."
+rental-tax-paid: "<green>С вашего инвентаря списан налог за аренду: <yellow>{amount}."
+rental-tax-failed: "<red>У вас недостаточно средств для оплаты налога ({amount})! Аренда аннулирована."
 rental-admin-player-not-found: "<red>Игрок не найден!"
 
 # ===== АРЕНДА - КОМАНДЫ =====
@@ -160,11 +160,11 @@ rental-buy-success: "<green>Вы успешно арендовали участ�
 rental-indicator-header: "<gold><bold>АРЕНДА УЧАСТКА</bold></gold>"
 rental-status-rented: "<red>Арендовано до: <yellow>{time}"
 rental-status-available: "<green>Доступно для аренды"
-rental-price-line: "<white>Цена: <yellow>{price} очков/сутки"
+rental-price-line: "<white>Цена: <yellow>{price}/сутки"
 rental-sign-header: "<aqua>[Аренда]"
 rental-sign-rented: "<red>ЗАНЯТО"
 rental-sign-available: "<green>СВОБОДНО"
-rental-sign-price: "<yellow>{price} монет"
+rental-sign-price: "<yellow>{price}"
 rental-sign-click: "<green>Кликните!"
 
 # ===== ТИТУЛЫ И ACTIONBAR =====
@@ -319,7 +319,7 @@ delete-confirm.cancel: "&aОТМЕНА"
 delete-confirm.deleted: "<red>Приват успешно удален!"
 
 # ===== GUI - АРЕНДА - ОПЛАТА =====
-rental.payment-title: "&8Оплата аренды: {price} очк."
+rental.payment-title: "&8Оплата аренды: {price}"
 rental-payment.title-short: "<yellow>Покупка"
 rental-payment.title: "<yellow>Покупка: {name}"
 rental-payment.info-name: "<aqua>Информация об участке"
@@ -332,7 +332,7 @@ rental-payment.info-lore:
 rental-payment.confirm-name: "<green>Подтвердить покупку"
 rental-payment.confirm-lore:
   - "<gray>С вашего баланса спишется:"
-  - "<gold>{price} монет"
+  - "<gold>{price}"
   - " "
   - "<green>Кликните для покупки!"
 rental.instruction-name: "&eИнструкция"
@@ -379,7 +379,7 @@ rental-player.info-lore:
   - "<green>ЛКМ <gray>- Телепорт на участок"
   - "<yellow>ПКМ <gray>- Показать границы"
 rental-player.paytax-lore-1: "<gray>Оплатить налог за участок"
-rental-player.paytax-lore-2: "<gray>Сумма: <gold>{amount} очков"
+rental-player.paytax-lore-2: "<gray>Сумма: <gold>{amount}"
 rental-player.paytax-lore-3: "<gray>Продление: <yellow>{days} дн."
 rental-player.paytax-lore-4: "<yellow>ЛКМ - Оплатить налог"
 rental-player.refuse-lore:
@@ -418,10 +418,10 @@ rental-admin.help:
 
 # ===== ВАЛЮТА =====
 currency-needed-header: "<red>=== Недостаточно средств ==="
-currency-needed-line: "<gray>Требуется: <yellow>{amount} очков"
+currency-needed-line: "<gray>Требуется: <yellow>{amount}"
 currency-coins-needed: "<gray>Монетами: <yellow>{coins}"
 currency-unit-format: "{amount} шт."
-currency-coin-name: "Монета ({amount} очк.)"
+currency-coin-name: "Монета ({amount})"
 
 # ===== NPC =====
 taxer-npc-name: "<yellow>Сборщик налогов"
@@ -450,9 +450,9 @@ rental-already-taken: "<red>Этот участок уже арендован!"
 trade-point-disabled: "<red>Торговые точки сейчас отключены."
 trade-point-limit-reached: "<red>У вас уже есть торговая точка. Можно арендовать только одну."
 trade-point-denied: "<red>Вам сейчас нельзя арендовать торговую точку."
-trade-point-use-taxer: "<yellow>Эта точка ещё за вами: продлите аренду у налоговика."
+trade-point-use-taxer: "<yellow>Эта точка ещё за вами: продлите аренду у сборщика налогов."
 trade-point-prepaid-max: "<red>Аренда уже оплачена на максимальный срок вперёд."
-trade-point-renewed: "<green>Аренда точки <yellow>{name}</yellow> продлена автоматически: <yellow>{amount}</yellow>."
+trade-point-renewed: "<green>Аренда торговой точки <yellow>{name}</yellow> продлена автоматически: <yellow>{amount}</yellow>."
 trade-point-no-members: "<red>В торговую точку нельзя добавлять участников."
 rental-admin-settype-usage: "<red>Использование: /rental admin settype <плот> <rental|trade_point>"
 rental-admin-settype-success: "<green>Тип плота <yellow>{name}</yellow> теперь: <yellow>{type}</yellow>."

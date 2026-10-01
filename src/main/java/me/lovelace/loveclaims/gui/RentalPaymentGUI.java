@@ -3,6 +3,7 @@ package me.lovelace.loveclaims.gui;
 import me.lovelace.loveclaims.LoveClaims;
 import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
+import me.lovelace.loveclaims.util.CoinFormat;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -31,10 +32,11 @@ public class RentalPaymentGUI extends AbstractGUI {
 
     @Override
     protected void setMenuItems() {
+        String priceFormatted = CoinFormat.formatGlyphs(plot.getRentalPrice());
         List<Component> confirmLore = new ArrayList<>();
-        confirmLore.addAll(plugin.getConfigManager().getHelpMessage("rental-payment.info-lore", "name", plot.getName(), "price", String.valueOf(plot.getRentalPrice())));
+        confirmLore.addAll(plugin.getConfigManager().getHelpMessage("rental-payment.info-lore", "name", plot.getName(), "price", priceFormatted));
         confirmLore.add(Component.empty());
-        confirmLore.addAll(plugin.getConfigManager().getHelpMessage("rental-payment.confirm-lore", "price", String.valueOf(plot.getRentalPrice())));
+        confirmLore.addAll(plugin.getConfigManager().getHelpMessage("rental-payment.confirm-lore", "price", priceFormatted));
 
         inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES,
                 plugin.getConfigManager().getComponent("rental-payment.confirm-name"),
@@ -106,7 +108,7 @@ public class RentalPaymentGUI extends AbstractGUI {
                     plugin.getConfigManager().playSound(player, "tax-paid");
                 } else {
                     processing = false;
-                    player.sendMessage(plugin.getConfigManager().getMessage("rental-insufficient-funds", "price", String.valueOf(price)));
+                    player.sendMessage(plugin.getConfigManager().getMessage("rental-insufficient-funds", "price", CoinFormat.formatGlyphs(price)));
                     plugin.getConfigManager().playSound(player, "anchor-error");
                 }
             } else {
