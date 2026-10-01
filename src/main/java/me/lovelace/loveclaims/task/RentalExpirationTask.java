@@ -67,8 +67,12 @@ public class RentalExpirationTask {
                             Bukkit.getScheduler().runTask(plugin, () -> {
                                 Player renter = Bukkit.getPlayer(renterId);
                                 if (renter == null) return;
-                                if (plugin.getCurrencyManager().hasEnough(renter, taxAmount)) {
-                                    if (plugin.getCurrencyManager().takeCurrency(renter, taxAmount)) {
+                                if (!plugin.getRentalManager().paymentsAvailable()) {
+                                    // No LoveCore: nothing can be charged, so nobody is evicted over it.
+                                    return;
+                                }
+                                if (plugin.getRentalManager().hasFunds(renter, claim, taxAmount)) {
+                                    if (plugin.getRentalManager().charge(renter, claim, taxAmount)) {
                                         claim.setLastTaxTime(now);
                                         plugin.getStorage().saveClaimAsync(claim);
                                         renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-paid", "amount", CoinFormat.formatGlyphs(taxAmount)));

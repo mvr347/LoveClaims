@@ -100,6 +100,13 @@ public class RentalPaymentGUI extends AbstractGUI {
                 return;
             }
 
+            if (!rentals.paymentsAvailable()) {
+                processing = false;
+                player.sendMessage(plugin.getConfigManager().getMessage("rental-no-economy"));
+                plugin.getConfigManager().playSound(player, "anchor-error");
+                return;
+            }
+
             if (rentals.hasFunds(player, plot, price)) {
                 if (rentals.charge(player, plot, price)) {
                     rentals.assign(plot, player.getUniqueId(), System.currentTimeMillis() + rentals.getPeriodMillis(plot));
