@@ -14,13 +14,14 @@ import org.bukkit.util.BoundingBox;
 import java.util.List;
 
 /**
- * Фоновая задача для отображения границ привата при приближении игрока.
- * Высокопроизводительный режим на партиклах (по умолчанию) не создаёт энтити на сервере
- * и отрисовывается исключительно клиентом.
+ * Подсказка границ чужих приватов для игрока, который ХОДИТ с якорем в руке (стоящему не показывается).
+ * Партиклы не создают энтити на сервере и отрисовываются клиентом. Rental и торговые точки здесь не
+ * участвуют: их контур показывает {@link ParticleBorder} по событию.
  */
 public class ProximityBorderTask {
     private final LoveClaims plugin;
     private ScheduledTask task;
+    private final java.util.Map<java.util.UUID, Location> lastPositions = new java.util.concurrent.ConcurrentHashMap<>();
 
     private static final Particle.DustOptions DUST_CYAN = new Particle.DustOptions(Color.fromRGB(0, 229, 255), 1.0f);
     private static final Particle.DustOptions DUST_GREEN = new Particle.DustOptions(Color.fromRGB(85, 255, 85), 1.0f);
@@ -35,11 +36,13 @@ public class ProximityBorderTask {
         // which is not safe from the async scheduler while players join, quit or move. The work per tick
         // is a cheap distance check, so there is nothing worth moving off-thread.
         task = plugin.getServer().getGlobalRegionScheduler().runAtFixedRate(plugin, scheduledTask -> {
-            boolean enabled = plugin.getConfigManager().getConfig().getBoolean("proximity-border.enabled", true);
-            if (!enabled) return;
+            var cfg = plugin.getConfigManager().getConfig();
+            if (!cfg.getBoolean("proximity-border.enabled", true)) return;
 
-            double detectionDist = plugin.getConfigManager().getConfig().getDouble("proximity-border.detection-distance", 8.0);
-            String mode = plugin.getConfigManager().getConfig().getString("proximity-border.mode", "PARTICLES").toUpperCase();
+            double detectionDist = cfg.getDouble("proximity-border.detection-distance", 8.0);
+            boolean requireAnchor = cfg.getBoolean("proximity-border.require-anchor", true);
+
+            lastPositions.keySet().removeIf(id -> Bukkit.getPlayer(id) == null);
 
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (!player.isOnline()) continue;
@@ -52,20 +55,29 @@ public class ProximityBorderTask {
                 Location pLoc = player.getLocation();
                 if (pLoc.getWorld() == null) continue;
 
+                // A standing player sees nothing: the border is a hint while walking with an anchor, not decoration.
+                Location previous = lastPositions.put(player.getUniqueId(), pLoc.clone());
+                if (previous == null || !previous.getWorld().equals(pLoc.getWorld())
+                        || previous.distanceSquared(pLoc) < 0.0025) {
+                    continue;
+                }
+                if (requireAnchor && !holdsAnchor(player)) continue;
+                // Spawn protection is a config circle, not a claim: never outlined.
+                if (plugin.getConfigManager().isInsideSpawnClaim(pLoc)) continue;
+
                 List<Claim> nearbyClaims = plugin.getClaimManager().getClaimsNear(pLoc, detectionDist + 4.0);
                 for (Claim claim : nearbyClaims) {
                     if (claim.getWorld() == null || !claim.getWorld().equals(pLoc.getWorld())) continue;
+                    // Rental plots and trade points are outlined only when someone is about to rent them.
+                    if (claim.isRentalPlot()) continue;
+                    // Own claim and claims the player is a member of need no warning.
+                    if (claim.isOwner(player.getUniqueId()) || claim.getMembers().containsKey(player.getUniqueId())) continue;
 
                     BoundingBox box = claim.getBoundingBox();
                     double dist = distanceToBox(pLoc.getX(), pLoc.getY(), pLoc.getZ(), box);
                     if (dist > detectionDist) continue;
 
-                    if ("ITEM_DISPLAY".equals(mode)) {
-                        BorderDisplayTask.showBorder(plugin, player, box, 30L, claim.getId());
-                    } else {
-                        // Режим PARTICLES: спавним легкие партиклы по ребрам на высоте игрока
-                        spawnBorderParticles(player, pLoc, box, claim, detectionDist);
-                    }
+                    spawnBorderParticles(player, pLoc, box, claim, detectionDist);
                 }
             }
         }, 10L, 10L); // Каждые 10 тиков (0.5 сек)
@@ -172,6 +184,12 @@ public class ProximityBorderTask {
                 player.spawnParticle(Particle.DUST, x, y, z, 1, 0, 0, 0, 0, dust);
             }
         }
+    }
+
+    private boolean holdsAnchor(Player player) {
+        var anchors = plugin.getAnchorManager();
+        return anchors.getTierFromItem(player.getInventory().getItemInMainHand()).isPresent()
+                || anchors.getTierFromItem(player.getInventory().getItemInOffHand()).isPresent();
     }
 
     private double distanceToBox(double px, double py, double pz, BoundingBox box) {

@@ -25,6 +25,10 @@ public class RentalInteractListener implements Listener {
                     if (claim.isRentalPlot() && !claim.isRented()) {
                         event.setCancelled(true);
                         event.getPlayer().openInventory(new RentalPaymentGUI(plugin, claim).getInventory());
+                        // Short outline so the buyer sees exactly which plot is on offer.
+                        me.lovelace.loveclaims.task.ParticleBorder.show(plugin, event.getPlayer(), claim.getBoundingBox(),
+                                Math.max(1L, plugin.getConfigManager().getConfig().getLong("proximity-border.rental-preview-seconds", 3L)) * 20L,
+                                me.lovelace.loveclaims.task.ParticleBorder.DUST_GOLD);
                     }
                 });
     }

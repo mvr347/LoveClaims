@@ -259,7 +259,7 @@ settings.default-access.title: "Базовый доступ игроков"
 settings.default-access.name: "&eБазовый доступ игроков"
 settings.default-access.desc: "Настройка прав для обычных игроков (гостей)"
 settings.proximity-border.name: "&eГраницы при приближении"
-settings.proximity-border.desc: "Показ границ при приближении к привату"
+settings.proximity-border.desc: "Подсказка границ чужих приватов, пока вы идёте с якорем в руке"
 
 # ===== GUI - УЧАСТНИКИ =====
 members.title: "Участники привата"

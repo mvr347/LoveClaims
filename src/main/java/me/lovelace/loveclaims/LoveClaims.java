@@ -164,6 +164,7 @@ public final class LoveClaims extends JavaPlugin {
             if (rentalExpirationTask != null) rentalExpirationTask.cancel();
             if (autoDeleteTask != null && !autoDeleteTask.isCancelled()) autoDeleteTask.cancel();
             if (proximityBorderTask != null) proximityBorderTask.cancel();
+            me.lovelace.loveclaims.task.ParticleBorder.cancelAll();
             getLogger().info("Tasks stopped!");
 
             // 2. СИНХРОННОЕ Сохранение всех данных пользователей
