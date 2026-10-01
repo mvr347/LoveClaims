@@ -265,6 +265,19 @@ public class RentalManager {
         updateIndicator(plot);
     }
 
+    /**
+     * Reassigns an actively rented plot to a new tenant without releasing or resetting expiry time.
+     * Main thread only.
+     */
+    public void transferTenant(Claim plot, UUID newRenter) {
+        clearMembers(plot);
+        plot.setOwnerUuid(newRenter);
+        plugin.getClaimManager().syncTrustGranted(plot, newRenter);
+        plugin.getStorage().saveMemberAsync(plot.getId(), newRenter, TrustLevel.OWNER);
+        plugin.getStorage().saveClaimAsync(plot);
+        updateIndicator(plot);
+    }
+
     /** Takes the plot back to the landlord. Main thread only. */
     public void release(Claim plot, ReleaseReason reason) {
         UUID former = plot.getOwnerUuid();

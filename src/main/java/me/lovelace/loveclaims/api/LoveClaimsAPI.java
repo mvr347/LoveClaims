@@ -588,6 +588,13 @@ public final class LoveClaimsAPI {
         }
     }
 
+    /** Reassigns the trade point to a new tenant without resetting rent duration or releasing warehouse. */
+    public void transferTenant(Claim point, UUID newTenant) {
+        if (point != null && newTenant != null) {
+            plugin.getRentalManager().transferTenant(point, newTenant);
+        }
+    }
+
 
     // ===== ASYNC API =====
 
