@@ -20,7 +20,6 @@ import me.lovelace.loveclaims.manager.ClaimManager;
 import me.lovelace.loveclaims.manager.AnchorManager;
 import me.lovelace.loveclaims.manager.UserManager;
 import me.lovelace.loveclaims.manager.RentalManager;
-import me.lovelace.loveclaims.manager.ItemCurrencyManager;
 import me.lovelace.loveclaims.task.AutoDeleteTask;
 import me.lovelace.loveclaims.task.GlobalTickManager;
 import me.lovelace.loveclaims.task.ProximityBorderTask;
@@ -39,7 +38,6 @@ public final class LoveClaims extends JavaPlugin {
     private AnchorManager anchorManager;
     private UserManager userManager;
     private RentalManager rentalManager;
-    private ItemCurrencyManager currencyManager;
     private ChatListener chatListener;
     private AnchorListener anchorListener;
     private RentalExpirationTask rentalExpirationTask;
@@ -69,7 +67,6 @@ public final class LoveClaims extends JavaPlugin {
             this.claimManager = new ClaimManager(this);
             this.userManager = new UserManager(this);
             this.rentalManager = new RentalManager(this);
-            this.currencyManager = new ItemCurrencyManager(this);
 
             // 4. Инициализация API
             me.lovelace.loveclaims.api.LoveClaimsAPI.init(this);
@@ -211,7 +208,6 @@ public final class LoveClaims extends JavaPlugin {
     public AnchorManager getAnchorManager() { return anchorManager; }
     public UserManager getUserManager() { return userManager; }
     public RentalManager getRentalManager() { return rentalManager; }
-    public ItemCurrencyManager getCurrencyManager() { return currencyManager; }
     public ChatListener getChatListener() { return chatListener; }
     public AnchorListener getAnchorListener() { return anchorListener; }
     public ProximityBorderTask getProximityBorderTask() { return proximityBorderTask; }

@@ -406,33 +406,28 @@ public class RentalManager {
         }
     }
 
-    /** Trade points are paid in the ecosystem currency (LoveEconomy); classic plots keep their own coins. */
+    /** Whether rent can be paid at all: every rental is paid in LoveEconomy coins, there is no item fallback. */
+    public boolean paymentsAvailable() {
+        return tradeEconomy().isPresent();
+    }
+
+    /** {@code true} when the player can pay {@code amount}; always {@code false} without LoveCore. */
     public boolean hasFunds(Player player, Claim plot, long amount) {
         if (amount <= 0) return true;
-        if (plot.isTradePoint()) {
-            Optional<LoveEconomy> economy = tradeEconomy();
-            return economy.isPresent() && economy.get().has(player, amount);
-        }
-        return plugin.getCurrencyManager().hasEnough(player, amount);
+        Optional<LoveEconomy> economy = tradeEconomy();
+        return economy.isPresent() && economy.get().has(player, amount);
     }
 
     /** Takes {@code amount} from the player. {@code false} means nothing was taken. */
     public boolean charge(Player player, Claim plot, long amount) {
         if (amount <= 0) return true;
-        if (plot.isTradePoint()) {
-            Optional<LoveEconomy> economy = tradeEconomy();
-            return economy.isPresent() && economy.get().charge(player, amount);
-        }
-        return plugin.getCurrencyManager().takeCurrency(player, amount);
+        Optional<LoveEconomy> economy = tradeEconomy();
+        return economy.isPresent() && economy.get().charge(player, amount);
     }
 
-    /** Text for "you need N": ecosystem currency for trade points, classic coin list otherwise. */
+    /** Text for "you need N": the amount split into coin glyphs, never a bare number. */
     public String describeAmount(Claim plot, long amount) {
-        if (plot.isTradePoint()) {
-            Optional<LoveEconomy> economy = tradeEconomy();
-            return CoinFormat.formatGlyphs(economy.orElse(null), amount);
-        }
-        return plugin.getCurrencyManager().getNeededCoinsString(amount);
+        return CoinFormat.formatGlyphs(tradeEconomy().orElse(null), amount);
     }
 
     /**

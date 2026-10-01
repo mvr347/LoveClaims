@@ -113,6 +113,12 @@ public class TaxerGUI extends AbstractGUI {
                 }
                 long taxAmount = rentals.getRenewCost(plot);
 
+                if (!rentals.paymentsAvailable()) {
+                    viewer.sendMessage(plugin.getConfigManager().getMessage("rental-no-economy"));
+                    plugin.getConfigManager().playSound(viewer, "anchor-error");
+                    return;
+                }
+
                 if (rentals.hasFunds(viewer, plot, taxAmount)) {
                     if (rentals.charge(viewer, plot, taxAmount)) {
                         rentals.extend(plot, rentals.getPeriodMillis(plot));
