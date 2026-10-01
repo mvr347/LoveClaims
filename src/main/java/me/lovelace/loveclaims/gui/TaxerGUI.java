@@ -3,6 +3,7 @@ package me.lovelace.loveclaims.gui;
 import me.lovelace.loveclaims.LoveClaims;
 import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
+import me.lovelace.loveclaims.util.CoinFormat;
 import net.kyori.adventure.text.Component;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -57,7 +58,7 @@ public class TaxerGUI extends AbstractGUI {
             for (int i = 0; i < ownedPlots.size() && i < CONTENT_SLOTS.length; i++) {
                 Claim plot = ownedPlots.get(i);
 
-                long taxAmount = Math.round(plot.getRentalPrice() * (plugin.getRentalManager().getTaxPercentage() / 100.0));
+                long taxAmount = plugin.getRentalManager().getRenewCost(plot);
                 long timeLeft = (plot.getRentalEndTime() - System.currentTimeMillis()) / 1000;
                 long days = Math.max(0, timeLeft / 86400);
                 long hours = Math.max(0, (timeLeft % 86400) / 3600);
@@ -66,7 +67,7 @@ public class TaxerGUI extends AbstractGUI {
                         plugin.getConfigManager().getComponent("rental-list.plot-name", "name", plot.getName()),
                         List.of(
                                 plugin.getConfigManager().getComponent("msg-rental-list-entry", "role", "", "name", "", "days", String.valueOf(days), "hours", String.valueOf(hours)),
-                                plugin.getConfigManager().getComponent("rental-player.tax-amount", "amount", String.valueOf(taxAmount)),
+                                plugin.getConfigManager().getComponent("rental-player.tax-amount", "amount", CoinFormat.formatGlyphs(taxAmount)),
                                 Component.empty(),
                                 plugin.getConfigManager().getComponent("rental-list.plot-lore-click")
                         ));

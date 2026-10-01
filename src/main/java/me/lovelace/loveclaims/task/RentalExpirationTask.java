@@ -3,6 +3,7 @@ import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.api.ReleaseReason;
 import me.lovelace.loveclaims.model.Claim;
+import me.lovelace.loveclaims.util.CoinFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import java.util.Map;
@@ -70,11 +71,11 @@ public class RentalExpirationTask {
                                     if (plugin.getCurrencyManager().takeCurrency(renter, taxAmount)) {
                                         claim.setLastTaxTime(now);
                                         plugin.getStorage().saveClaimAsync(claim);
-                                        renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-paid", "amount", String.valueOf(taxAmount)));
+                                        renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-paid", "amount", CoinFormat.formatGlyphs(taxAmount)));
                                     }
                                 } else {
                                     terminateRent(claim, ReleaseReason.EVICTED);
-                                    renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-failed", "amount", String.valueOf(taxAmount)));
+                                    renter.sendMessage(plugin.getConfigManager().getMessage("rental-tax-failed", "amount", CoinFormat.formatGlyphs(taxAmount)));
                                 }
                             });
                         }

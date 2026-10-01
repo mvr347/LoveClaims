@@ -13,6 +13,7 @@ import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.IndicatorType;
 import me.lovelace.loveclaims.model.PlotType;
 import me.lovelace.loveclaims.model.TrustLevel;
+import me.lovelace.loveclaims.util.CoinFormat;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
@@ -182,7 +183,7 @@ public class RentalManager {
             if (b.getState() instanceof org.bukkit.block.Sign sign) {
                 sign.line(0, plugin.getConfigManager().getComponent("rental-sign-header"));
                 sign.line(1, net.kyori.adventure.text.Component.text("§e" + claim.getName()));
-                sign.line(2, plugin.getConfigManager().getComponent("rental-sign-price", "price", String.valueOf(claim.getRentalPrice())));
+                sign.line(2, plugin.getConfigManager().getComponent("rental-sign-price", "price", CoinFormat.formatGlyphs(claim.getRentalPrice())));
                 sign.line(3, plugin.getConfigManager().getComponent("rental-sign-click"));
                 sign.update();
             }
@@ -397,7 +398,7 @@ public class RentalManager {
         if (amount <= 0) return true;
         if (plot.isTradePoint()) {
             Optional<LoveEconomy> economy = tradeEconomy();
-            if (economy.isPresent()) return economy.get().has(player, amount);
+            return economy.isPresent() && economy.get().has(player, amount);
         }
         return plugin.getCurrencyManager().hasEnough(player, amount);
     }
@@ -407,7 +408,7 @@ public class RentalManager {
         if (amount <= 0) return true;
         if (plot.isTradePoint()) {
             Optional<LoveEconomy> economy = tradeEconomy();
-            if (economy.isPresent()) return economy.get().charge(player, amount);
+            return economy.isPresent() && economy.get().charge(player, amount);
         }
         return plugin.getCurrencyManager().takeCurrency(player, amount);
     }
@@ -416,7 +417,7 @@ public class RentalManager {
     public String describeAmount(Claim plot, long amount) {
         if (plot.isTradePoint()) {
             Optional<LoveEconomy> economy = tradeEconomy();
-            if (economy.isPresent()) return amount + " " + economy.get().currencyName();
+            return CoinFormat.formatGlyphs(economy.orElse(null), amount);
         }
         return plugin.getCurrencyManager().getNeededCoinsString(amount);
     }
