@@ -174,7 +174,7 @@ public class AnchorListener implements Listener {
         for (Claim existingClaim : plugin.getClaimManager().getAllClaims()) {
             if (existingClaim.isClanTerritory() && newBox.overlaps(existingClaim.getBoundingBox())) {
                 player.sendMessage(plugin.getConfigManager().getMessage("clan-overlap-deny"));
-                BorderDisplayTask.showBorder(plugin, player, existingClaim.getBoundingBox(), 140L, existingClaim.getId());
+                me.lovelace.loveclaims.task.ParticleBorder.show(plugin, player, existingClaim.getBoundingBox(), overlapTicks(), me.lovelace.loveclaims.task.ParticleBorder.DUST_RED);
                 return;
             }
         }
@@ -184,7 +184,8 @@ public class AnchorListener implements Listener {
         if (conflictingOpt.isPresent()) {
             Claim conflict = conflictingOpt.get();
             player.sendMessage(plugin.getConfigManager().getMessage("claim-overlap"));
-            BorderDisplayTask.showBorder(plugin, player, conflict.getBoundingBox(), 140L, conflict.getId());
+            me.lovelace.loveclaims.task.ParticleBorder.show(plugin, player, conflict.getBoundingBox(), overlapTicks(),
+                    conflict.isClanTerritory() ? me.lovelace.loveclaims.task.ParticleBorder.DUST_RED : me.lovelace.loveclaims.task.ParticleBorder.DUST_CYAN);
             return;
         }
 
@@ -272,5 +273,10 @@ public class AnchorListener implements Listener {
         if (pending != null && pending.previewTask() != null) {
             pending.previewTask().revert();
         }
+    }
+
+    /** How long the overlapped claim's outline stays (proximity-border.overlap-seconds, default 5). */
+    private long overlapTicks() {
+        return Math.max(1L, plugin.getConfigManager().getConfig().getLong("proximity-border.overlap-seconds", 5L)) * 20L;
     }
 }
