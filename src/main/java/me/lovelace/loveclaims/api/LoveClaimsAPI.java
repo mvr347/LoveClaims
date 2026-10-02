@@ -588,6 +588,125 @@ public final class LoveClaimsAPI {
         }
     }
 
+    /** A trade point by its id (the plot name), free or rented. */
+    public Optional<Claim> getTradePointByName(String id) {
+        return getRentalPlotByName(id).filter(Claim::isTradePoint);
+    }
+
+    /** Outcome of {@link #createTradePoint}. */
+    public record CreateResult(Status status, Claim point) {
+        public enum Status { OK, BAD_ID, ID_TAKEN, OVERLAP, BAD_PRICE }
+
+        public boolean ok() { return status == Status.OK; }
+    }
+
+    /**
+     * Creates a free trade point: the zone is built from the two corner blocks (see
+     * {@link TradePointRules#zoneFromCorners}), {@code id} becomes the plot name, {@code home} is where
+     * the trader stands. Refuses a bad or taken id, a zone that overlaps any other claim and a negative
+     * price. Main thread only.
+     *
+     * @param price the rent for one period in LoveEconomy units
+     */
+    public CreateResult createTradePoint(String id, World world, Location corner1, Location corner2, Location home, long price) {
+        if (!TradePointRules.isValidId(id)) return new CreateResult(CreateResult.Status.BAD_ID, null);
+        if (price < 0) return new CreateResult(CreateResult.Status.BAD_PRICE, null);
+        if (plugin.getRentalManager().getPlotIdByName(id) != null) return new CreateResult(CreateResult.Status.ID_TAKEN, null);
+        BoundingBox box = TradePointRules.zoneFromCorners(corner1.getBlockX(), corner1.getBlockY(), corner1.getBlockZ(),
+                corner2.getBlockX(), corner2.getBlockY(), corner2.getBlockZ());
+        if (plugin.getClaimManager().checkOverlap(world, box)) return new CreateResult(CreateResult.Status.OVERLAP, null);
+
+        Claim point = new Claim(UUID.randomUUID(), world, box, null, home);
+        point.setName(id);
+        point.setParentClaimId(UUID.nameUUIDFromBytes("SERVER_RENTAL".getBytes()));
+        point.setIndicatorType(me.lovelace.loveclaims.model.IndicatorType.NONE);
+        point.setPlotType(me.lovelace.loveclaims.model.PlotType.TRADE_POINT);
+        point.setRentalPrice(price);
+        if (home != null) point.setHomeLocation(home);
+        plugin.getClaimManager().addClaimToCache(point);
+        plugin.getStorage().saveClaimAsync(point);
+        plugin.getRentalManager().registerPlotName(id, point.getId());
+        return new CreateResult(CreateResult.Status.OK, point);
+    }
+
+    /**
+     * Deletes a trade point for good (its tenant, if any, loses it). {@link TradePointDeletedEvent}
+     * follows from the claim cache, so LoveShops removes its NPCs and data. Main thread only.
+     */
+    public boolean deleteTradePoint(UUID claimId) {
+        Optional<Claim> found = getClaimById(claimId).filter(Claim::isTradePoint);
+        if (found.isEmpty()) return false;
+        Claim point = found.get();
+        String name = point.getName();
+        plugin.getRentalManager().removeLandlord(point);
+        plugin.getStorage().deleteClaimAsync(claimId);
+        plugin.getClaimManager().removeClaimFromCache(claimId);
+        if (name != null) plugin.getRentalManager().unregisterPlotName(name);
+        return true;
+    }
+
+    /** Sets the rent of one period (LoveEconomy units). */
+    public void setTradePointPrice(Claim point, long price) {
+        if (point == null || !point.isTradePoint() || price < 0) return;
+        point.setRentalPrice(price);
+        plugin.getStorage().saveClaimAsync(point);
+    }
+
+    /** Admin: gives the point to {@code tenant} until {@code endTime} (epoch millis) without any payment. Main thread only. */
+    public void assignTradePointTenant(Claim point, UUID tenant, long endTime) {
+        if (point == null || !point.isTradePoint() || tenant == null) return;
+        plugin.getRentalManager().assign(point, tenant, endTime);
+        plugin.getStorage().saveClaimAsync(point);
+    }
+
+    /** Takes the point back from its tenant ({@link TradePointReleasedEvent} follows). Main thread only. */
+    public void releaseTradePointTenant(Claim point, ReleaseReason reason) {
+        if (point == null || !point.isTradePoint() || !hasTenant(point)) return;
+        plugin.getRentalManager().release(point, reason == null ? ReleaseReason.ADMIN : reason);
+        plugin.getStorage().saveClaimAsync(point);
+    }
+
+    /** Rents a free point for {@code periods} periods, paying from the player's coins; same rules as the sign. Main thread only. */
+    public TradePointRentOutcome rentTradePoint(Player player, Claim point, int periods) {
+        return plugin.getRentalManager().rentTradePoint(player, point, periods);
+    }
+
+    /** The tenant prepays {@code periods} more periods. Main thread only. */
+    public TradePointRentOutcome extendTradePoint(Player player, Claim point, int periods) {
+        return plugin.getRentalManager().extendTradePointPaid(player, point, periods);
+    }
+
+    /** Price of renting a free point for {@code periods} periods. */
+    public long getTradePointRentCost(Claim point, int periods) {
+        return plugin.getRentalManager().getTradePointRentCost(point, periods);
+    }
+
+    public int getTradePointMaxRentPeriods() { return plugin.getRentalManager().getTradePointMaxRentPeriods(); }
+
+    public int getTradePointMaxExtendPeriods(Claim point) { return plugin.getRentalManager().getTradePointMaxExtendPeriods(point); }
+
+    public long getTradePointPeriodMillis() { return plugin.getRentalManager().getTradePointPeriodMillis(); }
+
+    public long getTradePointGraceMillis() { return plugin.getRentalManager().getTradePointGraceMillis(); }
+
+    // ----- Taxer NPC ("Сборщик налогов") -----
+
+    /** Spawns a taxer NPC at {@code location}; {@code false} when Citizens is not there. */
+    public boolean spawnTaxer(Location location) {
+        if (location == null || location.getWorld() == null) return false;
+        plugin.getRentalManager().spawnTaxer(location);
+        return !plugin.getRentalManager().findTaxerLocation().isEmpty();
+    }
+
+    /** Removes all taxer NPCs, also those that survived a restart; returns how many. */
+    public int removeTaxers() {
+        return plugin.getRentalManager().removeAllTaxers();
+    }
+
+    public Optional<Location> getTaxerLocation() {
+        return plugin.getRentalManager().findTaxerLocation();
+    }
+
     /** Reassigns the trade point to a new tenant without resetting rent duration or releasing warehouse. */
     public void transferTenant(Claim point, UUID newTenant) {
         if (point != null && newTenant != null) {

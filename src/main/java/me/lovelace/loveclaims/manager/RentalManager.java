@@ -4,7 +4,9 @@ import dev.lovelace.lovecore.api.LoveCore;
 import dev.lovelace.lovecore.api.economy.LoveEconomy;
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.api.ReleaseReason;
+import me.lovelace.loveclaims.api.TradePointRentOutcome;
 import me.lovelace.loveclaims.api.TradePointRentPayer;
+import me.lovelace.loveclaims.api.TradePointRules;
 import me.lovelace.loveclaims.api.event.TradePointExpiryWarningEvent;
 import me.lovelace.loveclaims.api.event.TradePointReleasedEvent;
 import me.lovelace.loveclaims.api.event.TradePointRentRequestEvent;
@@ -475,5 +477,116 @@ public class RentalManager {
         plot.setExpiryWarned(true);
         Bukkit.getPluginManager().callEvent(new TradePointExpiryWarningEvent(
                 owner, plot, Math.max(0L, plot.getRentalEndTime() - System.currentTimeMillis())));
+    }
+
+    // ----- trade points: rent through the API (landlord NPC of LoveShops) -------------------
+
+    /** How many periods a free trade point may be rented for at once. */
+    public int getTradePointMaxRentPeriods() {
+        return getTradePointMaxPrepaidPeriods();
+    }
+
+    /** What renting {@code plot} for {@code periods} periods costs. */
+    public long getTradePointRentCost(Claim plot, int periods) {
+        return TradePointRules.rentCost(plot.getRentalPrice(), getRenewCost(plot), periods);
+    }
+
+    /**
+     * Rents a free trade point to {@code player} for {@code periods} periods, with the very same
+     * checks as the sign (limit per player, vetoes of other plugins, grace period of a previous
+     * tenant) and the same payment in LoveEconomy. Main thread only.
+     */
+    public TradePointRentOutcome rentTradePoint(Player player, Claim plot, int periods) {
+        if (plot == null || !plot.isTradePoint()) return TradePointRentOutcome.of(TradePointRentOutcome.Status.NOT_TRADE_POINT);
+        if (periods < 1 || periods > getTradePointMaxRentPeriods()) return TradePointRentOutcome.of(TradePointRentOutcome.Status.BAD_PERIODS);
+        Optional<Component> denied = checkRentAllowed(player, plot);
+        if (denied.isPresent()) return new TradePointRentOutcome(TradePointRentOutcome.Status.DENIED, denied.get(), 0L);
+        if (!paymentsAvailable()) return TradePointRentOutcome.of(TradePointRentOutcome.Status.NO_ECONOMY);
+        long cost = getTradePointRentCost(plot, periods);
+        if (!hasFunds(player, plot, cost) || !charge(player, plot, cost)) {
+            return new TradePointRentOutcome(TradePointRentOutcome.Status.NO_FUNDS, null, cost);
+        }
+        assign(plot, player.getUniqueId(), System.currentTimeMillis() + periods * getTradePointPeriodMillis());
+        plugin.getStorage().saveClaimAsync(plot);
+        return new TradePointRentOutcome(TradePointRentOutcome.Status.OK, null, cost);
+    }
+
+    /** How many more periods the tenant may add right now ({@code 0} when already prepaid to the limit). */
+    public int getTradePointMaxExtendPeriods(Claim plot) {
+        return TradePointRules.maxExtendPeriods(plot.getRentalEndTime() - System.currentTimeMillis(),
+                getTradePointPeriodMillis(), getTradePointMaxPrepaidPeriods());
+    }
+
+    /**
+     * The tenant pays {@code periods} more periods of rent in advance (at the renewal price each).
+     * Main thread only.
+     */
+    public TradePointRentOutcome extendTradePointPaid(Player player, Claim plot, int periods) {
+        if (plot == null || !plot.isTradePoint()) return TradePointRentOutcome.of(TradePointRentOutcome.Status.NOT_TRADE_POINT);
+        if (!hasTenant(plot) || !player.getUniqueId().equals(plot.getOwnerUuid())) {
+            return TradePointRentOutcome.of(TradePointRentOutcome.Status.NOT_TENANT);
+        }
+        int allowed = getTradePointMaxExtendPeriods(plot);
+        if (periods < 1 || periods > allowed) return TradePointRentOutcome.of(TradePointRentOutcome.Status.BAD_PERIODS);
+        if (!paymentsAvailable()) return TradePointRentOutcome.of(TradePointRentOutcome.Status.NO_ECONOMY);
+        long cost = TradePointRules.rentCost(getRenewCost(plot), getRenewCost(plot), periods);
+        if (!hasFunds(player, plot, cost) || !charge(player, plot, cost)) {
+            return new TradePointRentOutcome(TradePointRentOutcome.Status.NO_FUNDS, null, cost);
+        }
+        // A tenant in the grace period gets the term counted from now, not from the long-gone end.
+        long now = System.currentTimeMillis();
+        if (plot.getRentalEndTime() < now) plot.setRentalEndTime(now);
+        extend(plot, periods * getTradePointPeriodMillis());
+        plugin.getStorage().saveClaimAsync(plot);
+        return new TradePointRentOutcome(TradePointRentOutcome.Status.OK, null, cost);
+    }
+
+    // ----- taxer NPC (found by name, so it also works after a restart) ------------------------
+
+    /** Citizens NPCs that are taxers: their name contains the configured taxer name (as the click handler matches). */
+    private java.util.List<Object> findTaxerNpcs() {
+        java.util.List<Object> found = new ArrayList<>();
+        if (!citizensEnabled || !(npcRegistry instanceof Iterable<?> registry)) return found;
+        String wanted = org.bukkit.ChatColor.stripColor(plugin.getConfigManager().getString("taxer-npc-name", "Сборщик налогов"));
+        if (wanted == null || wanted.isBlank()) return found;
+        try {
+            Method getName = Class.forName("net.citizensnpcs.api.npc.NPC").getMethod("getName");
+            for (Object npc : registry) {
+                String name = org.bukkit.ChatColor.stripColor(String.valueOf(getName.invoke(npc)));
+                if (name != null && name.contains(wanted)) found.add(npc);
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("RentalManager: taxer lookup failed: " + e.getMessage());
+        }
+        return found;
+    }
+
+    /** Where a taxer stands (the first one found), if there is one. */
+    public Optional<Location> findTaxerLocation() {
+        try {
+            Method stored = Class.forName("net.citizensnpcs.api.npc.NPC").getMethod("getStoredLocation");
+            for (Object npc : findTaxerNpcs()) {
+                Object loc = stored.invoke(npc);
+                if (loc instanceof Location l && l.getWorld() != null) return Optional.of(l);
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("RentalManager: taxer location failed: " + e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    /** Removes every taxer NPC (also ones left over from before a restart); returns how many were removed. */
+    public int removeAllTaxers() {
+        int removed = 0;
+        for (Object npc : findTaxerNpcs()) {
+            try {
+                destroyMethod.invoke(npc);
+                removed++;
+            } catch (Exception e) {
+                plugin.getLogger().warning("RentalManager: " + e.getMessage());
+            }
+        }
+        taxerNpcId = null;
+        return removed;
     }
 }
