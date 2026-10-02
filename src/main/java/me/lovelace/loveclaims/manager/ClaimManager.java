@@ -1,6 +1,7 @@
 package me.lovelace.loveclaims.manager;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.api.event.TradePointDeletedEvent;
 import me.lovelace.loveclaims.model.Claim;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -169,10 +170,33 @@ public class ClaimManager {
     */
 
     public void removeClaimFromCache(UUID claimId) {
+        Claim removed = removeFromCaches(claimId);
+        if (removed != null && removed.isTradePoint()) {
+            fireTradePointDeleted(removed);
+        }
+    }
+
+    /**
+     * Tell listeners (LoveShops) that a trade point is gone for good. Fired after the claim has left
+     * the caches; callers may be on an async thread (AutoDeleteTask), so hop to the main thread.
+     */
+    private void fireTradePointDeleted(Claim claim) {
+        UUID tenant = plugin.getRentalManager().hasTenant(claim) ? claim.getOwnerUuid() : null;
+        TradePointDeletedEvent event = new TradePointDeletedEvent(claim.getId(), tenant, true);
+        if (plugin.getServer().isPrimaryThread()) {
+            plugin.getServer().getPluginManager().callEvent(event);
+        } else if (plugin.isEnabled()) {
+            plugin.getServer().getGlobalRegionScheduler().run(plugin,
+                    task -> plugin.getServer().getPluginManager().callEvent(event));
+        }
+    }
+
+    private Claim removeFromCaches(UUID claimId) {
+        Claim claim;
         lock.writeLock().lock();
         try {
-            Claim claim = claimsById.remove(claimId);
-            if (claim == null || claim.getWorld() == null) return;
+            claim = claimsById.remove(claimId);
+            if (claim == null || claim.getWorld() == null) return claim;
 
             // Удаляем из кэша владельца
             if (claim.getOwnerUuid() != null) {
@@ -217,7 +241,7 @@ public class ClaimManager {
             }
 
             Long2ObjectOpenHashMap<List<Claim>> chunkMap = worldCaches.get(claim.getWorld().getUID());
-            if (chunkMap == null) return;
+            if (chunkMap == null) return claim;
 
             BoundingBox box = claim.getBoundingBox();
             int minCX = (int) Math.floor(box.getMinX());
@@ -240,6 +264,7 @@ public class ClaimManager {
         } finally {
             lock.writeLock().unlock();
         }
+        return claim;
     }
 
     /**
