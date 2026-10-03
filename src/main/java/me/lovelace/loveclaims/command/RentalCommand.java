@@ -32,6 +32,11 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+        // Standalone /rental is switched off; the logic below is kept for re-enabling via config.
+        if (!plugin.getConfig().getBoolean("rental.command-enabled", false)) {
+            sender.sendMessage(plugin.getConfigManager().getMessage("rental-command-disabled"));
+            return true;
+        }
         if (!(sender instanceof Player player)) return true;
 
         if (args.length == 0) {
@@ -416,6 +421,7 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         List<String> completions = new ArrayList<>();
+        if (!plugin.getConfig().getBoolean("rental.command-enabled", false)) return completions;
         if (args.length == 1) {
             completions.addAll(List.of("tp", "buy", "help", "leave", "show", "sell"));
             if (sender.hasPermission("loveclaims.rental.admin")) completions.add("admin");

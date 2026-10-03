@@ -17,6 +17,10 @@ claims:
 
 # ===== НАСТРОЙКИ АРЕНДЫ =====
 rental:
+  # Отдельная команда /rental (2026-10-03): отключена. Торговыми точками теперь управляет LoveShops
+  # (/tradepoint, /tradepointadmin, Феодал), поэтому параллельная команда только путает игроков.
+  # Логика и GUI не удалены: true вернёт команду без переписывания кода. API для LoveShops работает всегда.
+  command-enabled: false
   enabled: true
   max-rentals-per-player: 2
   min-price: 10
@@ -25,7 +29,7 @@ rental:
   max-duration-hours: 720
 
   # Торговые точки (2026-09-30): арендуемые участки рынка, торговлей на них занимается LoveShops.
-  # Точкой плот становится командой /rental admin settype <плот> trade_point.
+  # Точкой плот становится через LoveShops (/tradepointadmin create) или LoveClaimsAPI.
   trade-points:
     enabled: true
     # Одна точка на игрока: рынок рассчитан на много разных торговцев, а не на одного с сетью точек.
