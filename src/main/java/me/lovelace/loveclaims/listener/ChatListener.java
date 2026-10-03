@@ -154,14 +154,25 @@ public class ChatListener implements Listener {
             Claim claim = pendingPrice.remove(uuid);
             Bukkit.getScheduler().runTask(plugin, () -> { // Выполняем синхронно
                 try {
-                    long price = Long.parseLong(text);
+                    // A plain number (copper units) or "3i 50c"-style text (c/i/g/d = copper/iron/gold/diamond)
+                    long price = me.lovelace.loveclaims.util.CoinFormat.parseAmount(text);
                     if (price < 0) throw new NumberFormatException();
+                    long min = plugin.getConfigManager().getMinRentalPrice();
+                    long max = plugin.getConfigManager().getMaxRentalPrice();
+                    if (price < min || price > max) {
+                        player.sendMessage(plugin.getConfigManager().getMessage("msg-price-range",
+                                "min", me.lovelace.loveclaims.util.CoinFormat.formatGlyphs(min),
+                                "max", me.lovelace.loveclaims.util.CoinFormat.formatGlyphs(max)));
+                        player.openInventory(new me.lovelace.loveclaims.gui.RentalEditGUI(plugin, claim).getInventory());
+                        return;
+                    }
                     claim.setRentalPrice(price);
                     plugin.getStorage().saveClaimAsync(claim);
                     plugin.getRentalManager().updateIndicator(claim);
-                    player.sendMessage(Component.text("§aЦена аренды установлена: §e" + price));
+                    player.sendMessage(plugin.getConfigManager().getMessage("msg-price-set",
+                            "price", me.lovelace.loveclaims.util.CoinFormat.formatGlyphs(price)));
                     player.openInventory(new me.lovelace.loveclaims.gui.RentalEditGUI(plugin, claim).getInventory());
-                } catch (NumberFormatException e) {
+                } catch (IllegalArgumentException e) {
                     player.sendMessage(plugin.getConfigManager().getMessage("msg-price-number"));
                     player.openInventory(new me.lovelace.loveclaims.gui.RentalEditGUI(plugin, claim).getInventory());
                 }

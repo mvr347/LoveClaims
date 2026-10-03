@@ -34,7 +34,9 @@
 # - lore: Описание предмета (список строк)
 # - custom-model-data: Кастомная модель (0 = нет)
 # - permission: Требуемая пермишн ("none" = всем)
-# - create-cost: Стоимость создания (0 = бесплатно)
+# - create-cost: Стоимость создания (0 = бесплатно). Число (медные) или строка "5i" (c/i/g/d = медная/железная/золотая/алмазная).
+#   2026-10-03: значения пересчитаны под номиналы 1/100/2000/20000. ВНИМАНИЕ: ключ пока НЕ ИСПОЛЬЗУЕТСЯ — плата за
+#   установку якоря не списывается (подключение — отдельное решение). Сохранён, чтобы суммы были готовы.
 # - border-color: Цвет границы (RGB)
 # - place-sound: Звук установки
 # - break-sound: Звук разрушения
@@ -122,7 +124,7 @@ tiers:
     radius-z: 10
     custom-model-data: 0
     permission: "none"
-    create-cost: 100
+    create-cost: "5i"
     border-color:
       red: 0
       green: 255
@@ -149,7 +151,7 @@ tiers:
     radius-z: 16
     custom-model-data: 0
     permission: "none"
-    create-cost: 500
+    create-cost: "25i"
     border-color:
       red: 255
       green: 0
@@ -176,7 +178,7 @@ tiers:
     radius-z: 32
     custom-model-data: 0
     permission: "none"
-    create-cost: 2000
+    create-cost: "5g"
     border-color:
       red: 255
       green: 255
@@ -203,7 +205,7 @@ tiers:
     radius-z: 64
     custom-model-data: 0
     permission: "loveclaims.anchor.tier-5"
-    create-cost: 10000
+    create-cost: "1d"
     border-color:
       red: 128
       green: 0
@@ -232,7 +234,7 @@ tiers:
     radius-z: 128
     custom-model-data: 1
     permission: "loveclaims.anchor.tier-6"
-    create-cost: 50000
+    create-cost: "3d"
     border-color:
       red: 255
       green: 255

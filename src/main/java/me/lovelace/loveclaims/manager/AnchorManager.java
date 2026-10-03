@@ -65,7 +65,7 @@ public class AnchorManager {
 
                 // Чтение дополнительных настроек
                 String permission = section.getString(key + ".permission", "none");
-                long createCost = section.getLong(key + ".create-cost", 0);
+                long createCost = readCost(section, key + ".create-cost");
 
                 // Чтение цвета границы
                 int borderRed = 0, borderGreen = 255, borderBlue = 0;
@@ -323,5 +323,14 @@ public class AnchorManager {
         return tiers.values().stream()
             .filter(tier -> tier.material() == material)
             .findFirst();
+    }
+
+    /** create-cost: a number or a money string like "5i" (LoveCore MoneyConfig); unreadable -> 0 (free). */
+    private long readCost(org.bukkit.configuration.ConfigurationSection section, String path) {
+        try {
+            return dev.lovelace.lovecore.api.economy.MoneyConfig.get(section, path, 0L);
+        } catch (Throwable t) {
+            return section.getLong(path, 0L);
+        }
     }
 }
