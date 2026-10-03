@@ -119,11 +119,39 @@ public class SQLiteStorage {
                 rentalsConnection = DriverManager.getConnection("jdbc:sqlite:" + rentalsFile.getAbsolutePath());
                 configureConnection(rentalsConnection);
                 initRentalsTables(rentalsConnection);
+                migrateEconomy(rentalsConnection, rentalsFile);
 
             } catch (SQLException e) {
                 throw new RuntimeException("DB Init failed", e);
             }
         }, dbExecutor);
+    }
+
+    /**
+     * Rescales stored rental prices once when LoveCore's economy scale version grew
+     * (see {@link EconomyMigration}); the rentals database file is copied first.
+     */
+    private void migrateEconomy(Connection conn, File dbFile) {
+        try {
+            var economy = dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.economy.LoveEconomy.class);
+            if (economy.isEmpty()) return;
+            int target = economy.get().economyScaleVersion();
+            double factor = plugin.getConfig().getDouble("economy.migration.factor", 5.0);
+            if (EconomyMigration.needsRescale(conn, target)) {
+                try (Statement st = conn.createStatement()) {
+                    st.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+                }
+                File backup = new File(dbFile.getParentFile(), dbFile.getName() + ".pre-economy-v" + target);
+                if (!backup.exists()) {
+                    java.nio.file.Files.copy(dbFile.toPath(), backup.toPath());
+                    plugin.getLogger().info("Economy migration: database copy saved to " + backup.getName());
+                }
+            }
+            EconomyMigration.migrate(conn, target, factor, plugin.getLogger());
+        } catch (Throwable t) {
+            plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                    "Economy migration failed - rental prices were NOT rescaled", t);
+        }
     }
 
     private void configureConnection(Connection conn) throws SQLException {

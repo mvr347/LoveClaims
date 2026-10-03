@@ -166,6 +166,25 @@ public class ConfigManager {
                 .replace("&r", "<reset>").replace("\u00a7r", "<reset>");
     }
 
+    /** Lower bound of a rental price set by a plot owner ({@code rental.min-price}, money value, price index applied). */
+    public long getMinRentalPrice() {
+        return Math.max(0L, readMoney("rental.min-price", 100L));
+    }
+
+    /** Upper bound of a rental price ({@code rental.max-price}). */
+    public long getMaxRentalPrice() {
+        return Math.max(getMinRentalPrice(), readMoney("rental.max-price", 1_000_000L));
+    }
+
+    private long readMoney(String path, long def) {
+        try {
+            return dev.lovelace.lovecore.api.economy.MoneyConfig.getScaled(plugin.getConfig(), path, def);
+        } catch (Throwable t) {
+            // LoveCore API missing: fall back to a plain number
+            return plugin.getConfig().getLong(path, def);
+        }
+    }
+
     public Component getMessage(String path, String... placeholders) {
         String prefix = lang.getString("prefix", "<dark_gray>[ <gold>AC <dark_gray>] <white> ");
         List<String> list = lang.getStringList(path);

@@ -72,6 +72,18 @@ public final class CoinFormat {
         return formatGlyphs(getEconomy().orElse(null), amount);
     }
 
+    /** Typed amount: a plain number (copper units) or "3i 50c" text; throws IllegalArgumentException when unreadable. */
+    public static long parseAmount(String input) {
+        String text = input == null ? "" : input.trim();
+        try {
+            return Long.parseLong(text);
+        } catch (NumberFormatException ignored) {
+            // not a plain number: try the denomination syntax
+        }
+        List<Denomination> dens = getEconomy().map(LoveEconomy::allDenominations).orElse(null);
+        return dev.lovelace.lovecore.api.economy.MoneyParser.parse(text, dens);
+    }
+
     public static String formatGlyphs(double amount) {
         return formatGlyphs(Math.round(amount));
     }

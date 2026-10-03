@@ -443,7 +443,9 @@ msg-rental-sell-btn-hover: "<gray>Нажмите, чтобы подтверди�
 msg-rental-list-entry-owner: "<gray>- <white>{name} <gray>(Владелец: <white>{owner}</white>) <gray>| <green>Осталось: <white>{days}д. {hours}ч."
 msg-rental-list-entry: "{role} <white>{name} <gray>(Осталось: {days}д {hours}ч)"
 msg-price-negative: "<red>Цена не может быть отрицательной!"
-msg-price-number: "<red>Введите число!"
+msg-price-number: "<red>Введите сумму: число (в медных) или, например, 3i 50c (c — медная, i — железная, g — золотая, d — алмазная)."
+msg-price-range: "<red>Цена должна быть от {min} <red>до {max}<red>."
+msg-price-set: "<green>Цена аренды установлена: {price}"
 msg-claim-title: "<gold>{claim}"
 msg-claim-actionbar: "<gold>{claim} <gray>| <white>{desc}"
 
