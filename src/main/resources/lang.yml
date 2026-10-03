@@ -109,6 +109,7 @@ rental-tax-failed: "<red>У вас недостаточно средств дл�
 rental-admin-player-not-found: "<red>Игрок не найден!"
 
 # ===== АРЕНДА - КОМАНДЫ =====
+rental-command-disabled: "<red>Команда /rental отключена. Торговые точки: /tradepoint."
 rental-no-rented: "<red>У вас нет арендованных плотов."
 rental-list-header: "<gold>=== Ваши арендованные плоты ==="
 rental-list-entry: "<gray>- <white>{name} <gray>| <green>Осталось: <white>{days}д. {hours}ч."
