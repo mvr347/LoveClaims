@@ -316,7 +316,7 @@ public class RentalManager {
     public boolean isTradePointsEnabled() { return cfg().getBoolean("rental.trade-points.enabled", true); }
     public int getTradePointMaxPerPlayer() { return Math.max(1, cfg().getInt("rental.trade-points.max-per-player", 1)); }
     public long getTradePointPeriodMillis() { return Math.max(1L, cfg().getLong("rental.trade-points.period-days", 7)) * 86_400_000L; }
-    public long getTradePointGraceMillis() { return Math.max(0L, cfg().getLong("rental.trade-points.grace-hours", 12)) * 3_600_000L; }
+    public long getTradePointGraceMillis() { return Math.max(0L, cfg().getLong("rental.trade-points.grace-hours", 48)) * 3_600_000L; }
     public long getTradePointWarnMillis() { return Math.max(0L, cfg().getLong("rental.trade-points.warn-hours", 24)) * 3_600_000L; }
     public long getTradePointRenewLeadMillis() { return Math.max(0L, cfg().getLong("rental.trade-points.auto-renew-lead-hours", 2)) * 3_600_000L; }
     public boolean isTradePointAutoRenew() { return cfg().getBoolean("rental.trade-points.auto-renew", true); }
@@ -539,6 +539,44 @@ public class RentalManager {
         extend(plot, periods * getTradePointPeriodMillis());
         plugin.getStorage().saveClaimAsync(plot);
         return new TradePointRentOutcome(TradePointRentOutcome.Status.OK, null, cost);
+    }
+
+    /**
+     * The tenant pays for {@code days} days of rent. If the plot is currently in the grace period,
+     * a one-time penalty of +40% is added to the cost.
+     */
+    public TradePointRentOutcome extendTradePointDays(Player player, Claim plot, int days) {
+        if (plot == null || !plot.isTradePoint()) return TradePointRentOutcome.of(TradePointRentOutcome.Status.NOT_TRADE_POINT);
+        if (!hasTenant(plot) || !player.getUniqueId().equals(plot.getOwnerUuid())) {
+            return TradePointRentOutcome.of(TradePointRentOutcome.Status.NOT_TENANT);
+        }
+        if (days < 1) return TradePointRentOutcome.of(TradePointRentOutcome.Status.BAD_PERIODS);
+        if (!paymentsAvailable()) return TradePointRentOutcome.of(TradePointRentOutcome.Status.NO_ECONOMY);
+
+        long dailyCost = Math.max(1L, getRenewCost(plot) / 7L);
+        long cost = dailyCost * days;
+        if (isInGrace(plot)) {
+            // Штраф +40% (единоразовый) при просрочке
+            cost += (long) Math.ceil(cost * 0.40);
+        }
+        if (!hasFunds(player, plot, cost) || !charge(player, plot, cost)) {
+            return new TradePointRentOutcome(TradePointRentOutcome.Status.NO_FUNDS, null, cost);
+        }
+        long now = System.currentTimeMillis();
+        if (plot.getRentalEndTime() < now) plot.setRentalEndTime(now);
+        extend(plot, days * 86_400_000L);
+        plugin.getStorage().saveClaimAsync(plot);
+        return new TradePointRentOutcome(TradePointRentOutcome.Status.OK, null, cost);
+    }
+
+    public long getTradePointDayCost(Claim plot) {
+        if (plot == null) return 0L;
+        long renew = getRenewCost(plot);
+        long cost = Math.max(1L, renew / 7L);
+        if (isInGrace(plot)) {
+            cost += (long) Math.ceil(cost * 0.40);
+        }
+        return cost;
     }
 
     // ----- taxer NPC (found by name, so it also works after a restart) ------------------------
