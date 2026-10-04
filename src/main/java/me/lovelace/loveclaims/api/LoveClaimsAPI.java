@@ -676,6 +676,16 @@ public final class LoveClaimsAPI {
         return plugin.getRentalManager().extendTradePointPaid(player, point, periods);
     }
 
+    /** The tenant prepays {@code days} days of rent. If in grace, a +40% penalty is applied. */
+    public TradePointRentOutcome extendTradePointDays(Player player, Claim point, int days) {
+        return plugin.getRentalManager().extendTradePointDays(player, point, days);
+    }
+
+    /** Price of 1 day rent, including 40% penalty if in grace. */
+    public long getTradePointDayCost(Claim point) {
+        return plugin.getRentalManager().getTradePointDayCost(point);
+    }
+
     /** Price of renting a free point for {@code periods} periods. */
     public long getTradePointRentCost(Claim point, int periods) {
         return plugin.getRentalManager().getTradePointRentCost(point, periods);
