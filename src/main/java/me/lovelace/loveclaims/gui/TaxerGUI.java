@@ -17,8 +17,9 @@ import java.util.List;
 import java.util.UUID;
 
 public class TaxerGUI extends AbstractGUI {
-    // Рабочая зона 27-слотового меню: 7 интерьерных слотов (10-16).
-    private static final int[] CONTENT_SLOTS = {10, 11, 12, 13, 14, 15, 16};
+    // Work row of the 27-slot menu: 7 interior slots (10-16); content is centered within it.
+    private static final int WORK_ROW_FIRST = 10;
+    private static final int WORK_ROW_LAST = 16;
 
     private final LoveClaims plugin;
     private final Player viewer;
@@ -48,14 +49,20 @@ public class TaxerGUI extends AbstractGUI {
         }
         inventory.setItem(0, self);
 
+        // Clear the work row first so a re-render (e.g. after paying tax) leaves no stale items.
+        for (int s = WORK_ROW_FIRST; s <= WORK_ROW_LAST; s++) {
+            inventory.setItem(s, null);
+        }
+        int[] contentSlots = centeredRowSlots(Math.max(1, ownedPlots.size()));
+
         if (ownedPlots.isEmpty()) {
-            inventory.setItem(CONTENT_SLOTS[0], createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("rental-no-rented"), List.of(
+            inventory.setItem(contentSlots[0], createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("rental-no-rented"), List.of(
                     Component.text("§7Арендуйте участок, чтобы"),
                     Component.text("§7оплачивать здесь налоги.")
             )));
         } else {
             NamespacedKey key = new NamespacedKey(plugin, "plot_id");
-            for (int i = 0; i < ownedPlots.size() && i < CONTENT_SLOTS.length; i++) {
+            for (int i = 0; i < ownedPlots.size() && i < contentSlots.length; i++) {
                 Claim plot = ownedPlots.get(i);
 
                 long taxAmount = plugin.getRentalManager().getRenewCost(plot);
@@ -78,7 +85,7 @@ public class TaxerGUI extends AbstractGUI {
                     item.setItemMeta(meta);
                 }
 
-                inventory.setItem(CONTENT_SLOTS[i], item);
+                inventory.setItem(contentSlots[i], item);
             }
         }
 

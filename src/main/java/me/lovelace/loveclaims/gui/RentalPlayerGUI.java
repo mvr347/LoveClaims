@@ -13,6 +13,9 @@ public class RentalPlayerGUI extends AbstractGUI {
     private final Player viewer;
     private final Claim plot;
     private boolean showRefuse;
+    // Work-row slots computed at render time and reused by handleClick (-1 = button not shown).
+    private int membersSlot = -1;
+    private int refuseSlot = -1;
 
     public RentalPlayerGUI(LoveClaims plugin, Player viewer, Claim plot) {
         super(27, plugin.getConfigManager().getComponent("gui.rental-player.title", "name", plot.getName()));
@@ -42,12 +45,15 @@ public class RentalPlayerGUI extends AbstractGUI {
         showRefuse = plot.getOwnerUuid() != null && plot.getOwnerUuid().equals(viewer.getUniqueId());
 
         // Рабочая зона (9-17): "Участники" + (владельцу) "Отказаться", центрированы динамически.
-        inventory.setItem(showRefuse ? 11 : 13, createHead(HEAD_MEMBERS,
+        int[] rowSlots = centeredRowSlots(showRefuse ? 2 : 1);
+        membersSlot = rowSlots[0];
+        refuseSlot = showRefuse ? rowSlots[1] : -1;
+        inventory.setItem(membersSlot, createHead(HEAD_MEMBERS,
                 plugin.getConfigManager().getComponent("gui.rental-player.members-title"),
                 plugin.getConfigManager().getHelpMessage("gui.rental-player.members-lore-1", "count", String.valueOf(plot.getMembers().size()), "max", "10")));
 
         if (showRefuse) {
-            inventory.setItem(15, createHead(HEAD_BARRIER,
+            inventory.setItem(refuseSlot, createHead(HEAD_BARRIER,
                     plugin.getConfigManager().getComponent("gui.rental-player.refuse-name"),
                     plugin.getConfigManager().getHelpMessage("gui.rental-player.refuse-lore-1")));
         }
@@ -81,11 +87,11 @@ public class RentalPlayerGUI extends AbstractGUI {
                 me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, viewer, plot.getBoundingBox(), 200L);
             }
         }
-        if (slot == (showRefuse ? 11 : 13)) {
+        if (slot == membersSlot) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new RentalMembersGUI(plugin, viewer, plot).getInventory());
         }
-        if (slot == 15 && showRefuse) {
+        if (showRefuse && slot == refuseSlot) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new RentalAbandonConfirmGUI(plugin, plot).getInventory());
         }
