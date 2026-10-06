@@ -26,6 +26,24 @@ public abstract class AbstractGUI implements InventoryHolder {
     protected static final int PAGINATION_PREV_SLOT_54 = 36;
     protected static final int PAGINATION_NEXT_SLOT_54 = 44;
 
+    /**
+     * gui-gen v2.1: centered slots inside the work row (10-16) of a 27-slot menu. Side walls 9/17
+     * stay empty. Render and click code must both take their slot numbers from here.
+     * 1 -> 13; 2 -> 12,14; 3 -> 11,13,15; 4 -> 10,12,14,16; counts above 7 are capped at 7.
+     */
+    protected static int[] centeredRowSlots(int count) {
+        return switch (Math.max(0, Math.min(count, 7))) {
+            case 0 -> new int[0];
+            case 1 -> new int[]{13};
+            case 2 -> new int[]{12, 14};
+            case 3 -> new int[]{11, 13, 15};
+            case 4 -> new int[]{10, 12, 14, 16};
+            case 5 -> new int[]{11, 12, 13, 14, 15};
+            case 6 -> new int[]{10, 11, 12, 14, 15, 16};
+            default -> new int[]{10, 11, 12, 13, 14, 15, 16};
+        };
+    }
+
     public AbstractGUI(int size, Component title) {
         this.inventory = Bukkit.createInventory(this, size, title);
     }

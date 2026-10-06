@@ -14,6 +14,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.List;
 
 public class RentalEditGUI extends AbstractGUI {
+    // Two work-row buttons, centered per gui_gen v2.1 (shared by render and click handling).
+    private static final int PRICE_SLOT = centeredRowSlots(2)[0];
+    private static final int LANDLORD_SLOT = centeredRowSlots(2)[1];
+
     private final Claim plot;
     protected final LoveClaims plugin;
 
@@ -44,9 +48,9 @@ public class RentalEditGUI extends AbstractGUI {
         ));
         inventory.setItem(0, info);
 
-        // Рабочая зона (9-17): цена / переключатель Landlord, центрированы 11/15.
+        // Рабочая зона (9-17): цена / переключатель Landlord, центрированы 12/14.
         ItemStack price = createItem(Material.GOLD_INGOT, plugin.getConfigManager().getComponent("rental-edit.price-name"), plugin.getConfigManager().getHelpMessage("rental-edit.price-lore"));
-        inventory.setItem(11, price);
+        inventory.setItem(PRICE_SLOT, price);
 
         String typeStr = switch (plot.getIndicatorType()) {
             case NPC -> "NPC (Житель)";
@@ -58,7 +62,7 @@ public class RentalEditGUI extends AbstractGUI {
                 Component.text(""),
                 Component.text("§aКликните, чтобы переключить")
         ));
-        inventory.setItem(15, landlordBtn);
+        inventory.setItem(LANDLORD_SLOT, landlordBtn);
 
         // Footer Д (доп.кнопка, Исключение 3): опасное действие "удалить плот".
         ItemStack delete = createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("rental-edit.delete-name"), List.of(
@@ -100,11 +104,11 @@ public class RentalEditGUI extends AbstractGUI {
             plugin.getRentalManager().unregisterPlotName(plot.getName());
             event.getWhoClicked().sendMessage(plugin.getConfigManager().getMessage("rental-deleted"));
             event.getWhoClicked().openInventory(new RentalAdminListGUI(plugin).getInventory());
-        } else if (slot == 11) {
+        } else if (slot == PRICE_SLOT) {
             plugin.getChatListener().setPendingPrice(event.getWhoClicked().getUniqueId(), plot);
             event.getWhoClicked().sendMessage(plugin.getConfigManager().getComponent("rental-edit.enter-price"));
             event.getWhoClicked().closeInventory();
-        } else if (slot == 15) {
+        } else if (slot == LANDLORD_SLOT) {
             IndicatorType current = plot.getIndicatorType();
             IndicatorType next = switch (current) {
                 case NONE -> IndicatorType.SIGN;
