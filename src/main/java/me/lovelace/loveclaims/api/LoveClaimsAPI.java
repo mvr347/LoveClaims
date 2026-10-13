@@ -456,6 +456,33 @@ public final class LoveClaimsAPI {
     }
 
     /**
+     * Меняет границы существующего привата (расширение территории клана). Границы обновляются
+     * атомарно: сначала проверка пересечений с остальными приватами, затем замена в чанковом кэше
+     * и сохранение. Должен вызываться с главного потока.
+     *
+     * @param claimId ID привата
+     * @param newBox  новые границы
+     * @return true если границы применены; false если приват не найден, мир не загружен или
+     *         новые границы пересекают чужой приват (тогда ничего не меняется)
+     */
+    public boolean resizeClaim(UUID claimId, BoundingBox newBox) {
+        if (claimId == null || newBox == null) return false;
+        Optional<Claim> opt = plugin.getClaimManager().getClaimById(claimId);
+        if (opt.isEmpty()) return false;
+        Claim claim = opt.get();
+        World world = claim.getWorld();
+        if (world == null) return false;
+        if (plugin.getClaimManager().checkOverlap(world, newBox, claimId)) return false;
+        // getBoundingBox() отдаёт внутреннюю ссылку: клонируем до замены, иначе кэш чанков
+        // не узнает, из каких чанков приват нужно убрать.
+        BoundingBox oldBox = claim.getBoundingBox().clone();
+        claim.setBoundingBox(newBox.clone());
+        plugin.getClaimManager().resizeClaimInCache(claim, oldBox);
+        plugin.getStorage().saveClaimAsync(claim);
+        return true;
+    }
+
+    /**
      * Устанавливает статус клановой территории для привата.
      * @param claimId ID привата
      * @param status true, если это клановая территория, false иначе
