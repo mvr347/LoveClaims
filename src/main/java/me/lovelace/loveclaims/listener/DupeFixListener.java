@@ -1,5 +1,6 @@
 package me.lovelace.loveclaims.listener;
 
+import me.lovelace.loveclaims.util.Notify;
 import me.lovelace.loveclaims.LoveClaims;
 import org.bukkit.entity.ChestBoat;
 import org.bukkit.entity.ChestedHorse;
@@ -54,7 +55,7 @@ public class DupeFixListener implements Listener {
         Entity vehicle = player.getVehicle();
         if (vehicle != null && holdsInventory(vehicle)) {
             event.setCancelled(true);
-            player.sendActionBar(plugin.getConfigManager().getMessage("deny-portal-chested"));
+            Notify.event(player, plugin.getConfigManager().getMessage("deny-portal-chested"));
         }
     }
 

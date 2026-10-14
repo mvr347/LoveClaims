@@ -1,5 +1,6 @@
 package me.lovelace.loveclaims.listener;
 
+import me.lovelace.loveclaims.util.Notify;
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.gui.DeleteConfirmGUI;
 import me.lovelace.loveclaims.gui.MainClaimGUI;
@@ -47,16 +48,6 @@ public class AnchorListener implements Listener {
 
     public AnchorListener(LoveClaims plugin) {
         this.plugin = plugin;
-    }
-
-    /**
-     * Не кэшируем {@code Optional<LoveNotify>} в поле — сосед может зарегистрировать
-     * реализацию позже, см. {@code LoveCore.service(...)} javadoc в LoveCore.
-     */
-    private boolean isNotifyChannelEnabled(UUID uuid, dev.lovelace.lovecore.api.notify.LoveNotify.Channel channel) {
-        return dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.notify.LoveNotify.class)
-                .map(n -> n.isChannelEnabled(uuid, channel))
-                .orElse(true);
     }
 
     /**
@@ -224,12 +215,9 @@ public class AnchorListener implements Listener {
 
         pendingClaims.put(player.getUniqueId(), new PendingClaim(targetLoc, tier, previewTask, System.currentTimeMillis()));
 
-        String titleTitle = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(plugin.getConfigManager().getMessage("claim-preview-title"));
-        String titleSub = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(plugin.getConfigManager().getMessage("claim-preview-subtitle"));
-
-        if (isNotifyChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.TITLE)) {
-            player.sendTitle(titleTitle, titleSub, 10, 70, 20);
-        }
+        Notify.title(player, plugin.getConfigManager().getMessage("claim-preview-title")
+                .append(net.kyori.adventure.text.Component.space())
+                .append(plugin.getConfigManager().getMessage("claim-preview-subtitle")));
         player.sendMessage(plugin.getConfigManager().getMessage("claim-create-hint"));
     }
 

@@ -25,6 +25,7 @@ import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import me.lovelace.loveclaims.util.Notify;
 import java.util.Iterator;
 import java.util.Optional;
 
@@ -36,15 +37,9 @@ public class ProtectionListener implements Listener {
     }
 
     private void deny(Player player, Claim claim, Component message) {
-        // Если claim == null, это означает, что сообщение идет от спавна или общей защиты
-        // В этом случае флаг SILENT_DENY не применяется. Не кэшируем Optional<LoveNotify> —
-        // сосед может зарегистрировать реализацию позже, см. LoveCore.service(...) javadoc.
-        boolean actionBarAllowed = dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.notify.LoveNotify.class)
-                .map(n -> n.isChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.ACTION_BAR))
-                .orElse(true);
-        if (actionBarAllowed) {
-            player.sendActionBar(message);
-        }
+        // Denials go through LoveNotify: action bar by default, chat when the bar is off or the text is long.
+        // The claim parameter is kept for callers; SILENT_DENY is handled by them.
+        Notify.event(player, message);
     }
 
     // --- ЗАЩИТА ОТ ВЗРЫВОВ (КРИПЕРЫ / TNT) ---
