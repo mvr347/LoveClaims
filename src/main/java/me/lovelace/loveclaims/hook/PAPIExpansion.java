@@ -96,7 +96,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
                     return " &aВыключено";
                 }
             } else {
-                if (params.startsWith("current_ ")) return "Свободная территория";
+                if (params.startsWith("current_")) return "Свободная территория";
                 if (params.equalsIgnoreCase("is_pvp")) return " &cВключено";
             }
         }

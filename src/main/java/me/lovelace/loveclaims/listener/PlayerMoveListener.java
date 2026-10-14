@@ -4,8 +4,9 @@ import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.ClaimFlag;
 import me.lovelace.loveclaims.model.TrustLevel;
+import me.lovelace.loveclaims.util.Notify;
+import me.lovelace.loveclaims.api.event.ClaimBorderCrossEvent;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -16,7 +17,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,16 +28,6 @@ public class PlayerMoveListener implements Listener {
 
     public PlayerMoveListener(LoveClaims plugin) {
         this.plugin = plugin;
-    }
-
-    /**
-     * Не кэшируем {@code Optional<LoveNotify>} в поле — сосед может зарегистрировать
-     * реализацию позже, см. {@code LoveCore.service(...)} javadoc в LoveCore.
-     */
-    private boolean isNotifyChannelEnabled(UUID uuid, dev.lovelace.lovecore.api.notify.LoveNotify.Channel channel) {
-        return dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.notify.LoveNotify.class)
-                .map(n -> n.isChannelEnabled(uuid, channel))
-                .orElse(true);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -73,7 +63,9 @@ public class PlayerMoveListener implements Listener {
             Claim claim = claimOpt.get();
 
             lastClaim.put(playerId, currentClaimId);
-            sendClaimMessage(player, claim, true);
+            if (!fireBorderEvent(player, claim, true)) {
+                sendClaimMessage(player, claim, true);
+            }
 
             if (playerId.equals(claim.getOwnerUuid()) || claim.getMembers().containsKey(playerId)) {
                 claim.updateLastActive();
@@ -83,9 +75,18 @@ public class PlayerMoveListener implements Listener {
         else if (currentClaimId == null && previousClaimId != null) {
             lastClaim.remove(playerId);
             plugin.getClaimManager().getClaimById(previousClaimId).ifPresent(claim -> {
-                sendClaimMessage(player, claim, false);
+                if (!fireBorderEvent(player, claim, false)) {
+                    sendClaimMessage(player, claim, false);
+                }
             });
         }
+    }
+
+    /** @return true when a listener (e.g. LoveClans) handled the crossing and LoveClaims must stay silent. */
+    private boolean fireBorderEvent(Player player, Claim claim, boolean enter) {
+        ClaimBorderCrossEvent event = new ClaimBorderCrossEvent(player, claim.getId(), enter, claim.isClanTerritory());
+        Bukkit.getPluginManager().callEvent(event);
+        return event.isHandled();
     }
 
     private void sendClaimMessage(Player player, Claim claim, boolean enter) {
@@ -112,20 +113,13 @@ public class PlayerMoveListener implements Listener {
             claimDisplayName = claim.getName() != null ? claim.getName() : "Участок";
         }
 
-        if (isNotifyChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.TITLE)) {
-            Component titleComp = enter ?
-                    plugin.getConfigManager().getComponent("title-enter", "name", claimDisplayName, "owner", ownerName) :
-                    plugin.getConfigManager().getComponent("title-leave", "name", claimDisplayName, "owner", ownerName);
-
-            Title title = Title.title(titleComp, Component.empty(), Title.Times.times(Duration.ofMillis(250), Duration.ofMillis(2000), Duration.ofMillis(250)));
-            player.showTitle(title);
-        }
-
-        if (isNotifyChannelEnabled(player.getUniqueId(), dev.lovelace.lovecore.api.notify.LoveNotify.Channel.ACTION_BAR)) {
-            Component actionbarComp = enter ?
-                    plugin.getConfigManager().getComponent("actionbar-enter", "name", claimDisplayName, "owner", ownerName) :
-                    plugin.getConfigManager().getComponent("actionbar-leave", "name", claimDisplayName, "owner", ownerName);
-            player.sendActionBar(actionbarComp);
-        }
+        // One message through LoveNotify: the player's own settings choose title or action bar,
+        // overflow goes to chat. On enter the owner line is appended to the claim name.
+        Component message = enter
+                ? plugin.getConfigManager().getComponent("title-enter", "name", claimDisplayName, "owner", ownerName)
+                    .append(Component.space())
+                    .append(plugin.getConfigManager().getComponent("actionbar-enter", "name", claimDisplayName, "owner", ownerName))
+                : plugin.getConfigManager().getComponent("title-leave", "name", claimDisplayName, "owner", ownerName);
+        Notify.title(player, message);
     }
 }
