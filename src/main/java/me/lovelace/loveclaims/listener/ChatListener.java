@@ -90,7 +90,7 @@ public class ChatListener implements Listener {
                     return;
                 }
 
-                OfflinePlayer target = Bukkit.getOfflinePlayer(text);
+                OfflinePlayer target = Bukkit.getOfflinePlayerIfCached(text);
                 if (target == null || (!target.hasPlayedBefore() && !target.isOnline())) {
                     player.sendMessage(plugin.getConfigManager().getMessage("member-not-found"));
                     if (claim.isRentalPlot()) {

@@ -136,6 +136,8 @@ public class BlockPreviewTask {
             for (Location loc : borderLocations) {
                 ItemDisplay display = player.getWorld().spawn(loc, ItemDisplay.class);
                 if (display != null) {
+                    // Never persist preview entities: a crash/restart would leave them in the chunk forever.
+                    display.setPersistent(false);
                     display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.HEAD);
                     setHeadTexture(display, HeadTextures.PREVIEW_GLASS_GREEN);
                     display.setBillboard(Display.Billboard.FIXED);

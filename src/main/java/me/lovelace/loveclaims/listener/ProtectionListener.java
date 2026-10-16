@@ -16,6 +16,12 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -40,6 +46,67 @@ public class ProtectionListener implements Listener {
         // Denials go through LoveNotify: action bar by default, chat when the bar is off or the text is long.
         // The claim parameter is kept for callers; SILENT_DENY is handled by them.
         Notify.event(player, message);
+    }
+
+    // --- PISTONS, LIQUIDS, FIRE: nothing may cross from one claim into another ---
+
+    /** True when something coming from {@code source} would intrude into a different claim {@code target}. */
+    static boolean intrudes(java.util.UUID source, java.util.UUID target) {
+        return target != null && !target.equals(source);
+    }
+
+    private java.util.UUID claimIdAt(org.bukkit.block.Block block) {
+        return plugin.getClaimManager().getClaimAt(block.getLocation()).map(Claim::getId).orElse(null);
+    }
+
+    private boolean pistonCrosses(org.bukkit.block.Block piston, java.util.List<org.bukkit.block.Block> moved, org.bukkit.block.BlockFace dir) {
+        java.util.UUID pistonClaim = claimIdAt(piston);
+        // The block directly in front of the piston is the first destination even when nothing is moved.
+        if (intrudes(pistonClaim, claimIdAt(piston.getRelative(dir)))) return true;
+        for (org.bukkit.block.Block b : moved) {
+            if (intrudes(pistonClaim, claimIdAt(b)) || intrudes(pistonClaim, claimIdAt(b.getRelative(dir)))) return true;
+        }
+        return false;
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPistonExtend(BlockPistonExtendEvent event) {
+        if (pistonCrosses(event.getBlock(), event.getBlocks(), event.getDirection())) event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPistonRetract(BlockPistonRetractEvent event) {
+        if (pistonCrosses(event.getBlock(), event.getBlocks(), event.getDirection())) event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onLiquidFlow(BlockFromToEvent event) {
+        org.bukkit.block.Block from = event.getBlock();
+        org.bukkit.block.Block to = event.getToBlock();
+        if (from.getX() >> 4 == to.getX() >> 4 && from.getZ() >> 4 == to.getZ() >> 4
+                && plugin.getClaimManager().getClaimAt(to.getLocation()).isEmpty()) return;
+        if (intrudes(claimIdAt(from), claimIdAt(to))) event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockSpread(BlockSpreadEvent event) {
+        if (intrudes(claimIdAt(event.getSource()), claimIdAt(event.getBlock()))) event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockIgnite(BlockIgniteEvent event) {
+        org.bukkit.block.Block src = event.getIgnitingBlock();
+        // Player/entity ignition is handled by the interaction checks; only block-sourced fire is cross-checked.
+        if (src == null) return;
+        if (intrudes(claimIdAt(src), claimIdAt(event.getBlock()))) event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockBurn(BlockBurnEvent event) {
+        org.bukkit.block.Block src = event.getIgnitingBlock();
+        java.util.UUID target = claimIdAt(event.getBlock());
+        // Unknown fire source: protect claimed blocks outright.
+        if (src == null ? target != null : intrudes(claimIdAt(src), target)) event.setCancelled(true);
     }
 
     // --- ЗАЩИТА ОТ ВЗРЫВОВ (КРИПЕРЫ / TNT) ---

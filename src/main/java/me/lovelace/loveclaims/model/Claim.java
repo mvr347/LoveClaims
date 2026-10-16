@@ -57,15 +57,9 @@ public class Claim {
         this.anchorLocation = anchorLocation;
         this.lastActive = System.currentTimeMillis();
 
-        if (ownerUuid != null) {
-            try {
-                this.name = "Приват " + org.bukkit.Bukkit.getOfflinePlayer(ownerUuid).getName();
-            } catch (Exception e) {
-                this.name = "Приват неизвестного";
-            }
-        } else {
-            this.name = "Аренда";
-        }
+        // Name is deliberately left null here: deriving it from Bukkit.getOfflinePlayer(owner).getName()
+        // produced "Приват null" for owners that were never cached. Callers set a name explicitly or
+        // fall back to a display default when getName() is null.
 
         for (ClaimFlag flag : ClaimFlag.values()) {
             flags.put(flag, flag.getDefaultState());
@@ -91,8 +85,19 @@ public class Claim {
     public Location getAnchorLocation() { return anchorLocation; }
 
     public String getName() { return name; }
+
+    /**
+     * Legacy rows persisted names such as "Приват null" (owner name was unresolved at creation).
+     * Treat any name ending in " null" (or equal to "null") as absent.
+     */
+    public static String sanitizeName(String name) {
+        if (name == null) return null;
+        String t = name.trim();
+        if (t.isEmpty() || t.equalsIgnoreCase("null") || t.toLowerCase(java.util.Locale.ROOT).endsWith(" null")) return null;
+        return name;
+    }
     public void setName(String name) {
-        this.name = name;
+        this.name = sanitizeName(name);
         this.modified = true;
     }
 

@@ -48,10 +48,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
 
         // --- 1. Глобальная статистика ---
         if (params.equalsIgnoreCase("claims")) {
-            long count = plugin.getClaimManager().getAllClaims().stream()
-                    .filter(c -> c.getOwnerUuid() != null && c.getOwnerUuid().equals(offlinePlayer.getUniqueId()))
-                    .count();
-            return String.valueOf(count);
+            return String.valueOf(plugin.getClaimManager().getClaimsByOwner(offlinePlayer.getUniqueId()).size());
         }
 
         if (params.equalsIgnoreCase("claims_max")) {
@@ -60,8 +57,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
         }
 
         if (params.equalsIgnoreCase("blocks")) {
-            double totalVolume = plugin.getClaimManager().getAllClaims().stream()
-                    .filter(c -> c.getOwnerUuid() != null && c.getOwnerUuid().equals(offlinePlayer.getUniqueId()))
+            double totalVolume = plugin.getClaimManager().getClaimsByOwner(offlinePlayer.getUniqueId()).stream()
                     .mapToDouble(c -> c.getBoundingBox().getVolume())
                     .sum();
             return String.valueOf((int) totalVolume);
@@ -85,7 +81,9 @@ public class PAPIExpansion extends PlaceholderExpansion {
                 }
 
                 if (params.equalsIgnoreCase("current_owner")) {
-                    return org.bukkit.Bukkit.getOfflinePlayer(claim.getOwnerUuid()).getName();
+                    if (claim.getOwnerUuid() == null) return "Сервер";
+                    String ownerName = org.bukkit.Bukkit.getOfflinePlayer(claim.getOwnerUuid()).getName();
+                    return ownerName != null ? ownerName : "Неизвестно";
                 }
 
                 if (params.equalsIgnoreCase("current_role")) {

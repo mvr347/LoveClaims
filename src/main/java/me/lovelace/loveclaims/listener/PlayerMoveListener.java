@@ -90,6 +90,16 @@ public class PlayerMoveListener implements Listener {
     }
 
     private void sendClaimMessage(Player player, Claim claim, boolean enter) {
+        if (claim.isClanTerritory()) {
+            // Fallback when nobody handled ClaimBorderCrossEvent (e.g. LoveClans jar out of date):
+            // action bar on enter only, never a leave text for clan territory.
+            if (enter) {
+                String owner = claim.getOwnerDisplayName();
+                if (owner == null || owner.isBlank()) owner = plugin.getConfigManager().getString("misc.clan-owner-display-name", "Клан");
+                Notify.actionBar(player, Component.text("Клан: " + owner));
+            }
+            return;
+        }
         String ownerName;
         String claimDisplayName;
 

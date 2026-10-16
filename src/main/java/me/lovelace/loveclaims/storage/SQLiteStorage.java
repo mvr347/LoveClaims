@@ -217,7 +217,7 @@ public class SQLiteStorage {
 
                 Claim claim = new Claim(id, world, box, ownerUuid, new Location(world, rs.getInt("anchor_x"), rs.getInt("anchor_y"), rs.getInt("anchor_z")));
 
-                String name = rs.getString("name"); if (name != null) claim.setName(name);
+                claim.setName(rs.getString("name"));
                 String desc = rs.getString("description"); if (desc != null) claim.setDescription(desc);
 
                 int hx = rs.getInt("home_x");
@@ -308,7 +308,7 @@ public class SQLiteStorage {
 
                     claim = new Claim(id, world, box, ownerUuid, new Location(world, rs.getInt("anchor_x"), rs.getInt("anchor_y"), rs.getInt("anchor_z")));
 
-                    String name = rs.getString("name"); if (name != null) claim.setName(name);
+                    claim.setName(rs.getString("name"));
                     String desc = rs.getString("description"); if (desc != null) claim.setDescription(desc);
 
                     int hx = rs.getInt("home_x");
@@ -397,23 +397,25 @@ public class SQLiteStorage {
 
     private void saveBatch(Connection conn, String sql, List<Claim> claims, boolean isRental) {
         if (claims.isEmpty() || conn == null) return;
+        List<Claim> pending = new java.util.ArrayList<>();
         try {
             if (conn.isClosed()) return;
             conn.setAutoCommit(false);
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                int count = 0;
                 for (Claim claim : claims) {
                     if (!claim.isModified() || claim.getWorld() == null) continue;
                     prepareClaimStatement(ps, claim, isRental);
                     ps.addBatch();
-                    claim.setModified(false);
-                    count++;
+                    pending.add(claim);
                 }
-                if (count > 0) ps.executeBatch();
+                if (!pending.isEmpty()) ps.executeBatch();
             }
             conn.commit();
+            // Clear the modified flag only after a successful commit, otherwise a failed batch loses changes.
+            for (Claim c : pending) c.setModified(false);
         } catch (SQLException e) {
             plugin.getLogger().severe("Batch save error: " + e.getMessage());
+            try { conn.rollback(); } catch (SQLException ignored) {}
         } finally {
             try { if (conn != null) conn.setAutoCommit(true); } catch (SQLException ignored) {}
         }
@@ -472,6 +474,7 @@ public class SQLiteStorage {
             conn.setAutoCommit(true);
         } catch (SQLException e) {
             plugin.getLogger().severe("Sync save error: " + e.getMessage());
+            try { conn.rollback(); conn.setAutoCommit(true); } catch (SQLException ignored) {}
         }
     }
 

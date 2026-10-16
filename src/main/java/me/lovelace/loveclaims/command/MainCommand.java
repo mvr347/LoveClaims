@@ -156,7 +156,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                 return true;
                             }
 
-                            org.bukkit.OfflinePlayer target = org.bukkit.Bukkit.getOfflinePlayer(targetName);
+                            org.bukkit.OfflinePlayer target = org.bukkit.Bukkit.getOfflinePlayerIfCached(targetName);
                             if (target == null || (!target.hasPlayedBefore() && !target.isOnline())) {
                                 player.sendMessage(plugin.getConfigManager().getMessage("member-not-found"));
                                 return true;
@@ -191,6 +191,14 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
             case "confirm" -> {
                 me.lovelace.loveclaims.listener.AnchorListener.PendingClaim pending = plugin.getAnchorListener().getPendingClaims().remove(player.getUniqueId());
                 if (pending != null) {
+                    // The anchor must still be in hand and of the pending tier; otherwise the claim would be free.
+                    java.util.Optional<me.lovelace.loveclaims.model.ClaimTier> heldTier =
+                            plugin.getAnchorManager().getTierFromItem(player.getInventory().getItemInMainHand());
+                    if (heldTier.isEmpty() || !heldTier.get().id().equals(pending.tier().id())) {
+                        pending.previewTask().revert();
+                        player.sendMessage(plugin.getConfigManager().getMessage("anchor-cancel"));
+                        return true;
+                    }
                     // При создании нового привата, он всегда будет PLAYER типом, поэтому проверка isClanTerritory() здесь не нужна.
                     pending.previewTask().revert();
 

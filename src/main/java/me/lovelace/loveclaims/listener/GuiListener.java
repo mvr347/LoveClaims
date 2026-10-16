@@ -6,6 +6,7 @@ import me.lovelace.loveclaims.gui.RentalPlayerGUI;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 
 public class GuiListener implements Listener {
     private final LoveClaims plugin;
@@ -27,6 +28,18 @@ public class GuiListener implements Listener {
             if (event.getClickedInventory().equals(event.getView().getBottomInventory())) return;
 
             gui.handleClick(event);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getInventory().getHolder() instanceof AbstractGUI)) return;
+        int topSize = event.getView().getTopInventory().getSize();
+        for (int slot : event.getRawSlots()) {
+            if (slot < topSize) {
+                event.setCancelled(true);
+                return;
+            }
         }
     }
 }
