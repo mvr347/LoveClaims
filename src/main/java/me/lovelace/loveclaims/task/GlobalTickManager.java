@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class GlobalTickManager {
     private final LoveClaims plugin;
-    private long tickCounter = 0;
     private ScheduledTask task;
 
     public GlobalTickManager(LoveClaims plugin) {
@@ -19,15 +18,10 @@ public class GlobalTickManager {
     }
 
     public void start() {
-        task = plugin.getServer().getAsyncScheduler().runAtFixedRate(plugin, scheduler -> {
-            tickCounter++;
-
-            // АВТОСОХРАНЕНИЕ В БАЗУ ДАННЫХ: Каждые 5 минут (6000 тиков = 300 секунд)
-            if (tickCounter % 6000 == 0) {
-                plugin.getStorage().batchSaveAllAsync(plugin.getClaimManager().getAllClaims());
-            }
-
-        }, 50, 50, TimeUnit.MILLISECONDS);
+        // One 5-minute timer instead of a 50 ms no-op tick counter that only ever fired every 6000th run.
+        task = plugin.getServer().getAsyncScheduler().runAtFixedRate(plugin,
+                scheduler -> plugin.getStorage().batchSaveAllAsync(plugin.getClaimManager().getAllClaims()),
+                5, 5, TimeUnit.MINUTES);
     }
 
     public void cancel() {

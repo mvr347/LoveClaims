@@ -96,6 +96,40 @@ public class ClaimManager {
         }
     }
 
+    /**
+     * Changes the claim owner and keeps the owner caches (claimsByOwner/claimsByPlayer) in sync.
+     * Setting the owner directly on the model leaves the previous owner listed in the caches.
+     */
+    public void changeOwner(Claim claim, UUID newOwner) {
+        lock.writeLock().lock();
+        try {
+            UUID old = claim.getOwnerUuid();
+            if (java.util.Objects.equals(old, newOwner)) return;
+            boolean cached = claimsById.get(claim.getId()) == claim;
+            if (cached && old != null) {
+                removeFrom(claimsByOwner, old, claim);
+                // Keep the old owner in claimsByPlayer only if they are still a member.
+                if (!claim.getMembers().containsKey(old)) removeFrom(claimsByPlayer, old, claim);
+            }
+            claim.setOwnerUuid(newOwner);
+            if (cached && newOwner != null) {
+                List<Claim> owned = claimsByOwner.computeIfAbsent(newOwner, k -> new CopyOnWriteArrayList<>());
+                if (!owned.contains(claim)) owned.add(claim);
+                List<Claim> player = claimsByPlayer.computeIfAbsent(newOwner, k -> new CopyOnWriteArrayList<>());
+                if (!player.contains(claim)) player.add(claim);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private static void removeFrom(Map<UUID, List<Claim>> map, UUID key, Claim claim) {
+        List<Claim> list = map.get(key);
+        if (list == null) return;
+        list.remove(claim);
+        if (list.isEmpty()) map.remove(key);
+    }
+
     public void addClaimToCache(Claim claim) {
         lock.writeLock().lock();
         try {

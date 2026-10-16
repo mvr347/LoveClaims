@@ -54,6 +54,24 @@ public class BorderDisplayTask {
         }
     }
 
+    /** Removes every active border (entities and fake blocks); used on plugin disable. */
+    public static void hideAll() {
+        for (UUID id : new java.util.ArrayList<>(activeBorders.keySet())) {
+            Player p = org.bukkit.Bukkit.getPlayer(id);
+            if (p != null) {
+                hideBorder(p);
+                continue;
+            }
+            BorderSession session = activeBorders.remove(id);
+            if (session == null) continue;
+            if (session.endTask() != null) session.endTask().cancel();
+            if (session.refreshTask() != null) session.refreshTask().cancel();
+            if (session.entities() != null) {
+                for (ItemDisplay e : session.entities()) if (e != null && e.isValid()) e.remove();
+            }
+        }
+    }
+
     public static void showBorder(LoveClaims plugin, Player player, BoundingBox box, long durationTicks) {
         showBorder(plugin, player, box, durationTicks, null);
     }
@@ -122,6 +140,8 @@ public class BorderDisplayTask {
                 }
             } else {
                 ItemDisplay display = player.getWorld().spawn(loc, ItemDisplay.class, entity -> {
+                    // Never persist border entities: a crash/restart would leave them in the chunk forever.
+                    entity.setPersistent(false);
                     entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.HEAD);
                     if (isClan) {
                         entity.setItemStack(new ItemStack(Material.RED_STAINED_GLASS));

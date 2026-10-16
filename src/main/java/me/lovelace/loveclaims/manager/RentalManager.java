@@ -54,7 +54,7 @@ public class RentalManager {
     public void loadPlots(Collection<Claim> claims) {
         plots.clear();
         for (Claim claim : claims) {
-            if (claim.isRentalPlot()) {
+            if (claim.isRentalPlot() && claim.getName() != null) {
                 plots.put(claim.getName().toLowerCase(), claim.getId());
             }
         }
@@ -246,7 +246,7 @@ public class RentalManager {
     public void assign(Claim plot, UUID renter, long endTime) {
         // Leftovers of a previous tenant must never carry over to the new one.
         clearMembers(plot);
-        plot.setOwnerUuid(renter);
+        plugin.getClaimManager().changeOwner(plot, renter);
         plot.setRentalEndTime(endTime);
         plot.setExpiryWarned(false);
         if (plot.isTradePoint()) {
@@ -273,7 +273,7 @@ public class RentalManager {
      */
     public void transferTenant(Claim plot, UUID newRenter) {
         clearMembers(plot);
-        plot.setOwnerUuid(newRenter);
+        plugin.getClaimManager().changeOwner(plot, newRenter);
         plugin.getClaimManager().syncTrustGranted(plot, newRenter);
         plugin.getStorage().saveMemberAsync(plot.getId(), newRenter, TrustLevel.OWNER);
         plugin.getStorage().saveClaimAsync(plot);
@@ -285,7 +285,7 @@ public class RentalManager {
         UUID former = plot.getOwnerUuid();
         UUID landlord = plot.getParentClaimId();
         plot.setRentalEndTime(0);
-        plot.setOwnerUuid(landlord);
+        plugin.getClaimManager().changeOwner(plot, landlord);
         plot.setExpiryWarned(false);
         clearMembers(plot);
         updateIndicator(plot);

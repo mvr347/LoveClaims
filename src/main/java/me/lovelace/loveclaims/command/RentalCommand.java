@@ -314,7 +314,8 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
                 UUID plotId = plugin.getRentalManager().getPlotIdByName(args[2]);
                 if (plotId == null) { player.sendMessage(plugin.getConfigManager().getMessage("rental-claim-not-found")); return; }
                 plugin.getClaimManager().getClaimById(plotId).ifPresent(plot -> {
-                    org.bukkit.OfflinePlayer target = org.bukkit.Bukkit.getOfflinePlayer(args[3]);
+                    org.bukkit.OfflinePlayer target = org.bukkit.Bukkit.getOfflinePlayerIfCached(args[3]);
+                    if (target == null) { player.sendMessage(plugin.getConfigManager().getMessage("member-not-found")); return; }
                     plugin.getRentalManager().assign(plot, target.getUniqueId(),
                             System.currentTimeMillis() + plugin.getRentalManager().getPeriodMillis(plot));
                     player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-setowner-success", "target", target.getName()));

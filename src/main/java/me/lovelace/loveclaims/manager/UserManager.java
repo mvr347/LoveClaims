@@ -29,6 +29,12 @@ public class UserManager {
             return cached;
         }
 
+        // Offline players must not get a stored default entry (memory leak + stale defaults);
+        // hand out a transient object that is never cached or saved by this manager.
+        if (org.bukkit.Bukkit.getPlayer(uuid) == null && !users.containsKey(uuid)) {
+            return new UserData(uuid);
+        }
+
         UserData data = users.computeIfAbsent(uuid, UserData::new);
         plugin.getClaimManager().cacheUserData(uuid, data);
         return data;

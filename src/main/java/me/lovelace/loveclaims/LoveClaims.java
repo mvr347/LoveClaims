@@ -165,6 +165,13 @@ public final class LoveClaims extends JavaPlugin {
             if (autoDeleteTask != null && !autoDeleteTask.isCancelled()) autoDeleteTask.cancel();
             if (proximityBorderTask != null) proximityBorderTask.cancel();
             me.lovelace.loveclaims.task.ParticleBorder.cancelAll();
+            // Revert pending anchor previews and hide borders so no display entity or fake block outlives the plugin.
+            if (anchorListener != null) {
+                for (var pending : new java.util.ArrayList<>(anchorListener.getPendingClaims().values())) {
+                    try { pending.previewTask().revert(); } catch (Exception ex) { getLogger().warning("Preview revert failed: " + ex.getMessage()); }
+                }
+            }
+            me.lovelace.loveclaims.task.BorderDisplayTask.hideAll();
             getLogger().info("Tasks stopped!");
 
             // 2. СИНХРОННОЕ Сохранение всех данных пользователей
