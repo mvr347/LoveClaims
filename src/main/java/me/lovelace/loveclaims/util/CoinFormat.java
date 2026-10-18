@@ -29,23 +29,23 @@ public final class CoinFormat {
     }
 
     public static String getCoinGlyph(Denomination den) {
-        if (den == null || den.itemId() == null) return "%img_copper_coin%";
+        if (den == null || den.itemId() == null) return "<white>%img_copper_coin%</white>";
         String id = den.itemId();
         int colon = id.indexOf(':');
         String tag = colon >= 0 ? id.substring(colon + 1) : id;
-        return "%img_" + tag + "%";
+        return "<white>%img_" + tag + "%</white>";
     }
 
     public static String formatGlyphs(LoveEconomy eco, long amount) {
         if (eco == null) {
-            return "%img_copper_coin% &f x" + Math.max(0, amount);
+            return "<white>%img_copper_coin%</white> <white>x" + Math.max(0, amount) + "</white>";
         }
         List<Denomination> dens = new ArrayList<>(eco.denominations());
         dens.sort(Comparator.comparingLong(Denomination::value).reversed());
 
         if (amount <= 0) {
             Denomination smallest = dens.isEmpty() ? null : dens.get(dens.size() - 1);
-            return (smallest != null ? getCoinGlyph(smallest) : "%img_copper_coin%") + " &f x0";
+            return (smallest != null ? getCoinGlyph(smallest) : "<white>%img_copper_coin%</white>") + " <white>x0</white>";
         }
 
         StringBuilder sb = new StringBuilder();
@@ -55,14 +55,14 @@ public final class CoinFormat {
             long count = remaining / den.value();
             if (count > 0) {
                 if (sb.length() > 0) sb.append("  ");
-                sb.append(getCoinGlyph(den)).append(" &f x").append(count);
+                sb.append(getCoinGlyph(den)).append(" <white>x").append(count).append("</white>");
                 remaining %= den.value();
             }
         }
 
         if (sb.length() == 0) {
             Denomination smallest = dens.isEmpty() ? null : dens.get(dens.size() - 1);
-            return (smallest != null ? getCoinGlyph(smallest) : "%img_copper_coin%") + " &f x0";
+            return (smallest != null ? getCoinGlyph(smallest) : "<white>%img_copper_coin%</white>") + " <white>x0</white>";
         }
 
         return sb.toString();
