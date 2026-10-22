@@ -280,9 +280,12 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
                         player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-landlord-set", "name", targetPlot.getName()));
                         plugin.getConfigManager().playSound(player, "anchor-place");
                     } else if (args[2].equalsIgnoreCase("taxer")) {
-                        plugin.getRentalManager().spawnTaxer(player.getLocation());
-                        player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-taxer-set"));
-                        plugin.getConfigManager().playSound(player, "anchor-place");
+                        if (plugin.getRentalManager().spawnTaxer(player.getLocation())) {
+                            player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-taxer-set"));
+                            plugin.getConfigManager().playSound(player, "anchor-place");
+                        } else {
+                            player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-npc-unavailable"));
+                        }
                     } else {
                         player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-set-usage"));
                     }

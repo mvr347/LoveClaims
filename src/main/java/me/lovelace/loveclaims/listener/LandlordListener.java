@@ -1,16 +1,17 @@
 package me.lovelace.loveclaims.listener;
 
+import dev.lovelace.lovecore.api.npc.NpcClick;
+import dev.lovelace.lovecore.api.npc.NpcClickEvent;
+import dev.lovelace.lovecore.api.npc.NpcHandle;
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.integration.NpcTags;
 import me.lovelace.loveclaims.gui.TaxerGUI;
 import me.lovelace.loveclaims.model.Claim;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
@@ -33,26 +34,23 @@ public class LandlordListener implements Listener {
         }
     }
 
-    @EventHandler
-    public void onEntityClick(PlayerInteractEntityEvent e) {
-        if (e.getHand() != EquipmentSlot.HAND) return;
+    /** Clicks on NPCs of every provider arrive here; only the configured provider's NPCs are ours. */
+    @EventHandler(ignoreCancelled = true)
+    public void onNpcClick(NpcClickEvent e) {
+        if (e.click() != NpcClick.RIGHT) return;
+        NpcHandle npc = e.npc();
+        if (!plugin.getRentalManager().getNpcBridge().isConfigured(npc.providerId())) return;
 
-        Entity clicked = e.getRightClicked();
-
-        if (clicked.hasMetadata("NPC")) {
-            String name = clicked.getCustomName() != null ? clicked.getCustomName() : clicked.getName();
-            String strippedName = name != null ? ChatColor.stripColor(name) : "";
-
-            String taxerNpcName = ChatColor.stripColor(plugin.getConfigManager().getString("taxer-npc-name", "Сборщик налогов"));
-            if (strippedName.contains(taxerNpcName)) {
-                e.setCancelled(true);
-                plugin.getConfigManager().playSound(e.getPlayer(), "gui-click");
-                e.getPlayer().openInventory(new TaxerGUI(plugin, e.getPlayer()).getInventory());
-                return;
-            }
-
-            checkLandlordClick(e.getPlayer(), clicked.getLocation());
+        String taxerName = plugin.getConfigManager().getString("taxer-npc-name", "Сборщик налогов");
+        if (NpcTags.isTaxer(npc, taxerName)) {
+            e.setCancelled(true);
+            plugin.getConfigManager().playSound(e.getPlayer(), "gui-click");
+            e.getPlayer().openInventory(new TaxerGUI(plugin, e.getPlayer()).getInventory());
+            return;
         }
+
+        Location loc = npc.location();
+        if (loc != null && loc.getWorld() != null) checkLandlordClick(e.getPlayer(), loc);
     }
 
     private void checkLandlordClick(org.bukkit.entity.Player player, Location loc) {

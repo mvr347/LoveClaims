@@ -728,11 +728,10 @@ public final class LoveClaimsAPI {
 
     // ----- Taxer NPC ("Сборщик налогов") -----
 
-    /** Spawns a taxer NPC at {@code location}; {@code false} when Citizens is not there. */
+    /** Spawns a taxer NPC at {@code location}; {@code false} when the configured NPC provider is not available. */
     public boolean spawnTaxer(Location location) {
         if (location == null || location.getWorld() == null) return false;
-        plugin.getRentalManager().spawnTaxer(location);
-        return !plugin.getRentalManager().findTaxerLocation().isEmpty();
+        return plugin.getRentalManager().spawnTaxer(location);
     }
 
     /** Removes all taxer NPCs, also those that survived a restart; returns how many. */
