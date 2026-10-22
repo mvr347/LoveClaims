@@ -2,6 +2,9 @@ package me.lovelace.loveclaims.manager;
 
 import dev.lovelace.lovecore.api.LoveCore;
 import dev.lovelace.lovecore.api.economy.LoveEconomy;
+import dev.lovelace.lovecore.api.npc.NpcHandle;
+import dev.lovelace.lovecore.api.npc.NpcProvider;
+import dev.lovelace.lovecore.api.npc.NpcSpec;
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.api.ReleaseReason;
 import me.lovelace.loveclaims.api.TradePointRentOutcome;
@@ -11,6 +14,8 @@ import me.lovelace.loveclaims.api.event.TradePointExpiryWarningEvent;
 import me.lovelace.loveclaims.api.event.TradePointReleasedEvent;
 import me.lovelace.loveclaims.api.event.TradePointRentRequestEvent;
 import me.lovelace.loveclaims.api.event.TradePointRentedEvent;
+import me.lovelace.loveclaims.integration.NpcBridge;
+import me.lovelace.loveclaims.integration.NpcTags;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.IndicatorType;
 import me.lovelace.loveclaims.model.PlotType;
@@ -25,9 +30,9 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,20 +41,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RentalManager {
     private final LoveClaims plugin;
 
-    private boolean citizensEnabled = false;
-    private Object npcRegistry;
-    private Method createNPCMethod;
-    private Method spawnMethod;
-    private Method destroyMethod;
-    private Method getIdMethod;
+    private final NpcBridge npcBridge;
 
     private final Map<String, UUID> plots = new ConcurrentHashMap<>();
-    private final Map<UUID, Integer> npcCache = new ConcurrentHashMap<>();
+    /** Landlord NPC key per rental plot (a fast path; the claim tag finds NPCs that outlived a restart). */
+    private final Map<UUID, String> npcCache = new ConcurrentHashMap<>();
 
     public RentalManager(LoveClaims plugin) {
         this.plugin = plugin;
-        initCitizensReflection();
+        this.npcBridge = NpcBridge.forPlugin(plugin);
     }
+
+    public NpcBridge getNpcBridge() { return npcBridge; }
 
     public void loadPlots(Collection<Claim> claims) {
         plots.clear();
@@ -61,44 +64,23 @@ public class RentalManager {
         plugin.getLogger().info("Loaded " + plots.size() + " rental plots from database.");
     }
 
-    private void initCitizensReflection() {
-        if (Bukkit.getPluginManager().isPluginEnabled("Citizens")) {
-            try {
-                Class<?> citizensApi = Class.forName("net.citizensnpcs.api.CitizensAPI");
-                npcRegistry = citizensApi.getMethod("getNPCRegistry").invoke(null);
-                Class<?> registryClass = npcRegistry.getClass();
-                Class<?> entityTypeClass = org.bukkit.entity.EntityType.class;
-                createNPCMethod = registryClass.getMethod("createNPC", entityTypeClass, String.class);
-
-                Class<?> npcClass = Class.forName("net.citizensnpcs.api.npc.NPC");
-                spawnMethod = npcClass.getMethod("spawn", Location.class);
-                destroyMethod = npcClass.getMethod("destroy");
-                getIdMethod = npcClass.getMethod("getId");
-
-                citizensEnabled = true;
-                plugin.getLogger().info("Citizens API hooked for Landlord & Taxer NPCs!");
-            } catch (Exception e) {
-                plugin.getLogger().warning("Failed to hook Citizens: " + e.getMessage());
-            }
-        }
-    }
-
     public void registerPlotName(String name, UUID id) { plots.put(name.toLowerCase(), id); }
     public void unregisterPlotName(String name) { plots.remove(name.toLowerCase()); }
     public UUID getPlotIdByName(String name) { return plots.get(name.toLowerCase()); }
 
-    public void spawnTaxer(Location loc) {
-        if (!citizensEnabled) return;
+    /** Spawns a tagged tax collector; {@code false} when the configured NPC provider is not available. */
+    public boolean spawnTaxer(Location loc) {
+        Optional<NpcProvider> provider = npcBridge.provider();
+        if (provider.isEmpty()) return false;
         try {
-            String npcName = plugin.getConfigManager().getString("taxer-npc-name", "§eСборщик налогов");
-            Object npc = createNPCMethod.invoke(npcRegistry, org.bukkit.entity.EntityType.PLAYER, npcName);
-            Class<?> skinTraitClass = Class.forName("net.citizensnpcs.trait.SkinTrait");
-            Object skinTrait = npc.getClass().getMethod("getOrAddTrait", Class.class).invoke(npc, skinTraitClass);
-            skinTraitClass.getMethod("setSkinName", String.class).invoke(skinTrait, "LastHumanINmars");
-            spawnMethod.invoke(npc, loc);
-            taxerNpcId = (int) getIdMethod.invoke(npc);
-        } catch (Exception e) {
+            NpcSpec spec = NpcSpec.at(plugin.getConfigManager().getComponent("taxer-npc-name"), loc)
+                    .withSkinName("LastHumanINmars")
+                    .withTags(Map.of(NpcTags.ROLE, NpcTags.ROLE_TAXER));
+            taxerNpcKey = provider.get().create(spec).key();
+            return true;
+        } catch (RuntimeException e) {
             plugin.getLogger().warning("Failed to spawn Taxer NPC: " + e.getMessage());
+            return false;
         }
     }
 
@@ -114,33 +96,35 @@ public class RentalManager {
                 }
             }
         }
-        if (citizensEnabled && npcCache.containsKey(claim.getId())) {
-            try {
-                Object npc = npcRegistry.getClass().getMethod("getById", int.class).invoke(npcRegistry, npcCache.get(claim.getId()));
-                if (npc != null) destroyMethod.invoke(npc);
-            } catch (Exception e) {
-                plugin.getLogger().warning("RentalManager: " + e.getMessage());
-            }
-            npcCache.remove(claim.getId());
-        }
+        removeLandlordNpcs(claim);
 
         claim.setHologramId(null);
         claim.setIndicatorType(IndicatorType.NONE);
         plugin.getStorage().saveClaimAsync(claim);
     }
 
-    private Integer taxerNpcId = null;
+    private String taxerNpcKey = null;
 
+    /** Removes the taxer spawned last by this server run (see {@link #removeAllTaxers()} for all of them). */
     public void removeTaxer() {
-        if (!citizensEnabled) return;
-        if (taxerNpcId != null) {
-            try {
-                Object npc = npcRegistry.getClass().getMethod("getById", int.class).invoke(npcRegistry, taxerNpcId);
-                if (npc != null) destroyMethod.invoke(npc);
-            } catch (Exception e) {
-                plugin.getLogger().warning("RentalManager: " + e.getMessage());
+        if (taxerNpcKey == null) return;
+        npcBridge.provider().ifPresent(provider -> provider.remove(taxerNpcKey));
+        taxerNpcKey = null;
+    }
+
+    /** Removes every landlord NPC of {@code claim}: the cached one and any tagged with the claim id. */
+    private void removeLandlordNpcs(Claim claim) {
+        String cachedKey = npcCache.remove(claim.getId());
+        Optional<NpcProvider> provider = npcBridge.provider();
+        if (provider.isEmpty()) return;
+        try {
+            if (cachedKey != null) provider.get().remove(cachedKey);
+            String claimId = claim.getId().toString();
+            for (NpcHandle npc : List.copyOf(provider.get().all())) {
+                if (NpcTags.isLandlordOf(npc, claimId)) provider.get().remove(npc.key());
             }
-            taxerNpcId = null;
+        } catch (RuntimeException e) {
+            plugin.getLogger().warning("RentalManager: " + e.getMessage());
         }
     }
 
@@ -163,15 +147,7 @@ public class RentalManager {
         Block b = loc.getBlock();
         if (b.getType().name().endsWith("SIGN")) b.setType(Material.AIR);
 
-        if (citizensEnabled && npcCache.containsKey(claim.getId())) {
-            try {
-                Object npc = npcRegistry.getClass().getMethod("getById", int.class).invoke(npcRegistry, npcCache.get(claim.getId()));
-                if (npc != null) destroyMethod.invoke(npc);
-            } catch (Exception e) {
-                plugin.getLogger().warning("RentalManager: " + e.getMessage());
-            }
-            npcCache.remove(claim.getId());
-        }
+        removeLandlordNpcs(claim);
 
         if (isRented || type == IndicatorType.NONE) return;
 
@@ -191,17 +167,18 @@ public class RentalManager {
             }
         }
 
-        if (type == IndicatorType.NPC && citizensEnabled) {
+        if (type == IndicatorType.NPC) {
+            Optional<NpcProvider> provider = npcBridge.provider();
+            if (provider.isEmpty()) return;
             try {
                 String header = plugin.getConfigManager().getString("rental-sign-header", "§b[Аренда]");
-                Object npc = createNPCMethod.invoke(npcRegistry, org.bukkit.entity.EntityType.PLAYER, header + " §e" + claim.getName());
-                Class<?> skinTraitClass = Class.forName("net.citizensnpcs.trait.SkinTrait");
-                Object skinTrait = npc.getClass().getMethod("getOrAddTrait", Class.class).invoke(npc, skinTraitClass);
-                skinTraitClass.getMethod("setSkinName", String.class).invoke(skinTrait, "xJosueGutt");
-                spawnMethod.invoke(npc, loc);
-                int id = (int) getIdMethod.invoke(npc);
-                npcCache.put(claim.getId(), id);
-            } catch (Exception e) {
+                Component name = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()
+                        .deserialize(header + " §e" + claim.getName());
+                NpcSpec spec = NpcSpec.at(name, loc)
+                        .withSkinName("xJosueGutt")
+                        .withTags(Map.of(NpcTags.ROLE, NpcTags.ROLE_LANDLORD, NpcTags.CLAIM, claim.getId().toString()));
+                npcCache.put(claim.getId(), provider.get().create(spec).key());
+            } catch (RuntimeException e) {
                 plugin.getLogger().warning("RentalManager: " + e.getMessage());
             }
         }
@@ -579,21 +556,19 @@ public class RentalManager {
         return cost;
     }
 
-    // ----- taxer NPC (found by name, so it also works after a restart) ------------------------
+    // ----- taxer NPC (found by tag, with the old name rule as a legacy fallback) ----------------
 
-    /** Citizens NPCs that are taxers: their name contains the configured taxer name (as the click handler matches). */
-    private java.util.List<Object> findTaxerNpcs() {
-        java.util.List<Object> found = new ArrayList<>();
-        if (!citizensEnabled || !(npcRegistry instanceof Iterable<?> registry)) return found;
-        String wanted = org.bukkit.ChatColor.stripColor(plugin.getConfigManager().getString("taxer-npc-name", "Сборщик налогов"));
-        if (wanted == null || wanted.isBlank()) return found;
+    /** NPCs of the configured provider that are tax collectors (legacy name matches get tagged on the way). */
+    private List<NpcHandle> findTaxerNpcs() {
+        List<NpcHandle> found = new ArrayList<>();
+        Optional<NpcProvider> provider = npcBridge.provider();
+        if (provider.isEmpty()) return found;
+        String wanted = plugin.getConfigManager().getString("taxer-npc-name", "Сборщик налогов");
         try {
-            Method getName = Class.forName("net.citizensnpcs.api.npc.NPC").getMethod("getName");
-            for (Object npc : registry) {
-                String name = org.bukkit.ChatColor.stripColor(String.valueOf(getName.invoke(npc)));
-                if (name != null && name.contains(wanted)) found.add(npc);
+            for (NpcHandle npc : List.copyOf(provider.get().all())) {
+                if (NpcTags.isTaxer(npc, wanted)) found.add(npc);
             }
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             plugin.getLogger().warning("RentalManager: taxer lookup failed: " + e.getMessage());
         }
         return found;
@@ -601,30 +576,26 @@ public class RentalManager {
 
     /** Where a taxer stands (the first one found), if there is one. */
     public Optional<Location> findTaxerLocation() {
-        try {
-            Method stored = Class.forName("net.citizensnpcs.api.npc.NPC").getMethod("getStoredLocation");
-            for (Object npc : findTaxerNpcs()) {
-                Object loc = stored.invoke(npc);
-                if (loc instanceof Location l && l.getWorld() != null) return Optional.of(l);
-            }
-        } catch (Exception e) {
-            plugin.getLogger().warning("RentalManager: taxer location failed: " + e.getMessage());
+        for (NpcHandle npc : findTaxerNpcs()) {
+            Location loc = npc.location();
+            if (loc != null && loc.getWorld() != null) return Optional.of(loc);
         }
         return Optional.empty();
     }
 
     /** Removes every taxer NPC (also ones left over from before a restart); returns how many were removed. */
     public int removeAllTaxers() {
+        Optional<NpcProvider> provider = npcBridge.provider();
+        if (provider.isEmpty()) return 0;
         int removed = 0;
-        for (Object npc : findTaxerNpcs()) {
+        for (NpcHandle npc : findTaxerNpcs()) {
             try {
-                destroyMethod.invoke(npc);
-                removed++;
-            } catch (Exception e) {
+                if (provider.get().remove(npc.key())) removed++;
+            } catch (RuntimeException e) {
                 plugin.getLogger().warning("RentalManager: " + e.getMessage());
             }
         }
-        taxerNpcId = null;
+        taxerNpcKey = null;
         return removed;
     }
 }

@@ -146,6 +146,7 @@ rental-tp-usage: "<red>Использование: {label} tp <название>
 rental-not-found: "<red>Участок не найден!"
 rental-admin-landlord-set: "<green>Точка арендодателя (Landlord) успешно установлена для участка <yellow>{name}"
 rental-admin-taxer-set: "<green>Сборщик налогов успешно установлен!"
+rental-admin-npc-unavailable: "<red>NPC-провайдер из integrations.npc-provider недоступен: Сборщик налогов не создан (подробности в консоли)."
 rental-admin-taxer-removed: "<green>Сборщик налогов успешно удален!"
 rental-admin-set-usage: "<red>Использование: /rental admin set <landlord|taxer>"
 rental-admin-landlord-removed: "<green>Арендодатель (Landlord) для участка <yellow>{name} <green>успешно удален."
