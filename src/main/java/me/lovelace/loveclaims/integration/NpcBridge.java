@@ -28,7 +28,7 @@ public final class NpcBridge {
 
     public static NpcBridge forPlugin(LoveClaims plugin) {
         return new NpcBridge(
-                () -> plugin.getConfig().getString("integrations.npc-provider", NpcProviderChoice.DEFAULT),
+                () -> plugin.getConfig().getString("integrations.npc-provider", NpcProviderChoice.GLOBAL),
                 NpcBridge::loveCoreLookup,
                 plugin.getLogger()::warning);
     }
@@ -49,7 +49,7 @@ public final class NpcBridge {
             if (!raw.equals(warnedBadValue)) {
                 warnedBadValue = raw;
                 warn.accept("integrations.npc-provider: unknown value '" + raw + "', using '" + id
-                        + "' (allowed: citizens, loveessential).");
+                        + "' (allowed: global, citizens, loveessential).");
             }
         } else {
             warnedBadValue = null;

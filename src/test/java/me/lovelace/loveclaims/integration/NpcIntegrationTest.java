@@ -43,6 +43,9 @@ class NpcIntegrationTest {
     void choiceDefaultsToCitizens() {
         assertEquals("citizens", NpcProviderChoice.resolve(null));
         assertEquals("citizens", NpcProviderChoice.resolve("  "));
+        assertEquals("citizens", NpcProviderChoice.resolve("global"), "without a core 'global' means citizens");
+        assertEquals("citizens", NpcProviderChoice.resolve(" GLOBAL "));
+        assertTrue(NpcProviderChoice.isKnown("global"));
         assertTrue(NpcProviderChoice.isKnown(null));
     }
 
