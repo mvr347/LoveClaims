@@ -6,19 +6,37 @@ import java.util.Set;
 /** Pure parsing of {@code integrations.npc-provider}: which NPC backend LoveClaims talks to. */
 public final class NpcProviderChoice {
     public static final String DEFAULT = "citizens";
+    /** Config value that follows {@code integrations.provider} of LoveCore. */
+    public static final String GLOBAL = "global";
     private static final Set<String> KNOWN = Set.of("citizens", "loveessential");
 
     private NpcProviderChoice() {
     }
 
-    /** True when {@code raw} names a provider this plugin knows (blank counts as "use the default"). */
-    public static boolean isKnown(String raw) {
-        return raw == null || raw.isBlank() || KNOWN.contains(normalize(raw));
+    /** True for a blank, missing or {@code global} value: the provider is then the global choice of LoveCore. */
+    public static boolean followsGlobal(String raw) {
+        return raw == null || raw.isBlank() || GLOBAL.equals(normalize(raw));
     }
 
-    /** Provider id to use for {@code raw}: blank or unknown values fall back to {@link #DEFAULT}. */
+    /** True when {@code raw} names a provider this plugin knows (blank and {@code global} follow the core). */
+    public static boolean isKnown(String raw) {
+        return followsGlobal(raw) || KNOWN.contains(normalize(raw));
+    }
+
+    /**
+     * Provider id to use for {@code raw}. {@code global}, blank or missing follows {@code integrations.provider}
+     * of LoveCore (without LoveCore: {@link #DEFAULT}); a known id wins; an unknown value falls back to
+     * {@link #DEFAULT}.
+     */
     public static String resolve(String raw) {
-        if (raw == null || raw.isBlank()) return DEFAULT;
+        if (followsGlobal(raw)) {
+            try {
+                return dev.lovelace.lovecore.api.LoveCore.providerId(
+                        dev.lovelace.lovecore.api.provider.ProviderKind.NPC, GLOBAL);
+            } catch (LinkageError coreMissingOrOld) {
+                return DEFAULT;
+            }
+        }
         String id = normalize(raw);
         return KNOWN.contains(id) ? id : DEFAULT;
     }
