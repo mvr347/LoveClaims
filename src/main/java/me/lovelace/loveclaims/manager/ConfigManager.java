@@ -26,6 +26,7 @@ public class ConfigManager {
 
     // Кэшированные настройки
     private boolean debugMode;
+    private boolean spawnCheckPending;
     private String language;
 
     public ConfigManager(LoveClaims plugin) {
@@ -64,13 +65,26 @@ public class ConfigManager {
         }
         plugin.getLogger().info("Language: " + language);
 
-        if (config.getBoolean("spawn-claim.enabled", false)) {
+        scheduleSpawnWorldCheck();
+    }
+
+    /**
+     * The spawn world is created by the server after the plugins have enabled, so asking for it inside loadAll() made
+     * a correctly configured name look missing (and was printed once per loadAll call). isInsideSpawnClaim matches the
+     * world by name, so protection works either way; this check only exists to catch a real typo in the config.
+     */
+    private void scheduleSpawnWorldCheck() {
+        if (spawnCheckPending || !config.getBoolean("spawn-claim.enabled", false)) return;
+        spawnCheckPending = true;
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            spawnCheckPending = false;
+            if (!config.getBoolean("spawn-claim.enabled", false)) return;
             String spawnWorldName = config.getString("spawn-claim.world", "world");
             if (org.bukkit.Bukkit.getWorld(spawnWorldName) == null) {
                 plugin.getLogger().warning("spawn-claim.world '" + spawnWorldName + "' не найден среди загруженных миров - "
                         + "защита спавна НЕ БУДЕТ работать, пока имя мира в config.yml не будет исправлено!");
             }
-        }
+        }, 200L);
     }
 
     public FileConfiguration getConfig() { return config; }
