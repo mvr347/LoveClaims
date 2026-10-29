@@ -14,9 +14,11 @@ commands:
     description: Управление арендой
     aliases: [ rent ]
     permission: loveclaims.rental
+    permission-message: ""
   loveclaimsadmin:
     description: Административные команды LoveClaims (reload и т.д.)
     permission: loveclaims.admin
+    permission-message: ""
 permissions:
   loveclaims.admin:
     description: Доступ к /loveclaimsadmin

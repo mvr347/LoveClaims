@@ -45,37 +45,40 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        // Silent on purpose: a command the sender cannot use is simply not theirs.
         if (!sender.hasPermission("loveclaims.admin")) {
-            sender.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
-            return true;
-        }
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(plugin.getConfigManager().getMessage("player-only"));
             return true;
         }
 
         if (args.length == 0) {
-            sendHelp(player);
+            sendHelp(sender);
             return true;
         }
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "reload" -> handleReload(player);
-            case "give" -> handleGive(player, args);
-            case "expand" -> handleExpand(player, args);
-            case "addmembers" -> handleAddMembers(player, args);
-            default -> sendHelp(player);
+            case "reload" -> handleReload(sender);
+            case "give" -> handleGive(sender, args);
+            // expand works on the claim the admin stands in, so it is the only player-only subcommand.
+            case "expand" -> {
+                if (sender instanceof Player player) {
+                    handleExpand(player, args);
+                } else {
+                    sender.sendMessage(plugin.getConfigManager().getMessage("player-only"));
+                }
+            }
+            case "addmembers" -> handleAddMembers(sender, args);
+            default -> sendHelp(sender);
         }
         return true;
     }
 
-    private void handleReload(@NotNull Player player) {
+    private void handleReload(@NotNull CommandSender player) {
         plugin.getConfigManager().loadAll();
         plugin.getAnchorManager().loadTiers();
         player.sendMessage(plugin.getConfigManager().getMessage("admin-reloaded"));
     }
 
-    private void handleGive(@NotNull Player player, @NotNull String[] args) {
+    private void handleGive(@NotNull CommandSender player, @NotNull String[] args) {
         if (args.length < 3) {
             sendHelp(player);
             return;
@@ -129,7 +132,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, player, claim.getBoundingBox(), 100);
     }
 
-    private void handleAddMembers(@NotNull Player player, @NotNull String[] args) {
+    private void handleAddMembers(@NotNull CommandSender player, @NotNull String[] args) {
         if (args.length < 3) {
             sendHelp(player);
             return;

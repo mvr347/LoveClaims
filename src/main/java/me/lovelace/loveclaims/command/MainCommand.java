@@ -21,7 +21,10 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-        if (!(sender instanceof Player player)) return true;
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(plugin.getConfigManager().getMessage("player-only"));
+            return true;
+        }
 
         if (args.length == 0) {
             List<Claim> accessibleClaims = plugin.getClaimManager().getAllClaims().stream()
@@ -295,7 +298,6 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
             }
             case "admin" -> {
                 if (!player.hasPermission("loveclaims.admin")) {
-                    player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
                     return true;
                 }
                 // Админ-подкоманды переехали под единую /loveclaimsadmin — здесь остаётся только

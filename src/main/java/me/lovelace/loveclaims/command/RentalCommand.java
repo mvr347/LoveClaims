@@ -37,7 +37,10 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(plugin.getConfigManager().getMessage("rental-command-disabled"));
             return true;
         }
-        if (!(sender instanceof Player player)) return true;
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(plugin.getConfigManager().getMessage("player-only"));
+            return true;
+        }
 
         if (args.length == 0) {
             List<Claim> relatedPlots = plugin.getClaimManager().getAllClaims().stream()
@@ -101,7 +104,6 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
 
     private void handleShowCommand(Player player) {
         if (!player.hasPermission("loveclaims.rental.admin")) {
-            player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
             return;
         }
         Claim plot = plugin.getClaimManager().getClaimAt(player.getLocation()).orElse(null);
@@ -240,7 +242,6 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
 
     private void handleAdminCommand(Player player, String[] args) {
         if (!player.hasPermission("loveclaims.rental.admin")) {
-            player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
             return;
         }
 
