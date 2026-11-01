@@ -63,7 +63,11 @@ public abstract class AbstractGUI implements InventoryHolder {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         org.bukkit.inventory.meta.SkullMeta meta = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
         if (meta != null) {
-            com.destroystokyo.paper.profile.PlayerProfile profile = org.bukkit.Bukkit.createProfile(java.util.UUID.randomUUID());
+            com.destroystokyo.paper.profile.PlayerProfile profile =
+                    org.bukkit.Bukkit.createProfile(
+                            java.util.UUID.nameUUIDFromBytes(
+                                    base64.getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                            "LoveTexture");
             profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", base64));
             meta.setPlayerProfile(profile);
             if (name != null) meta.displayName(name);
