@@ -173,4 +173,4 @@ proximity-border:
 
 # ===== ПРОЧЕЕ =====
 messages:
-  prefix: "<gradient:#55FF55:#00AA00><bold>Приваты</bold></gradient> <dark_gray>»</dark_gray> "
+  prefix: "<gradient:#55FF55:#00AA00>Территория</gradient> <white>»</white> "

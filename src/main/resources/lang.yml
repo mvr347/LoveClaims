@@ -24,7 +24,7 @@
 # {player} - имя игрока, {amount} - количество, {name} - название
 # ====================================================== #
 
-prefix: "<dark_gray>[<gold>AC<dark_gray>] <white>"
+prefix: "<gradient:#55FF55:#00AA00>Территория</gradient> <white>»</white> "
 
 # ===== ОБЫЧНЫЕ СООБЩЕНИЯ =====
 no-permission: "<red>У вас нет прав!"
