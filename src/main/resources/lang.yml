@@ -95,6 +95,7 @@ rental-outside-parent: "<red>Арендный плот должен быть в�
 rental-created: "<green>Арендный плот создан!"
 rental-deleted: "<green>Арендный плот успешно удален!"
 rental-sold: "<green>Вы продали аренду и больше не являетесь арендатором!"
+rental-trade-point-feudal-only: "<red>Торговую точку нельзя арендовать у таблички. Обратитесь к Феодалу."
 rental-limit-reached: "<red>У вас уже есть один арендный плот! Можно иметь только один."
 rental-move-deny: "<red>Вы можете свернуть только свой плот!"
 rental-move-success: "<green>Вы успешно свернули приват! Якорь выдан вам в инвентарь."

@@ -64,6 +64,12 @@ public class LandlordListener implements Listener {
 
                     if (loc.getWorld().getName().equals(parts[0]) && loc.distanceSquared(new Location(loc.getWorld(), bx, by, bz)) < 4.0) {
 
+                        // Trade points are rented only through the Feudal, never by clicking the landlord sign.
+                        if (c.isTradePoint()) {
+                            player.sendMessage(plugin.getConfigManager().getMessage("rental-trade-point-feudal-only"));
+                            return;
+                        }
+
                         // Проверяем лимиты перед открытием (чтобы игрок не купил 2 участка)
                         long ownedCount = plugin.getClaimManager().getAllClaims().stream()
                                 .filter(Claim::isRentalPlot)

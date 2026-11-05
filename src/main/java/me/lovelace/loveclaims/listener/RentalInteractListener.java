@@ -24,6 +24,11 @@ public class RentalInteractListener implements Listener {
                 .ifPresent(claim -> {
                     if (claim.isRentalPlot() && !claim.isRented()) {
                         event.setCancelled(true);
+                        // Trade points are rented only through the Feudal: a click on the sign never opens payment.
+                        if (claim.isTradePoint()) {
+                            event.getPlayer().sendMessage(plugin.getConfigManager().getMessage("rental-trade-point-feudal-only"));
+                            return;
+                        }
                         event.getPlayer().openInventory(new RentalPaymentGUI(plugin, claim).getInventory());
                         // Short outline so the buyer sees exactly which plot is on offer.
                         me.lovelace.loveclaims.task.ParticleBorder.show(plugin, event.getPlayer(), claim.getBoundingBox(),
