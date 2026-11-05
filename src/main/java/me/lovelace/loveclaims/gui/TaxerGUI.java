@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.List;
@@ -39,15 +38,14 @@ public class TaxerGUI extends AbstractGUI {
                 .filter(c -> c.getOwnerUuid() != null && c.getOwnerUuid().equals(viewer.getUniqueId()))
                 .toList();
 
-        // gui-gen-5 RULE 3: слот 0 — профиль напрямую (список СВОИХ арендованных плотов игрока).
-        ItemStack self = new ItemStack(org.bukkit.Material.PLAYER_HEAD);
-        SkullMeta selfMeta = (SkullMeta) self.getItemMeta();
-        if (selfMeta != null) {
-            selfMeta.setOwningPlayer(viewer);
-            selfMeta.displayName(Component.text("§e" + viewer.getName()));
-            self.setItemMeta(selfMeta);
-        }
-        inventory.setItem(0, self);
+        // Slot 0 of every NPC menu is the common NPC head with a short description of what the NPC does.
+        inventory.setItem(0, createHead(HEAD_NPC,
+                plugin.getConfigManager().getComponent("taxer-head.name"),
+                List.of(
+                        plugin.getConfigManager().getComponent("taxer-head.sub"),
+                        Component.empty(),
+                        plugin.getConfigManager().getComponent("taxer-head.line1"),
+                        plugin.getConfigManager().getComponent("taxer-head.line2"))));
 
         // Clear the work row first so a re-render (e.g. after paying tax) leaves no stale items.
         for (int s = WORK_ROW_FIRST; s <= WORK_ROW_LAST; s++) {

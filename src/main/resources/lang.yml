@@ -465,3 +465,10 @@ trade-point-no-members: "<red>В торговую точку нельзя доб
 rental-admin-settype-usage: "<red>Использование: /rental admin settype <плот> <rental|trade_point>"
 rental-admin-settype-success: "<green>Тип плота <yellow>{name}</yellow> теперь: <yellow>{type}</yellow>."
 rental-admin-settype-tenant: "<red>Нельзя менять тип, пока плот занят арендатором."
+
+# Слот 0 меню сборщика налогов (2026-11-05): общая голова NPC и короткое описание вместо головы игрока.
+taxer-head:
+  name: "<gold>Сборщик налогов</gold>"
+  sub: "<dark_gray>Налоги на аренду</dark_gray>"
+  line1: "<gray>Здесь оплачиваются налоги</gray>"
+  line2: "<gray>за ваши арендованные участки.</gray>"
