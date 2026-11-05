@@ -3,7 +3,7 @@ version: '1.5'
 main: me.lovelace.loveclaims.LoveClaims
 api-version: '26.2'
 depend: [LoveCore, LoveEssential, PlaceholderAPI]
-softdepend: [CMI]
+softdepend: [CMI, ItemsAdder]
 authors: [lovelace]
 description: Advanced anchor-based claiming system.
 commands:

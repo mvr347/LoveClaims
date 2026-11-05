@@ -17,8 +17,11 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
     private final LoveClaims plugin;
     private final Claim plot;
 
-    public RentalAbandonConfirmGUI(LoveClaims plugin, Claim plot) {
-        super(9, plugin.getConfigManager().getComponent("delete-confirm.title"));
+    public RentalAbandonConfirmGUI(LoveClaims plugin, Player viewer, Claim plot) {
+        // The server's 27-slot confirm menu when its background and invisible item exist, otherwise 9 slots.
+        super(ConfirmMenuLayout.available() ? ConfirmMenuLayout.SIZE : 9,
+                ConfirmMenuLayout.available() ? ConfirmMenuLayout.title(viewer)
+                        : plugin.getConfigManager().getComponent("delete-confirm.title"));
         this.plugin = plugin;
         this.plot = plot;
         setMenuItems();
@@ -26,6 +29,22 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
 
     @Override
     protected void setMenuItems() {
+        if (inventory.getSize() == ConfirmMenuLayout.SIZE) {
+            var yes = ConfirmMenuLayout.button(plugin.getConfigManager().getComponent("delete-confirm.confirm"),
+                    List.of(
+                            Component.text("§7Вы собираетесь отказаться"),
+                            Component.text("§7от участка §e" + plot.getName()),
+                            Component.text("§7Деньги за аренду §cне вернутся§7!"),
+                            Component.text("§7Все участники будут удалены."),
+                            Component.empty(),
+                            Component.text("§cКликните для подтверждения!")));
+            var no = ConfirmMenuLayout.button(plugin.getConfigManager().getComponent("delete-confirm.cancel"),
+                    List.of(plugin.getConfigManager().getComponent("common.cancel-lore")));
+            if (yes != null && no != null) {
+                ConfirmMenuLayout.fill(inventory, yes, no);
+                return;
+            }
+        }
         // Слот 1 (✓): подтвердить отказ — предупреждение, которое раньше жило в отдельной
         // "info"-голове по центру, теперь свёрнуто в lore кнопки подтверждения (Lore-структура).
         inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES,
@@ -53,10 +72,13 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
         event.setCancelled(true);
         Player player = (Player) event.getWhoClicked();
 
-        if (event.getSlot() == CANCEL_SLOT) {
+        boolean large = inventory.getSize() == ConfirmMenuLayout.SIZE;
+        boolean yes = large ? ConfirmMenuLayout.isConfirm(event.getSlot()) : event.getSlot() == CONFIRM_SLOT;
+        boolean no = large ? ConfirmMenuLayout.isCancel(event.getSlot()) : event.getSlot() == CANCEL_SLOT;
+        if (no) {
             plugin.getConfigManager().playSound(player, "gui-click");
             player.openInventory(new RentalPlayerGUI(plugin, player, plot).getInventory());
-        } else if (event.getSlot() == CONFIRM_SLOT) {
+        } else if (yes) {
             player.closeInventory();
             plugin.getRentalManager().release(plot, me.lovelace.loveclaims.api.ReleaseReason.ABANDONED);
             player.sendMessage(plugin.getConfigManager().getMessage("rental-refuse-success"));
