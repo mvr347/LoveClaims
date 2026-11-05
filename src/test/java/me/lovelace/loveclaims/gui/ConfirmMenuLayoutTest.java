@@ -16,4 +16,13 @@ class ConfirmMenuLayoutTest {
         assertTrue(ConfirmMenuLayout.isConfirm(10) && ConfirmMenuLayout.isCancel(16));
         assertFalse(ConfirmMenuLayout.isConfirm(13) || ConfirmMenuLayout.isCancel(13));
     }
+
+    @Test
+    void anUnresolvedBackgroundPlaceholderKeepsTheVisibleWindow() {
+        assertTrue(ConfirmMenuLayout.backgroundResolved("\uE001\uE002"));
+        assertFalse(ConfirmMenuLayout.backgroundResolved("%img_confirm_menu%"));
+        assertFalse(ConfirmMenuLayout.backgroundResolved("<white>%img_offset_-8%</white>"));
+        assertFalse(ConfirmMenuLayout.backgroundResolved(""));
+        assertFalse(ConfirmMenuLayout.backgroundResolved(null));
+    }
 }

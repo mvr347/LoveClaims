@@ -19,8 +19,8 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
 
     public RentalAbandonConfirmGUI(LoveClaims plugin, Player viewer, Claim plot) {
         // The server's 27-slot confirm menu when its background and invisible item exist, otherwise 9 slots.
-        super(ConfirmMenuLayout.available() ? ConfirmMenuLayout.SIZE : 9,
-                ConfirmMenuLayout.available() ? ConfirmMenuLayout.title(viewer)
+        super(ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.SIZE : 9,
+                ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.title(viewer)
                         : plugin.getConfigManager().getComponent("delete-confirm.title"));
         this.plugin = plugin;
         this.plot = plot;
