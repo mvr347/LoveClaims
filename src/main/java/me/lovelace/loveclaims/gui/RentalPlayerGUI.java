@@ -93,7 +93,7 @@ public class RentalPlayerGUI extends AbstractGUI {
         }
         if (showRefuse && slot == refuseSlot) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
-            viewer.openInventory(new RentalAbandonConfirmGUI(plugin, plot).getInventory());
+            viewer.openInventory(new RentalAbandonConfirmGUI(plugin, viewer, plot).getInventory());
         }
         if (slot == inventory.getSize() - 1) {
             plugin.getConfigManager().playSound(viewer, "gui-click");

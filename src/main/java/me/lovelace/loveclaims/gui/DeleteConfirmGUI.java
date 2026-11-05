@@ -9,6 +9,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.List;
+
 public class DeleteConfirmGUI extends AbstractGUI {
     // gui-gen-5 Исключение 1 (hopper-confirm, 9 слотов): [С][✓][С][П][П][П][С][✗][С]
     private static final int CONFIRM_SLOT = 1;
@@ -19,7 +21,10 @@ public class DeleteConfirmGUI extends AbstractGUI {
     private final Claim claim;
 
     public DeleteConfirmGUI(LoveClaims plugin, Player viewer, Claim claim) {
-        super(9, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title")));
+        // The server's 27-slot confirm menu when its background and invisible item exist, otherwise 9 slots.
+        super(ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.SIZE : 9,
+                ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.title(viewer)
+                        : Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title")));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -28,6 +33,15 @@ public class DeleteConfirmGUI extends AbstractGUI {
 
     @Override
     protected void setMenuItems() {
+        if (inventory.getSize() == ConfirmMenuLayout.SIZE) {
+            var yes = ConfirmMenuLayout.button(Component.text(plugin.getConfigManager().getGuiText("delete-confirm.confirm")),
+                    List.of(Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title"))));
+            var no = ConfirmMenuLayout.button(Component.text(plugin.getConfigManager().getGuiText("delete-confirm.cancel")), List.of());
+            if (yes != null && no != null) {
+                ConfirmMenuLayout.fill(inventory, yes, no);
+                return;
+            }
+        }
         // gui-gen-5 Исключение 1: "Назад" в этом шаблоне нет — "Отменить" (✗) уже возвращает в SettingsGUI.
         inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.confirm")), null));
         inventory.setItem(CANCEL_SLOT, createHead(HEAD_DELETE_NO, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.cancel")), null));
@@ -37,7 +51,10 @@ public class DeleteConfirmGUI extends AbstractGUI {
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        if (event.getSlot() == CONFIRM_SLOT) {
+        boolean large = inventory.getSize() == ConfirmMenuLayout.SIZE;
+        boolean yes = large ? ConfirmMenuLayout.isConfirm(event.getSlot()) : event.getSlot() == CONFIRM_SLOT;
+        boolean no = large ? ConfirmMenuLayout.isCancel(event.getSlot()) : event.getSlot() == CANCEL_SLOT;
+        if (yes) {
             if (!claim.isOwner(viewer.getUniqueId())) {
                 viewer.closeInventory();
                 viewer.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
@@ -60,7 +77,7 @@ public class DeleteConfirmGUI extends AbstractGUI {
             if (anchor != null) viewer.getInventory().addItem(anchor);
 
             viewer.sendMessage(plugin.getConfigManager().getComponent("delete-confirm.deleted"));
-        } else if (event.getSlot() == CANCEL_SLOT) {
+        } else if (no) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new SettingsGUI(plugin, viewer, claim).getInventory());
         }
