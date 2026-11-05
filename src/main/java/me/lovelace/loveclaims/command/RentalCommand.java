@@ -162,6 +162,11 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
+        if (targetPlot.isTradePoint()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("rental-trade-point-feudal-only"));
+            return;
+        }
+
         long ownedCount = plugin.getClaimManager().getAllClaims().stream()
                 .filter(Claim::isRentalPlot)
                 .filter(c -> c.getOwnerUuid() != null && c.getOwnerUuid().equals(player.getUniqueId()))
