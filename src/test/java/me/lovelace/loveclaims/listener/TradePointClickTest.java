@@ -13,4 +13,11 @@ class TradePointClickTest {
         assertFalse(RentalInteractListener.refusesTradePointClick(true, true), "administrators rebuild the point");
         assertFalse(RentalInteractListener.refusesTradePointClick(true, false));
     }
+
+    @Test
+    void rentalPlotsAndTradePointsHaveNoAnchor() {
+        assertTrue(AnchorListener.usesAnchor(false, false), "a player's claim");
+        assertFalse(AnchorListener.usesAnchor(false, true), "the floor under a trader is not an anchor");
+        assertFalse(AnchorListener.usesAnchor(true, false), "clan territory is LoveClans' business");
+    }
 }
