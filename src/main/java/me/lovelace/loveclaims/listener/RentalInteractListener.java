@@ -15,6 +15,15 @@ public class RentalInteractListener implements Listener {
         this.plugin = plugin;
     }
 
+    /**
+     * Whether a right click inside a free trade point is refused with the "Feudal only" text. Only the sign is: an
+     * administrator who rebuilds the point (places a block after breaking one by accident) must not be blocked, and a
+     * click on any other block is left to the regular claim protection (2026-11-07).
+     */
+    static boolean refusesTradePointClick(boolean administrator, boolean clickedSign) {
+        return clickedSign && !administrator;
+    }
+
     @EventHandler
     public void onRentalInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
@@ -23,12 +32,19 @@ public class RentalInteractListener implements Listener {
         plugin.getClaimManager().getClaimAt(event.getClickedBlock().getLocation())
                 .ifPresent(claim -> {
                     if (claim.isRentalPlot() && !claim.isRented()) {
-                        event.setCancelled(true);
                         // Trade points are rented only through the Feudal: a click on the sign never opens payment.
                         if (claim.isTradePoint()) {
-                            event.getPlayer().sendMessage(plugin.getConfigManager().getMessage("rental-trade-point-feudal-only"));
+                            var player = event.getPlayer();
+                            boolean admin = player.hasPermission("loveclaims.bypass") || player.hasPermission("loveclaims.admin")
+                                    || player.hasPermission("loveclaims.rental.admin");
+                            boolean sign = org.bukkit.Tag.SIGNS.isTagged(event.getClickedBlock().getType());
+                            if (refusesTradePointClick(admin, sign)) {
+                                event.setCancelled(true);
+                                player.sendMessage(plugin.getConfigManager().getMessage("rental-trade-point-feudal-only"));
+                            }
                             return;
                         }
+                        event.setCancelled(true);
                         event.getPlayer().openInventory(new RentalPaymentGUI(plugin, claim).getInventory());
                         // Short outline so the buyer sees exactly which plot is on offer.
                         me.lovelace.loveclaims.task.ParticleBorder.show(plugin, event.getPlayer(), claim.getBoundingBox(),
