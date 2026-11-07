@@ -205,10 +205,14 @@ public class SQLiteStorage {
 
     private List<Claim> loadClaimsFromDB(Connection conn, String tableName, boolean isRental) {
         Map<UUID, Claim> claimsMap = new HashMap<>();
+        Map<String, Integer> skippedWorlds = new HashMap<>();
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
             while (rs.next()) {
                 World world = Bukkit.getWorld(rs.getString("world"));
-                if (world == null) continue;
+                if (world == null) {
+                    skippedWorlds.merge(String.valueOf(rs.getString("world")), 1, Integer::sum);
+                    continue;
+                }
 
                 UUID id = UUID.fromString(rs.getString("id"));
                 BoundingBox box = new BoundingBox(rs.getInt("min_x"), rs.getInt("min_y"), rs.getInt("min_z"), rs.getInt("max_x"), rs.getInt("max_y"), rs.getInt("max_z"));
@@ -253,6 +257,11 @@ public class SQLiteStorage {
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("Error loading from " + tableName + ": " + e.getMessage());
+        }
+        if (!skippedWorlds.isEmpty()) {
+            // 2026-11-07: a claim in a world that is not loaded yet is not lost; it is loaded when the world loads.
+            plugin.getLogger().warning("Claims of worlds that are not loaded yet were skipped (" + tableName + "): "
+                    + skippedWorlds + ". They are loaded when their world loads.");
         }
 
         String memberTable = isRental ? "rental_members" : "claim_members";
