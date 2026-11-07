@@ -68,6 +68,15 @@ public class AnchorListener implements Listener {
                 .orElse(0);
     }
 
+    /**
+     * Whether the claim is managed through its anchor block. A rental plot or trade point is not: its
+     * anchor location is the trader's spot, so breaking the floor under the trader used to open the
+     * delete window for the tenant (deleting the whole trade point) and threw for a free point (no owner).
+     */
+    static boolean usesAnchor(boolean clanTerritory, boolean rentalPlot) {
+        return !clanTerritory && !rentalPlot;
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onAnchorBreak(BlockBreakEvent event) {
         Location loc = event.getBlock().getLocation();
@@ -82,7 +91,7 @@ public class AnchorListener implements Listener {
         // бы здесь (сравнение claim.getOwnerUuid() с player.getUniqueId() для клана никогда не
         // совпадает, т.к. владелец клановой территории - UUID клана, а не игрока), не давая дойти
         // до осадной логики в ProtectionListener.
-        if (claim.isClanTerritory()) return;
+        if (!usesAnchor(claim.isClanTerritory(), claim.isRentalPlot())) return;
 
         Location anchorLoc = claim.getAnchorLocation();
 
@@ -123,8 +132,9 @@ public class AnchorListener implements Listener {
                     clickedBlock.getY() == anchorLoc.getBlockY() &&
                     clickedBlock.getZ() == anchorLoc.getBlockZ()) {
 
-                // Клановая территория управляется через LoveClans, а не через GUI приватов LoveClaims
-                if (claim.isClanTerritory()) {
+                // Клановая территория управляется через LoveClans, а не через GUI приватов LoveClaims;
+                // у арендного участка и торговой точки нет якоря (их "якорь" - место торговца).
+                if (!usesAnchor(claim.isClanTerritory(), claim.isRentalPlot())) {
                     return;
                 }
 
