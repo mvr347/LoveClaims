@@ -322,40 +322,35 @@ public class ProtectionListener implements Listener {
                             deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("siege-interact-deny"));
                         }
                     } else {
-                        event.setCancelled(true);
-                        deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("siege-interact-deny"));
+                        denyClick(event);
+                        if (!isItemUse(event.getMaterial())) {
+                            deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("siege-interact-deny"));
+                        }
                     }
                 } else {
                     // Не в осаде: клик по баннеру (якорю) должен обрабатывать LoveClans
                     // (открытие меню клановой территории), поэтому его НЕ отменяем.
                     // Любое другое взаимодействие на клановой территории запрещено, без сообщения.
                     if (!block.getLocation().equals(claim.getAnchorLocation())) {
-                        event.setCancelled(true);
+                        denyClick(event);
                     }
                     // deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact")); // Убрано сообщение
                 }
                 return;
             }
 
-            // Обычная логика привата
+            // Обычная логика привата: каждый клик требует одно право по типу блока (сундук - CONTAINERS, дверь - INTERACT, остальное -
+            // BUILD). Раньше после успешной проверки контейнера/двери код шёл дальше в общую проверку BUILD и отменял клик, поэтому
+            // доверие CONTAINER и ACCESS ничего не открывало.
             Material type = block.getType();
-            if (isContainerBlock(type)) {
-                if (!claim.hasPermission(event.getPlayer().getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.CONTAINERS)) {
-                    event.setCancelled(true);
+            me.lovelace.loveclaims.model.ClaimPermission required = requiredPermission(type);
+            if (!claim.hasPermission(event.getPlayer().getUniqueId(), required)) {
+                // Еда и зелья в руке работают у чужого блока: запрещаем только сам блок и не шумим сообщением.
+                boolean itemUse = required == me.lovelace.loveclaims.model.ClaimPermission.BUILD && isItemUse(event.getMaterial());
+                denyClick(event);
+                if (!itemUse) {
                     deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact"));
-                    return;
                 }
-            }
-            if (isDoorOrButtonBlock(type)) {
-                if (!claim.hasPermission(event.getPlayer().getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.INTERACT)) {
-                    event.setCancelled(true);
-                    deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact"));
-                    return;
-                }
-            }
-            if (!claim.hasPermission(event.getPlayer().getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
-                event.setCancelled(true);
-                deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("deny-interact"));
             }
             return;
         }
@@ -638,7 +633,35 @@ public class ProtectionListener implements Listener {
         return plugin.getConfigManager().isInsideSpawnClaim(loc);
     }
 
-    private boolean isContainerBlock(Material type) {
+    /** Permission a click on this block needs: containers, doors/buttons/levers, anything else counts as building. */
+    static me.lovelace.loveclaims.model.ClaimPermission requiredPermission(Material type) {
+        if (isContainerBlock(type)) return me.lovelace.loveclaims.model.ClaimPermission.CONTAINERS;
+        if (isDoorOrButtonBlock(type)) return me.lovelace.loveclaims.model.ClaimPermission.INTERACT;
+        return me.lovelace.loveclaims.model.ClaimPermission.BUILD;
+    }
+
+    /** Held items that are consumed and not placed; listed explicitly because not every one of them reports as edible. */
+    private static final java.util.Set<Material> CONSUMABLES = java.util.EnumSet.of(
+            Material.POTION, Material.MILK_BUCKET, Material.HONEY_BOTTLE);
+
+    /** True for food, potions, milk and honey: using them must keep working next to a protected block. */
+    static boolean isItemUse(Material held) {
+        return held != null && (CONSUMABLES.contains(held) || held.isEdible());
+    }
+
+    /**
+     * Denies a click on a protected block. A consumable in hand only loses the block interaction, so eating and drinking next
+     * to someone else's claim still works; cancelling the whole event would also cancel the item use.
+     */
+    private void denyClick(org.bukkit.event.player.PlayerInteractEvent event) {
+        if (isItemUse(event.getMaterial())) {
+            event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
+        } else {
+            event.setCancelled(true);
+        }
+    }
+
+    private static boolean isContainerBlock(Material type) {
         return type == Material.CHEST || type == Material.TRAPPED_CHEST ||
                 type == Material.FURNACE || type == Material.BLAST_FURNACE ||
                 type == Material.SMOKER || type == Material.BARREL ||
@@ -646,7 +669,7 @@ public class ProtectionListener implements Listener {
                 type == Material.DROPPER || type == Material.HOPPER;
     }
 
-    private boolean isDoorOrButtonBlock(Material type) {
+    private static boolean isDoorOrButtonBlock(Material type) {
         return type.name().contains("DOOR") || type.name().contains("TRAPDOOR") ||
                 type.name().contains("BUTTON") || type == Material.LEVER;
     }
