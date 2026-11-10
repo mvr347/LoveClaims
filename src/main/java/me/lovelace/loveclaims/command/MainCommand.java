@@ -222,6 +222,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     Claim newClaim = new Claim(java.util.UUID.randomUUID(), pending.location().getWorld(), pending.previewTask().getBox(), player.getUniqueId(), pending.location());
                     plugin.getClaimManager().addClaimToCache(newClaim);
                     plugin.getStorage().saveClaimAsync(newClaim);
+                    me.lovelace.loveclaims.integration.AchievementsHook.claimCreated(player.getUniqueId());
 
                     pending.location().getBlock().setType(pending.tier().material());
                     player.getInventory().getItemInMainHand().setAmount(player.getInventory().getItemInMainHand().getAmount() - 1);
