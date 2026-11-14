@@ -102,9 +102,7 @@ public class EntitySpawnListener implements Listener {
     }
 
     private boolean hasBypass(Player player) {
-        return player.hasPermission("loveclaims.bypass")
-                || player.hasPermission("loveclaims.admin")
-                || player.hasPermission("loveclaims.moderator");
+        return me.lovelace.loveclaims.util.ClaimBypass.allowed(player);
     }
 
     private static boolean spawnsEntity(Material type) {

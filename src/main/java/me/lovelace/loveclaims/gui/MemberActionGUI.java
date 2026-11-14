@@ -44,7 +44,7 @@ public class MemberActionGUI extends AbstractGUI {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta headMeta = (SkullMeta) head.getItemMeta();
         if (headMeta != null) {
-            headMeta.setOwningPlayer(target);
+            me.lovelace.loveclaims.util.PlayerHeads.apply(headMeta, target);
             headMeta.displayName(Component.text("§e" + targetName));
             List<Component> headLore = new ArrayList<>();
             headLore.add(Component.text("§7Настройка прав доступа"));

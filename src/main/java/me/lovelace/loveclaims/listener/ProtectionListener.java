@@ -148,7 +148,7 @@ public class ProtectionListener implements Listener {
     }
     // -----------------------------------------
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         if (hasBypass(player)) return;
@@ -211,7 +211,7 @@ public class ProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
         if (hasBypass(player)) return;
@@ -414,33 +414,10 @@ public class ProtectionListener implements Listener {
         } else {
             return;
         }
-        if (attacker.hasPermission("loveclaims.bypass") || attacker.hasPermission("loveclaims.admin")) return;
-        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(victim.getLocation());
-        if (claimOpt.isPresent()) {
-            Claim claim = claimOpt.get();
-
-            // Если приват клановый
-            if (claim.isClanTerritory()) {
-                // PvP всегда разрешено в режиме осады
-                if (claim.isUnderSiege()) {
-                    event.setCancelled(false);
-                } else {
-                    // Если не в осаде, то на клановой территории PvP запрещено, без сообщения
-                    event.setCancelled(true);
-                    // deny(attacker, claim, plugin.getConfigManager().getMessage("deny-pvp")); // Убрано сообщение
-                }
-                return;
-            }
-
-            // Обычная логика привата
-            // Если приват в режиме осады, PvP всегда разрешено
-            if (claim.isUnderSiege()) {
-                event.setCancelled(false);
-                return;
-            }
-            // В обычном привате PvP по умолчанию выключено
-            event.setCancelled(true);
-        } else if (isSpawnProtected(victim.getLocation()) && !plugin.getConfigManager().getSpawnFlag("pvp")) {
+        if (me.lovelace.loveclaims.util.ClaimBypass.allowed(attacker)) return;
+        // Claims protect property, not players from combat. Only the configured spawn is a safe zone.
+        // Never un-cancel damage: revive, authentication and other combat rules keep their decisions.
+        if (!plugin.getConfigManager().isPvpAllowedAt(victim.getLocation())) {
             event.setCancelled(true);
         }
     }
@@ -624,9 +601,7 @@ public class ProtectionListener implements Listener {
     }
 
     private boolean hasBypass(Player player) {
-        return player.hasPermission("loveclaims.bypass")
-                || player.hasPermission("loveclaims.admin")
-                || player.hasPermission("loveclaims.moderator");
+        return me.lovelace.loveclaims.util.ClaimBypass.allowed(player);
     }
 
     private boolean isSpawnProtected(org.bukkit.Location loc) {
@@ -644,9 +619,14 @@ public class ProtectionListener implements Listener {
     private static final java.util.Set<Material> CONSUMABLES = java.util.EnumSet.of(
             Material.POTION, Material.MILK_BUCKET, Material.HONEY_BOTTLE);
 
-    /** True for food, potions, milk and honey: using them must keep working next to a protected block. */
+    /** Consumables and vanilla weapons may be used without activating the protected block. */
     static boolean isItemUse(Material held) {
-        return held != null && (CONSUMABLES.contains(held) || held.isEdible());
+        return held != null && (CONSUMABLES.contains(held) || isWeaponUse(held) || held.isEdible());
+    }
+
+    static boolean isWeaponUse(Material held) {
+        return held != null && (held.name().endsWith("_SPEAR") || held == Material.TRIDENT
+                || held == Material.BOW || held == Material.CROSSBOW || held == Material.SHIELD);
     }
 
     /**

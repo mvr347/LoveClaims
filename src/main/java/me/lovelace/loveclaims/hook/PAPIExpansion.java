@@ -71,6 +71,10 @@ public class PAPIExpansion extends PlaceholderExpansion {
         // --- 2. Контекстная статистика ---
         if (offlinePlayer.isOnline()) {
             Player player = offlinePlayer.getPlayer();
+            if (params.equalsIgnoreCase("is_pvp")) {
+                return plugin.getConfigManager().isPvpAllowedAt(player.getLocation())
+                        ? " &cВключено" : " &aВыключено";
+            }
             Optional<Claim> currentClaimOpt = plugin.getClaimManager().getClaimAt(player.getLocation());
 
             if (currentClaimOpt.isPresent()) {
@@ -90,12 +94,8 @@ public class PAPIExpansion extends PlaceholderExpansion {
                     return claim.getTrust(player.getUniqueId()).name();
                 }
 
-                if (params.equalsIgnoreCase("is_pvp")) {
-                    return " &aВыключено";
-                }
             } else {
                 if (params.startsWith("current_")) return "Свободная территория";
-                if (params.equalsIgnoreCase("is_pvp")) return " &cВключено";
             }
         }
 

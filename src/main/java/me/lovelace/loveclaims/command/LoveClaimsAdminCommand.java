@@ -34,7 +34,7 @@ import java.util.Optional;
  */
 public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "expand", "addmembers", "help");
+    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "expand", "addmembers", "access", "help");
     private static final List<String> ANCHOR_TIERS = List.of("tier-1", "tier-2", "tier-3");
 
     private final LoveClaims plugin;
@@ -67,6 +67,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "addmembers" -> handleAddMembers(sender, args);
+            case "access" -> handleAccess(sender, args);
             default -> sendHelp(sender);
         }
         return true;
@@ -76,6 +77,32 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         plugin.getConfigManager().loadAll();
         plugin.getAnchorManager().loadTiers();
         player.sendMessage(plugin.getConfigManager().getMessage("admin-reloaded"));
+    }
+
+    private void handleAccess(CommandSender sender, String[] args) {
+        Player target = args.length == 2 ? Bukkit.getPlayerExact(args[1]) : null;
+        if (target == null) {
+            sender.sendMessage(Component.text("Использование: /loveclaimsadmin access <игрок в сети>"));
+            return;
+        }
+        var location = sender instanceof Player player ? player.getLocation() : target.getLocation();
+        var claim = plugin.getClaimManager().getClaimAt(location);
+        sender.sendMessage(Component.text("Игрок: " + target.getName()
+                + "; обход защиты: " + me.lovelace.loveclaims.util.ClaimBypass.allowed(target)
+                + "; admin: " + target.hasPermission("loveclaims.admin")
+                + "; moderator: " + target.hasPermission("loveclaims.moderator")));
+        if (claim.isEmpty()) {
+            sender.sendMessage(Component.text("В проверяемой точке нет привата."));
+            return;
+        }
+        Claim c = claim.get();
+        sender.sendMessage(Component.text("Приват: " + c.getId() + "; владелец: " + c.getOwnerUuid()));
+        sender.sendMessage(Component.text("Роль: " + c.getTrust(target.getUniqueId())
+                + "; личные права: " + c.getPermissions(target.getUniqueId())
+                + "; права посетителей: " + c.getDefaultPermissions()));
+        sender.sendMessage(Component.text("BUILD в этом привате: "
+                + c.hasPermission(target.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)
+                + "; ожидающее приглашение: " + plugin.getClaimManager().getInvite(target.getUniqueId())));
     }
 
     private void handleGive(@NotNull CommandSender player, @NotNull String[] args) {
@@ -175,7 +202,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         List<String> onlineNames = new ArrayList<>();
         for (Player p : Bukkit.getOnlinePlayers()) onlineNames.add(p.getName());
 
-        if (args.length == 2 && (sub.equals("give") || sub.equals("expand") || sub.equals("addmembers"))) {
+        if (args.length == 2 && (sub.equals("give") || sub.equals("expand") || sub.equals("addmembers") || sub.equals("access"))) {
             return StringUtil.copyPartialMatches(args[1], onlineNames, new ArrayList<>());
         }
         if (args.length == 3 && sub.equals("give")) {

@@ -139,7 +139,7 @@ public class Claim {
         if (perms != null) {
             return perms.contains(permission);
         }
-        return defaultPermissions.contains(permission);
+        return permission != ClaimPermission.MANAGE && defaultPermissions.contains(permission);
     }
 
     public boolean isOwner(UUID playerUuid) {
@@ -147,12 +147,16 @@ public class Claim {
     }
 
     public boolean isManager(UUID playerUuid) {
-        return isOwner(playerUuid) || hasPermission(playerUuid, ClaimPermission.MANAGE);
+        if (isOwner(playerUuid)) return true;
+        Set<ClaimPermission> permissions = playerUuid == null ? null : members.get(playerUuid);
+        return permissions != null && permissions.contains(ClaimPermission.MANAGE);
     }
 
     public Set<ClaimPermission> getPermissions(UUID playerUuid) {
         if (isOwner(playerUuid)) return EnumSet.allOf(ClaimPermission.class);
-        return members.computeIfAbsent(playerUuid, k -> EnumSet.noneOf(ClaimPermission.class));
+        Set<ClaimPermission> permissions = playerUuid == null ? null : members.get(playerUuid);
+        return permissions == null || permissions.isEmpty()
+                ? EnumSet.noneOf(ClaimPermission.class) : EnumSet.copyOf(permissions);
     }
 
     public void setPermission(UUID playerUuid, ClaimPermission permission, boolean state) {
@@ -208,7 +212,7 @@ public class Claim {
         if (player == null) return TrustLevel.NONE;
         if (player.equals(ownerUuid)) return TrustLevel.OWNER;
         Set<ClaimPermission> perms = members.get(player);
-        if (perms == null) perms = defaultPermissions;
+        if (perms == null) return TrustLevel.NONE;
         if (perms.contains(ClaimPermission.MANAGE)) return TrustLevel.MANAGER;
         if (perms.contains(ClaimPermission.BUILD)) return TrustLevel.BUILD;
         if (perms.contains(ClaimPermission.CONTAINERS)) return TrustLevel.CONTAINER;
