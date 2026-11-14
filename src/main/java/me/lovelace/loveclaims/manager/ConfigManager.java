@@ -284,6 +284,11 @@ public class ConfigManager {
         return config.getBoolean("spawn-claim.flags." + flag, false);
     }
 
+    /** Player claims, rentals and clan territories allow PvP; spawn keeps its own configured protection. */
+    public boolean isPvpAllowedAt(org.bukkit.Location location) {
+        return !isInsideSpawnClaim(location) || getSpawnFlag("pvp");
+    }
+
     /**
      * Доля событий уменьшения голода (FoodLevelChangeEvent), которые гасятся на территории
      * спавна - см. spawn-claim.food-depletion-reduction. 0.0 = ваниль, 1.0 = голод на спавне не падает вообще.

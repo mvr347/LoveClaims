@@ -94,7 +94,7 @@ public class MembersGUI extends AbstractGUI {
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) head.getItemMeta();
             if (meta != null) {
-                meta.setOwningPlayer(target);
+                me.lovelace.loveclaims.util.PlayerHeads.apply(meta, target);
                 String name = target.getName() != null ? target.getName() : "Неизвестный";
                 TrustLevel level = claim.getTrust(entryId);
                 String roleName = plugin.getConfigManager().getConfig().getString("claim.roles." + level.name(), level.name());

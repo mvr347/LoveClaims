@@ -3,6 +3,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.lovelace.loveclaims.LoveClaims;
 import me.lovelace.loveclaims.api.event.TradePointDeletedEvent;
 import me.lovelace.loveclaims.model.Claim;
+import me.lovelace.loveclaims.model.ClaimInvitation;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.BoundingBox;
@@ -698,17 +699,31 @@ public class ClaimManager {
         );
     }
 
-    private final Map<UUID, UUID> pendingInvites = new ConcurrentHashMap<>();
+    private final Cache<UUID, ClaimInvitation> pendingInvites = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(5)).maximumSize(10_000).build();
 
     public void addInvite(UUID player, UUID claimId) {
-        pendingInvites.put(player, claimId);
+        getClaimById(claimId).ifPresent(claim -> addInvite(player, claimId, claim.getOwnerUuid()));
+    }
+
+    public void addInvite(UUID player, UUID claimId, UUID inviter) {
+        getClaimById(claimId).filter(claim -> claim.isManager(inviter) && !claim.isTradePoint()
+                && !claim.isClanTerritory()).ifPresent(claim -> pendingInvites.put(player,
+                new ClaimInvitation(claimId, claim.getOwnerUuid(), inviter, System.currentTimeMillis() + 300_000)));
     }
 
     public UUID getInvite(UUID player) {
-        return pendingInvites.get(player);
+        ClaimInvitation invite = pendingInvites.getIfPresent(player);
+        if (invite == null) return null;
+        Claim claim = claimsById.get(invite.claimId());
+        if (!invite.valid(claim, System.currentTimeMillis())) {
+            pendingInvites.invalidate(player);
+            return null;
+        }
+        return invite.claimId();
     }
 
     public void removeInvite(UUID player) {
-        pendingInvites.remove(player);
+        pendingInvites.invalidate(player);
     }
 }

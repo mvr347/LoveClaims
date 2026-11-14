@@ -85,6 +85,11 @@ public class ChatListener implements Listener {
                 if (claimOpt.isEmpty()) return;
                 Claim claim = claimOpt.get();
 
+                if (!claim.isManager(uuid) || claim.isClanTerritory()) {
+                    player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
+                    return;
+                }
+
                 if (claim.isTradePoint()) {
                     player.sendMessage(plugin.getConfigManager().getMessage("trade-point-no-members"));
                     return;
@@ -133,7 +138,7 @@ public class ChatListener implements Listener {
                     return;
                 }
 
-                plugin.getClaimManager().addInvite(target.getUniqueId(), claimId);
+                plugin.getClaimManager().addInvite(target.getUniqueId(), claimId, uuid);
                 player.sendMessage(plugin.getConfigManager().getMessage("invite-sent", "player", target.getName()));
                 plugin.getConfigManager().playSound(player, "gui-click");
 

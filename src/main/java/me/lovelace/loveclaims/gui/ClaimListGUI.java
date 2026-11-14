@@ -43,7 +43,7 @@ public class ClaimListGUI extends AbstractGUI {
         ItemStack self = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta selfMeta = (SkullMeta) self.getItemMeta();
         if (selfMeta != null) {
-            selfMeta.setOwningPlayer(viewer);
+            me.lovelace.loveclaims.util.PlayerHeads.apply(selfMeta, viewer);
             selfMeta.displayName(Component.text("§e" + viewer.getName()));
             self.setItemMeta(selfMeta);
         }

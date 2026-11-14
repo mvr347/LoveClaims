@@ -37,4 +37,15 @@ class ProtectionInteractTest {
         assertTrue(ProtectionListener.isItemUse(Material.HONEY_BOTTLE));
         assertFalse(ProtectionListener.isItemUse(null));
     }
+
+    @Test
+    void protectedBlocksDoNotDisableVanillaWeaponsInHand() {
+        for (Material material : new Material[]{Material.TRIDENT, Material.BOW, Material.CROSSBOW, Material.SHIELD})
+            assertTrue(ProtectionListener.isItemUse(material));
+        for (Material material : Material.values())
+            if (material.name().endsWith("_SPEAR")) assertTrue(ProtectionListener.isItemUse(material));
+        assertFalse(ProtectionListener.isWeaponUse(Material.LAVA_BUCKET));
+        assertFalse(ProtectionListener.isWeaponUse(Material.FLINT_AND_STEEL));
+        assertFalse(ProtectionListener.isWeaponUse(Material.STONE));
+    }
 }

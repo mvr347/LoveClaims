@@ -108,6 +108,21 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                             java.util.Optional<me.lovelace.loveclaims.model.Claim> claimOpt = plugin.getClaimManager().getClaimById(inviteClaimId);
                             if (claimOpt.isPresent()) {
                                 me.lovelace.loveclaims.model.Claim claim = claimOpt.get();
+                                if (claim.isOwner(player.getUniqueId()) || claim.getMembers().containsKey(player.getUniqueId())) {
+                                    plugin.getClaimManager().removeInvite(player.getUniqueId());
+                                    player.sendMessage(plugin.getConfigManager().getMessage("member-already-exists"));
+                                    return true;
+                                }
+                                var cfg = plugin.getConfigManager().getConfig();
+                                int memberLimit = claim.isRentalPlot() ? 10 : Math.min(
+                                        cfg.getInt("claim.members.absolute-limit", 24),
+                                        cfg.getInt("claim.members.default-limit", 5)
+                                                + plugin.getUserManager().getUserData(claim.getOwnerUuid()).getBonusMemberLimit());
+                                if (claim.getMembers().size() >= memberLimit) {
+                                    plugin.getClaimManager().removeInvite(player.getUniqueId());
+                                    player.sendMessage(plugin.getConfigManager().getMessage("limit-members"));
+                                    return true;
+                                }
                                 if (claim.isClanTerritory()) {
                                     player.sendMessage(plugin.getConfigManager().getMessage("clan-claim-restricted"));
                                     plugin.getClaimManager().removeInvite(player.getUniqueId()); // Удаляем инвайт, если это клановый приват
@@ -154,7 +169,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                 return true;
                             }
 
-                            if (claim.getTrust(player.getUniqueId()).ordinal() < me.lovelace.loveclaims.model.TrustLevel.MANAGER.ordinal()) {
+                            if (!claim.isManager(player.getUniqueId()) || claim.isTradePoint()) {
                                 player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
                                 return true;
                             }
@@ -165,12 +180,12 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                 return true;
                             }
 
-                            if (claim.getTrust(target.getUniqueId()) != me.lovelace.loveclaims.model.TrustLevel.NONE) {
+                            if (claim.isOwner(target.getUniqueId()) || claim.getMembers().containsKey(target.getUniqueId())) {
                                 player.sendMessage(net.kyori.adventure.text.Component.text("§cИгрок уже является участником привата!"));
                                 return true;
                             }
 
-                            plugin.getClaimManager().addInvite(target.getUniqueId(), claim.getId());
+                            plugin.getClaimManager().addInvite(target.getUniqueId(), claim.getId(), player.getUniqueId());
                             player.sendMessage(plugin.getConfigManager().getMessage("invite-sent", "player", target.getName()));
                             plugin.getConfigManager().playSound(player, "gui-click");
 
