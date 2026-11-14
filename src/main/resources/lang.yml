@@ -258,9 +258,9 @@ settings.states.status: "&7Статус: "
 settings.delete: "&cУдалить приват"
 settings.barrier-name: "<red>ЗАКРЫТО</red>"
 settings.barrier-lore: "<gray>Только для владельца/менеджера"
-settings.default-access.title: "&6Базовый доступ игроков"
-settings.default-access.name: "&eБазовый доступ игроков"
-settings.default-access.desc: "Настройка прав для обычных игроков (гостей)"
+settings.default-access.title: "&6Доступ для всех"
+settings.default-access.name: "&eДоступ для всех"
+settings.default-access.desc: "Настройка прав для гостей, не состоящих в привате"
 settings.proximity-border.name: "&eГраницы при приближении"
 settings.proximity-border.desc: "Подсказка границ чужих приватов, пока вы идёте с якорем в руке"
 
@@ -472,3 +472,5 @@ taxer-head:
   sub: "<dark_gray>Налоги на аренду</dark_gray>"
   line1: "<gray>Здесь оплачиваются налоги</gray>"
   line2: "<gray>за ваши арендованные участки.</gray>"
+
+permissions.public-warning: "&eЭти разрешения действуют и для неучастников привата"

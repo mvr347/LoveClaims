@@ -71,6 +71,7 @@ public class DefaultPermissionsGUI extends AbstractGUI {
                     : plugin.getConfigManager().getGuiText("permissions.status-disabled");
 
             lore.add(Component.text("§7Статус: " + status));
+            lore.add(Component.text(plugin.getConfigManager().getGuiText("permissions.public-warning")));
             lore.add(Component.text(" "));
             lore.add(Component.text(plugin.getConfigManager().getGuiText("permissions.click-toggle")));
 

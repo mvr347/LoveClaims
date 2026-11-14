@@ -24,8 +24,8 @@ permissions:
     description: Доступ к /loveclaimsadmin
     default: op
   loveclaims.bypass:
-    description: Игнорирование защиты ВСЕХ приватов (выдаётся отдельно от admin/moderator)
-    default: op
+    description: Игнорирование защиты ВСЕХ приватов (выдаётся явно, включая операторов)
+    default: false
   loveclaims.moderator:
     description: Доступ к управлению любыми приватами (модерация)
     default: op
