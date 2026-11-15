@@ -25,7 +25,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -61,7 +62,14 @@ public class SQLiteStorage {
         // Один shared Connection на файл БД не потокобезопасен для конкурентных запросов -
         // сериализуем все обращения к БД через единственный поток, чтобы избежать
         // "database is locked" и повреждения запросов при параллельных сохранениях.
-        this.dbExecutor = Executors.newSingleThreadExecutor();
+        this.dbExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>()) {
+            @Override protected void terminated() {
+                // shutdown atomically rejects new submissions; this runs only once all accepted
+                // operations have finished, even if close() timed out or was interrupted.
+                closeConnections();
+            }
+        };
     }
 
     public static String serializePermissions(Set<ClaimPermission> perms) {
@@ -406,22 +414,23 @@ public class SQLiteStorage {
 
     private void saveBatch(Connection conn, String sql, List<Claim> claims, boolean isRental) {
         if (claims.isEmpty() || conn == null) return;
-        List<Claim> pending = new java.util.ArrayList<>();
+        Map<Claim, Long> pending = new java.util.HashMap<>();
         try {
             if (conn.isClosed()) return;
             conn.setAutoCommit(false);
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 for (Claim claim : claims) {
                     if (!claim.isModified() || claim.getWorld() == null) continue;
+                    long version = claim.getModificationVersion();
                     prepareClaimStatement(ps, claim, isRental);
                     ps.addBatch();
-                    pending.add(claim);
+                    pending.put(claim, version);
                 }
                 if (!pending.isEmpty()) ps.executeBatch();
             }
             conn.commit();
             // Clear the modified flag only after a successful commit, otherwise a failed batch loses changes.
-            for (Claim c : pending) c.setModified(false);
+            pending.forEach(Claim::markSaved);
         } catch (SQLException e) {
             plugin.getLogger().severe("Batch save error: " + e.getMessage());
             try { conn.rollback(); } catch (SQLException ignored) {}
@@ -432,7 +441,7 @@ public class SQLiteStorage {
 
     public void saveAllClaimsSync(Collection<Claim> claims) {
         // Выполняем внутри dbExecutor и ждём завершения: этот метод вызывается из onDisable
-        // ДО dbExecutor.shutdownNow(), пока в очереди ещё вполне может быть необработанный
+        // ДО остановки dbExecutor, пока в очереди ещё вполне может быть необработанный
         // async-запрос (например, saveClaimAsync от события за секунду до выключения). Прямой
         // вызов на текущем (главном) потоке работал бы с тем же Connection параллельно с
         // executor-потоком - Connection у SQLite JDBC не потокобезопасен для конкурентного
@@ -446,14 +455,10 @@ public class SQLiteStorage {
     /**
      * Выполнить задачу на dbExecutor и дождаться её завершения (с таймаутом), сохраняя
      * сериализацию доступа к Connection даже для "синхронных" вызовов со внешнего потока.
-     * Если dbExecutor уже остановлен (действительно безопасно - никакой конкурентный поток
-     * больше не тронет Connection), выполняем задачу прямо на вызывающем потоке.
+     * После начала остановки новые записи отклоняются: isShutdown не означает,
+     * что рабочий поток уже закончил доступ к Connection.
      */
     private void runOnDbExecutorAndAwait(Runnable task) {
-        if (dbExecutor.isShutdown()) {
-            task.run();
-            return;
-        }
         try {
             dbExecutor.submit(task).get(15, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
@@ -649,20 +654,6 @@ public class SQLiteStorage {
     }
 
     public void saveUserDataAsync(UserData data) {
-        boolean useSync = false;
-        try {
-            if (dbExecutor.isShutdown() || claimsConnection == null || claimsConnection.isClosed()) {
-                useSync = true;
-            }
-        } catch (SQLException e) {
-            useSync = true;
-        }
-
-        if (useSync) {
-            saveUserDataSync(data);
-            return;
-        }
-
         CompletableFuture.runAsync(() -> {
             try {
                 if (claimsConnection == null || claimsConnection.isClosed()) return;
@@ -683,6 +674,10 @@ public class SQLiteStorage {
     }
 
     public void saveUserDataSync(UserData data) {
+        runOnDbExecutorAndAwait(() -> saveUserDataInternal(data));
+    }
+
+    private void saveUserDataInternal(UserData data) {
         try {
             if (claimsConnection == null || claimsConnection.isClosed()) return;
         } catch (SQLException e) {
@@ -744,16 +739,23 @@ public class SQLiteStorage {
         }
     }
 
-    public void close() {
-        try { if (claimsConnection != null) claimsConnection.close(); } catch (SQLException ignored) {}
-        try { if (rentalsConnection != null) rentalsConnection.close(); } catch (SQLException ignored) {}
-        dbExecutor.shutdownNow();
+    private void closeConnections() {
+        try { if (claimsConnection != null) claimsConnection.close(); }
+        catch (SQLException ex) { plugin.getLogger().warning("Closing claims database: " + ex.getMessage()); }
+        try { if (rentalsConnection != null) rentalsConnection.close(); }
+        catch (SQLException ex) { plugin.getLogger().warning("Closing rentals database: " + ex.getMessage()); }
+    }
+
+    public synchronized void close() {
+        if (dbExecutor.isShutdown()) return;
+        dbExecutor.shutdown();
         try {
-            if (!dbExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                plugin.getLogger().warning("Database executor did not terminate in time!");
+            if (!dbExecutor.awaitTermination(15, TimeUnit.SECONDS)) {
+                plugin.getLogger().warning("Database queue is still draining; connections will close after pending writes.");
             }
         } catch (InterruptedException e) {
-            plugin.getLogger().severe("Interrupted waiting for DB shutdown");
+            Thread.currentThread().interrupt();
+            plugin.getLogger().warning("Interrupted waiting for DB shutdown; pending writes will finish before connections close.");
         }
     }
 }

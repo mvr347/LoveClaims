@@ -56,7 +56,8 @@ public class DeleteConfirmGUI extends AbstractGUI {
         boolean no = large ? ConfirmMenuLayout.isCancel(event.getSlot()) : event.getSlot() == CANCEL_SLOT;
         if (yes) {
             // A rental plot or trade point is never deleted by its tenant (it is the landlord's land).
-            if (!claim.isOwner(viewer.getUniqueId()) || claim.isRentalPlot()) {
+            if (plugin.getClaimManager().getClaimById(claim.getId()).orElse(null) != claim
+                    || !claim.isOwner(viewer.getUniqueId()) || claim.isRentalPlot()) {
                 viewer.closeInventory();
                 viewer.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
                 plugin.getConfigManager().playSound(viewer, "gui-error");

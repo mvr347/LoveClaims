@@ -3,6 +3,7 @@ package me.lovelace.loveclaims.gui;
 import me.lovelace.loveclaims.LoveClaims;
 import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
+import me.lovelace.loveclaims.model.RentalTerm;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -16,6 +17,7 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
 
     private final LoveClaims plugin;
     private final Claim plot;
+    private final RentalTerm term;
 
     public RentalAbandonConfirmGUI(LoveClaims plugin, Player viewer, Claim plot) {
         // The server's 27-slot confirm menu when its background and invisible item exist, otherwise 9 slots.
@@ -24,6 +26,7 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
                         : plugin.getConfigManager().getComponent("delete-confirm.title"));
         this.plugin = plugin;
         this.plot = plot;
+        this.term = RentalTerm.capture(plot);
         setMenuItems();
     }
 
@@ -75,6 +78,13 @@ public class RentalAbandonConfirmGUI extends AbstractGUI {
         boolean large = inventory.getSize() == ConfirmMenuLayout.SIZE;
         boolean yes = large ? ConfirmMenuLayout.isConfirm(event.getSlot()) : event.getSlot() == CONFIRM_SLOT;
         boolean no = large ? ConfirmMenuLayout.isCancel(event.getSlot()) : event.getSlot() == CANCEL_SLOT;
+        if ((yes || no) && !term.canAbandon(
+                plugin.getClaimManager().getClaimById(plot.getId()).orElse(null), player.getUniqueId())) {
+            player.closeInventory();
+            player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
+            plugin.getConfigManager().playSound(player, "gui-error");
+            return;
+        }
         if (no) {
             plugin.getConfigManager().playSound(player, "gui-click");
             player.openInventory(new RentalPlayerGUI(plugin, player, plot).getInventory());

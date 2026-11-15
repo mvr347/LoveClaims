@@ -47,7 +47,9 @@ public class Claim {
     private String hologramId = null;
     private long lastTaxTime = 0;
 
-    private transient boolean modified = true;
+    private final java.util.concurrent.atomic.AtomicLong modificationVersion =
+            new java.util.concurrent.atomic.AtomicLong(1);
+    private volatile long savedVersion;
 
     public Claim(UUID id, World world, BoundingBox boundingBox, UUID ownerUuid, Location anchorLocation) {
         this.id = id;
@@ -73,13 +75,13 @@ public class Claim {
 
     public void setBoundingBox(BoundingBox box) {
         this.boundingBox = box;
-        this.modified = true;
+        markModified();
     }
 
     public UUID getOwnerUuid() { return ownerUuid; }
     public void setOwnerUuid(UUID ownerUuid) {
         this.ownerUuid = ownerUuid;
-        this.modified = true;
+        markModified();
     }
 
     public Location getAnchorLocation() { return anchorLocation; }
@@ -98,13 +100,13 @@ public class Claim {
     }
     public void setName(String name) {
         this.name = sanitizeName(name);
-        this.modified = true;
+        markModified();
     }
 
     public String getDescription() { return description; }
     public void setDescription(String description) {
         this.description = description;
-        this.modified = true;
+        markModified();
     }
 
     public Location getHomeLocation() {
@@ -113,7 +115,7 @@ public class Claim {
 
     public void setHomeLocation(Location homeLocation) {
         this.homeLocation = homeLocation;
-        this.modified = true;
+        markModified();
     }
 
     public long getLastActive() { return lastActive; }
@@ -122,7 +124,7 @@ public class Claim {
     }
     public void updateLastActive() {
         this.lastActive = System.currentTimeMillis();
-        this.modified = true;
+        markModified();
     }
 
     public boolean hasPermission(UUID playerUuid, ClaimPermission permission) {
@@ -165,7 +167,7 @@ public class Claim {
         Set<ClaimPermission> perms = members.computeIfAbsent(playerUuid, k -> EnumSet.noneOf(ClaimPermission.class));
         if (state) perms.add(permission);
         else perms.remove(permission);
-        this.modified = true;
+        markModified();
     }
 
     public Set<ClaimPermission> getDefaultPermissions() {
@@ -177,13 +179,13 @@ public class Claim {
         if (perms != null) {
             this.defaultPermissions.addAll(perms);
         }
-        this.modified = true;
+        markModified();
     }
 
     public void setDefaultPermission(ClaimPermission permission, boolean state) {
         if (state) defaultPermissions.add(permission);
         else defaultPermissions.remove(permission);
-        this.modified = true;
+        markModified();
     }
 
     public void setTrust(UUID player, TrustLevel level) {
@@ -205,7 +207,7 @@ public class Claim {
             case NONE -> {}
         }
         members.put(player, perms);
-        this.modified = true;
+        markModified();
     }
 
     public TrustLevel getTrust(UUID player) {
@@ -228,7 +230,7 @@ public class Claim {
      */
     public void removePlayer(UUID playerUuid) {
         if (members.remove(playerUuid) != null) { // Проверяем, был ли игрок в списке
-            this.modified = true;
+            markModified();
         }
     }
 
@@ -238,7 +240,7 @@ public class Claim {
 
     public void setFlag(ClaimFlag flag, boolean state) {
         flags.put(flag, state);
-        this.modified = true;
+        markModified();
     }
 
     public Map<ClaimFlag, Boolean> getFlags() { return flags; }
@@ -246,63 +248,72 @@ public class Claim {
     public ClaimType getClaimType() { return claimType; }
     public void setClaimType(ClaimType claimType) {
         this.claimType = claimType;
-        this.modified = true;
+        markModified();
     }
 
     public boolean isClanTerritory() { return isClanTerritory; }
     public void setClanTerritory(boolean clanTerritory) {
         isClanTerritory = clanTerritory;
-        this.modified = true;
+        markModified();
     }
 
     public boolean isUnderSiege() { return isUnderSiege; }
     public void setUnderSiege(boolean underSiege) {
         isUnderSiege = underSiege;
-        this.modified = true;
+        markModified();
     }
 
     public String getOwnerDisplayName() { return ownerDisplayName; }
     public void setOwnerDisplayName(String ownerDisplayName) {
         this.ownerDisplayName = ownerDisplayName;
-        this.modified = true;
+        markModified();
     }
 
     public boolean overlaps(BoundingBox other) {
         return this.boundingBox.overlaps(other);
     }
 
-    public boolean isModified() { return modified; }
-    public void setModified(boolean modified) { this.modified = modified; }
+    public boolean isModified() { return modificationVersion.get() != savedVersion; }
+    public void setModified(boolean modified) {
+        if (modified) markModified();
+        else savedVersion = modificationVersion.get();
+    }
+    private void markModified() { modificationVersion.incrementAndGet(); }
+    public long getModificationVersion() { return modificationVersion.get(); }
+    /** A commit may clear only the version captured before preparing its SQL row. */
+    public void markSaved(long version) {
+        if (modificationVersion.get() == version) savedVersion = version;
+    }
 
     // Rental Getters/Setters
     public long getRentalPrice() { return rentalPrice; }
     public void setRentalPrice(long rentalPrice) {
         this.rentalPrice = rentalPrice;
-        this.modified = true;
+        markModified();
     }
 
     public long getRentalEndTime() { return rentalEndTime; }
     public void setRentalEndTime(long rentalEndTime) {
         this.rentalEndTime = rentalEndTime;
-        this.modified = true;
+        markModified();
     }
 
     public UUID getParentClaimId() { return parentClaimId; }
     public void setParentClaimId(UUID parentClaimId) {
         this.parentClaimId = parentClaimId;
-        this.modified = true;
+        markModified();
     }
 
     public IndicatorType getIndicatorType() { return indicatorType; }
     public void setIndicatorType(IndicatorType indicatorType) {
         this.indicatorType = indicatorType;
-        this.modified = true;
+        markModified();
     }
 
     public String getHologramId() { return hologramId; }
     public void setHologramId(String hologramId) {
         this.hologramId = hologramId;
-        this.modified = true;
+        markModified();
     }
 
     public boolean isRentalPlot() { return parentClaimId != null; }
@@ -310,7 +321,7 @@ public class Claim {
     public PlotType getPlotType() { return plotType; }
     public void setPlotType(PlotType plotType) {
         this.plotType = plotType == null ? PlotType.RENTAL_PLOT : plotType;
-        this.modified = true;
+        markModified();
     }
     public boolean isTradePoint() { return isRentalPlot() && plotType == PlotType.TRADE_POINT; }
 
@@ -323,6 +334,6 @@ public class Claim {
     public long getLastTaxTime() { return lastTaxTime; }
     public void setLastTaxTime(long lastTaxTime) {
         this.lastTaxTime = lastTaxTime;
-        this.modified = true;
+        markModified();
     }
 }
