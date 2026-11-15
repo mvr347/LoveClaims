@@ -111,6 +111,8 @@ public final class LoveClaims extends JavaPlugin {
             pm.registerEvents(this.anchorListener, this);
             pm.registerEvents(this.chatListener, this);
             pm.registerEvents(new ProtectionListener(this), this);
+            pm.registerEvents(new me.lovelace.loveclaims.listener.PropertyProtectionListener(this), this);
+            pm.registerEvents(new me.lovelace.loveclaims.listener.AutomationProtectionListener(this), this);
             pm.registerEvents(new me.lovelace.loveclaims.listener.ContainerProtectionListener(this), this);
             pm.registerEvents(new me.lovelace.loveclaims.listener.WorldClaimsListener(this), this);
             pm.registerEvents(new GuiListener(this), this);
