@@ -57,6 +57,7 @@ class AccessMenusTest {
     @Test void artworkConfirmationsWorkThroughItemsAdderWithoutItsPlaceholderExpansion(){
         MockBukkit.createMockPlugin("ItemsAdder");
         assertTrue(ConfirmMenuLayout.available(owner));
+        assertFalse(PlainTextComponentSerializer.plainText().serialize(ConfirmMenuLayout.title(owner)).contains("§"));
         var deletion=new DeleteConfirmGUI(plugin,owner,claim).getInventory();
         var payment=new RentalPaymentGUI(plugin,claim,owner).getInventory();
         var abandon=new RentalAbandonConfirmGUI(plugin,owner,claim).getInventory();

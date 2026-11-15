@@ -102,7 +102,7 @@ public final class ConfirmMenuLayout {
 
     public static Component title(Player viewer) {
         String resolved = resolveBackground(viewer);
-        return backgroundResolved(resolved) ? LegacyComponentSerializer.legacyAmpersand().deserialize(resolved) : Component.empty();
+        return backgroundResolved(resolved) ? LegacyComponentSerializer.legacyAmpersand().deserialize(resolved.replace('§', '&')) : Component.empty();
     }
 
     /** The invisible item with a name and lore, or null when ItemsAdder does not know it. */
