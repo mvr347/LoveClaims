@@ -74,6 +74,11 @@ public final class ContainerProtectionListener implements Listener {
       locations.add(location);
       return true;
     }
+    if (holder instanceof org.bukkit.entity.Entity entity && !(entity instanceof Player)) {
+      Location location = entity.getLocation();
+      if (location == null || location.getWorld() == null) return false;
+      locations.add(location);
+    }
     // Player/ender-chest inventories and virtual menus are not somebody else's block storage.
     return true;
   }

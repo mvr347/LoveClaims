@@ -28,8 +28,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
-import org.bukkit.event.player.PlayerBucketEmptyEvent;
-import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import me.lovelace.loveclaims.util.Notify;
 import java.util.Iterator;
@@ -422,60 +420,6 @@ public class ProtectionListener implements Listener {
         }
     }
 
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBucketEmpty(PlayerBucketEmptyEvent event) {
-        Player player = event.getPlayer();
-        if (hasBypass(player)) return;
-
-        org.bukkit.block.Block block = event.getBlockClicked().getRelative(event.getBlockFace());
-        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(block.getLocation());
-        if (claimOpt.isPresent()) {
-            Claim claim = claimOpt.get();
-
-            if (claim.isClanTerritory()) {
-                event.setCancelled(true);
-                return;
-            }
-
-            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
-                event.setCancelled(true);
-                deny(player, claim, plugin.getConfigManager().getMessage("deny-place"));
-            }
-            return;
-        }
-
-        if (isSpawnProtected(block.getLocation()) && !plugin.getConfigManager().getSpawnFlag("place-blocks")) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBucketFill(PlayerBucketFillEvent event) {
-        Player player = event.getPlayer();
-        if (hasBypass(player)) return;
-
-        org.bukkit.block.Block block = event.getBlockClicked();
-        Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(block.getLocation());
-        if (claimOpt.isPresent()) {
-            Claim claim = claimOpt.get();
-
-            if (claim.isClanTerritory()) {
-                event.setCancelled(true);
-                return;
-            }
-
-            if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
-                event.setCancelled(true);
-                deny(player, claim, plugin.getConfigManager().getMessage("deny-break"));
-            }
-            return;
-        }
-
-        if (isSpawnProtected(block.getLocation()) && !plugin.getConfigManager().getSpawnFlag("break-blocks")) {
-            event.setCancelled(true);
-        }
-    }
 
     @EventHandler(ignoreCancelled = true)
     public void onHangingBreak(HangingBreakByEntityEvent event) {
