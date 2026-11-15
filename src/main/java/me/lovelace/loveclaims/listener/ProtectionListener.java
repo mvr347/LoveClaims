@@ -292,7 +292,7 @@ public class ProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInteract(org.bukkit.event.player.PlayerInteractEvent event) {
         if (event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK && event.getAction() != org.bukkit.event.block.Action.PHYSICAL) return;
         if (hasBypass(event.getPlayer())) return;
@@ -633,7 +633,7 @@ public class ProtectionListener implements Listener {
      * Denies a click on a protected block. A consumable in hand only loses the block interaction, so eating and drinking next
      * to someone else's claim still works; cancelling the whole event would also cancel the item use.
      */
-    private void denyClick(org.bukkit.event.player.PlayerInteractEvent event) {
+    static void denyClick(org.bukkit.event.player.PlayerInteractEvent event) {
         if (isItemUse(event.getMaterial())) {
             event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
         } else {
