@@ -19,7 +19,7 @@ public class SettingsGUI extends AbstractGUI {
     private final Claim claim;
 
     public SettingsGUI(LoveClaims plugin, Player viewer, Claim claim) {
-        super(27, Component.text(plugin.getConfigManager().getGuiText("settings.title")));
+        super(27, plugin.getConfigManager().getComponent("settings.title"));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -46,24 +46,24 @@ public class SettingsGUI extends AbstractGUI {
             inventory.setItem(14, createDefaultAccessButton());
         } else {
             ItemStack barrier = createHead(HEAD_BARRIER,
-                    Component.text(plugin.getConfigManager().getString("settings.barrier-name")),
-                    List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore"))));
+                    plugin.getConfigManager().getComponent("settings.barrier-name"),
+                    plugin.getConfigManager().getHelpMessage("settings.barrier-lore"));
             inventory.setItem(12, barrier);
             inventory.setItem(14, barrier);
         }
 
         if (isOwner) {
             List<Component> moveLore = new ArrayList<>();
-            moveLore.add(Component.text("§7" + plugin.getConfigManager().getGuiText("settings.move-desc")));
+            moveLore.add(plugin.getConfigManager().getComponent("settings.move-desc"));
             moveLore.add(Component.text(" "));
-            moveLore.add(Component.text(plugin.getConfigManager().getGuiText("settings.states.click-toggle")));
+            moveLore.addAll(plugin.getConfigManager().getHelpMessage("settings.states.click-toggle"));
             inventory.setItem(16, createHead(HEAD_MOVE_ANCHOR,
-                    Component.text("§e" + plugin.getConfigManager().getGuiText("settings.move")),
+                    plugin.getConfigManager().getComponent("settings.move"),
                     moveLore));
         } else {
             inventory.setItem(16, createHead(HEAD_BARRIER,
-                    Component.text(plugin.getConfigManager().getString("settings.barrier-name")),
-                    List.of(Component.text(plugin.getConfigManager().getString("settings.barrier-lore")))));
+                    plugin.getConfigManager().getComponent("settings.barrier-name"),
+                    plugin.getConfigManager().getHelpMessage("settings.barrier-lore")));
         }
 
         // Footer (слоты 18-26, RULE 7):
@@ -71,13 +71,13 @@ public class SettingsGUI extends AbstractGUI {
         // Слот 25 (Позиция 7) — Back (возврат в MainClaimGUI)
         // Слот 26 (Позиция 8) — Close
         ItemStack deleteBtn = isOwner
-                ? createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("settings.delete")), null)
+                ? createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("settings.delete"), null)
                 : null;
 
         setFooterButtons(
                 deleteBtn,
-                createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null),
-                createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null)
+                createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null),
+                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
         );
 
         fillFrameGlass();
@@ -87,48 +87,40 @@ public class SettingsGUI extends AbstractGUI {
         me.lovelace.loveclaims.model.UserData data = plugin.getUserManager().getUserData(viewer.getUniqueId());
         boolean isEnabled = data.isShowProximityBorder();
 
-        String name = plugin.getConfigManager().getGuiText("settings.proximity-border.name");
-        Component compName = Component.text("§e" + (name != null ? name : "Границы при приближении"));
+        Component compName = plugin.getConfigManager().getComponent("settings.proximity-border.name");
 
         List<Component> lore = new ArrayList<>();
-        String desc = plugin.getConfigManager().getGuiText("settings.proximity-border.desc");
-        lore.add(Component.text("§7" + (desc != null ? desc : "Показ границ при приближении к привату")));
+        lore.addAll(plugin.getConfigManager().getHelpMessage("settings.proximity-border.desc"));
 
-        String stateStr = isEnabled
-                ? plugin.getConfigManager().getGuiText("settings.states.enabled")
-                : plugin.getConfigManager().getGuiText("settings.states.disabled");
 
-        lore.add(Component.text(plugin.getConfigManager().getGuiText("settings.states.status") + stateStr));
+        lore.add(plugin.getConfigManager().getComponent("settings.states.status").append(
+                plugin.getConfigManager().getComponent(isEnabled ? "settings.states.enabled" : "settings.states.disabled")));
         lore.add(Component.text(" "));
-        lore.add(Component.text(plugin.getConfigManager().getGuiText("settings.states.click-toggle")));
+        lore.addAll(plugin.getConfigManager().getHelpMessage("settings.states.click-toggle"));
 
         return createHead(HEAD_BORDER, compName, lore);
     }
 
     private ItemStack createDefaultAccessButton() {
-        String name = plugin.getConfigManager().getGuiText("settings.default-access.name");
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("§7" + plugin.getConfigManager().getGuiText("settings.default-access.desc")));
+        lore.add(plugin.getConfigManager().getComponent("settings.default-access.desc"));
         lore.add(Component.text(" "));
-        lore.add(Component.text(plugin.getConfigManager().getGuiText("settings.states.click-toggle")));
-        return createHead(HEAD_MEMBERS, Component.text(name), lore);
+        lore.addAll(plugin.getConfigManager().getHelpMessage("settings.states.click-toggle"));
+        return createHead(HEAD_MEMBERS, plugin.getConfigManager().getComponent("settings.default-access.name"), lore);
     }
 
     private ItemStack createAnchorToggle() {
-        String name = plugin.getConfigManager().getGuiText("settings.flags.hide");
-        Component compName = Component.text("§e" + name);
+        Component compName = plugin.getConfigManager().getComponent("settings.flags.hide");
 
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("§7" + plugin.getConfigManager().getGuiText("settings.flags.hide-desc")));
+        lore.add(plugin.getConfigManager().getComponent("settings.flags.hide-desc"));
 
         boolean isHidden = claim.getFlag(ClaimFlag.HIDE_ANCHOR);
-        String stateStr = isHidden
-                ? plugin.getConfigManager().getGuiText("settings.states.enabled")
-                : plugin.getConfigManager().getGuiText("settings.states.disabled");
 
-        lore.add(Component.text(plugin.getConfigManager().getGuiText("settings.states.status") + stateStr));
+        lore.add(plugin.getConfigManager().getComponent("settings.states.status").append(
+                plugin.getConfigManager().getComponent(isHidden ? "settings.states.enabled" : "settings.states.disabled")));
         lore.add(Component.text(" "));
-        lore.add(Component.text(plugin.getConfigManager().getGuiText("settings.states.click-toggle")));
+        lore.addAll(plugin.getConfigManager().getHelpMessage("settings.states.click-toggle"));
 
         return createHead(HEAD_HIDE_ANCHOR, compName, lore);
     }

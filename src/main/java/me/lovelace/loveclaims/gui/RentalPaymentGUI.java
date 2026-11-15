@@ -24,7 +24,13 @@ public class RentalPaymentGUI extends AbstractGUI {
     private boolean processing = false;
 
     public RentalPaymentGUI(LoveClaims plugin, Claim plot) {
-        super(9, plugin.getConfigManager().getComponent("rental-payment.title", "name", plot.getName()));
+        this(plugin, plot, null);
+    }
+
+    public RentalPaymentGUI(LoveClaims plugin, Claim plot, Player viewer) {
+        super(viewer != null && ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.SIZE : 9,
+                viewer != null && ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.title(viewer)
+                        : plugin.getConfigManager().getComponent("rental-payment.title", "name", plot.getName()));
         this.plugin = plugin;
         this.plot = plot;
         setMenuItems();
@@ -37,6 +43,13 @@ public class RentalPaymentGUI extends AbstractGUI {
         confirmLore.addAll(plugin.getConfigManager().getHelpMessage("rental-payment.info-lore", "name", plot.getName(), "price", priceFormatted));
         confirmLore.add(Component.empty());
         confirmLore.addAll(plugin.getConfigManager().getHelpMessage("rental-payment.confirm-lore", "price", priceFormatted));
+
+        if (inventory.getSize() == ConfirmMenuLayout.SIZE) {
+            var yes = ConfirmMenuLayout.button(plugin.getConfigManager().getComponent("rental-payment.confirm-name"), confirmLore);
+            var no = ConfirmMenuLayout.button(plugin.getConfigManager().getComponent("common.cancel"),
+                    plugin.getConfigManager().getHelpMessage("common.cancel-lore"));
+            if (yes != null && no != null) { ConfirmMenuLayout.fill(inventory, yes, no); return; }
+        }
 
         inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES,
                 plugin.getConfigManager().getComponent("rental-payment.confirm-name"),
@@ -55,10 +68,10 @@ public class RentalPaymentGUI extends AbstractGUI {
         event.setCancelled(true);
         Player player = (Player) event.getWhoClicked();
 
-        if (event.getSlot() == CANCEL_SLOT) {
+        if (inventory.getSize() == ConfirmMenuLayout.SIZE ? ConfirmMenuLayout.isCancel(event.getSlot()) : event.getSlot() == CANCEL_SLOT) {
             player.closeInventory();
             plugin.getConfigManager().playSound(player, "gui-click");
-        } else if (event.getSlot() == CONFIRM_SLOT) {
+        } else if (inventory.getSize() == ConfirmMenuLayout.SIZE ? ConfirmMenuLayout.isConfirm(event.getSlot()) : event.getSlot() == CONFIRM_SLOT) {
             if (processing) return;
             processing = true;
 

@@ -48,7 +48,7 @@ public class RentalMembersGUI extends AbstractGUI {
         // gui-gen-5 RULE 3: слот 0 — тематическая иконка (участники арендного плота).
         inventory.setItem(0, createHead(HEAD_MEMBERS, plugin.getConfigManager().getComponent("members.title"), null));
 
-        boolean hasPseudoEntry = isManagerOrOwner ? claim.getMembers().size() < maxMembers : true;
+        boolean hasPseudoEntry = claim.getMembers().isEmpty();
         if (hasPseudoEntry) renderedEntries.add(ADD_MEMBER_MARKER);
         renderedEntries.addAll(claim.getMembers().keySet());
 
@@ -90,7 +90,9 @@ public class RentalMembersGUI extends AbstractGUI {
         }
 
         setFooterButtons(
-                null,
+                !claim.getMembers().isEmpty() && isManagerOrOwner && claim.getMembers().size() < maxMembers
+                        ? createHead(HEAD_ADD_MEMBER, plugin.getConfigManager().getComponent("members.add-name"),
+                            plugin.getConfigManager().getHelpMessage("members.add-lore", "free", String.valueOf(maxMembers - claim.getMembers().size()))) : null,
                 createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null),
                 createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
         );
@@ -111,6 +113,10 @@ public class RentalMembersGUI extends AbstractGUI {
     @Override
     public void handleClick(InventoryClickEvent event) {
         int slot = event.getSlot();
+        if (slot == 33 && !claim.getMembers().isEmpty() && claim.isManager(viewer.getUniqueId())) {
+            MemberInviteDialog.open(plugin, viewer, claim);
+            return;
+        }
         int size = inventory.getSize();
 
         if (slot == size - 1) {
@@ -139,8 +145,7 @@ public class RentalMembersGUI extends AbstractGUI {
             viewer.closeInventory();
             plugin.getConfigManager().playSound(viewer, "gui-click");
 
-            plugin.getChatListener().setPendingMember(viewer.getUniqueId(), claim.getId());
-            viewer.sendMessage(plugin.getConfigManager().getComponent("chat-enter-member"));
+            MemberInviteDialog.open(plugin, viewer, claim);
             return;
         }
 

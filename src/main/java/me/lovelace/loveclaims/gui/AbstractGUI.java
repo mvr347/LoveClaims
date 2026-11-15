@@ -1,4 +1,5 @@
 package me.lovelace.loveclaims.gui;
+import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -75,6 +76,15 @@ public abstract class AbstractGUI implements InventoryHolder {
             head.setItemMeta(meta);
         }
         return head;
+    }
+
+    protected static String permissionTexture(me.lovelace.loveclaims.model.ClaimPermission permission) {
+        return switch (permission) {
+            case BUILD -> HEAD_PERMISSION_BUILD;
+            case CONTAINERS -> HEAD_PERMISSION_CONTAINERS;
+            case INTERACT -> HEAD_PERMISSION_INTERACT;
+            case MANAGE -> HEAD_PERMISSION_MANAGE;
+        };
     }
 
     // ===== gui-gen-5: общие хелперы Header/Footer-рамки =====

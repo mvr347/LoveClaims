@@ -255,15 +255,14 @@ public class ConfigManager {
     }
 
     public List<Component> getHelpMessage(String path, String... placeholders) {
-        List<String> list = lang.getStringList(path);
+        List<String> lines = lang.getStringList(path);
+        if (lines.isEmpty()) lines = List.of(lang.getString(path, ""));
         List<Component> result = new ArrayList<>();
-        for (String line : list) {
-            for (int i = 0; i < placeholders.length; i += 2) {
-                if (i + 1 < placeholders.length) {
-                    line = line.replace("{" + placeholders[i] + "}", placeholders[i+1]);
-                }
-            }
-            result.add(mm.deserialize(convertLegacyToMiniMessage(line)));
+        for (String value : lines) {
+            for (int i = 0; i + 1 < placeholders.length; i += 2)
+                value = value.replace("{" + placeholders[i] + "}", placeholders[i + 1]);
+            for (String line : value.replace("\\n", "\n").split("\n", -1))
+                result.add(mm.deserialize(convertLegacyToMiniMessage(line)));
         }
         return result;
     }

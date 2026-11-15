@@ -20,7 +20,7 @@ public class DefaultPermissionsGUI extends AbstractGUI {
     private final Claim claim;
 
     public DefaultPermissionsGUI(LoveClaims plugin, Player viewer, Claim claim) {
-        super(27, Component.text(plugin.getConfigManager().getGuiText("settings.default-access.title")));
+        super(27, plugin.getConfigManager().getComponent("settings.default-access.title"));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -33,8 +33,8 @@ public class DefaultPermissionsGUI extends AbstractGUI {
 
         // gui-gen-5: Слот 0 — тематическая голова меню
         inventory.setItem(0, createHead(HEAD_MEMBERS,
-                Component.text(plugin.getConfigManager().getGuiText("settings.default-access.name")),
-                List.of(Component.text(plugin.getConfigManager().getGuiText("settings.default-access.desc")))));
+                plugin.getConfigManager().getComponent("settings.default-access.name"),
+                List.of(plugin.getConfigManager().getComponent("settings.default-access.desc"))));
 
         // Рабочая зона: ряд 1 (слоты 9-17). Слоты 9 и 17 пустые.
         // 3 кнопки центрированы на слотах 11, 13, 15
@@ -45,35 +45,33 @@ public class DefaultPermissionsGUI extends AbstractGUI {
         // Footer: Back (25) и Close (26)
         setFooterButtons(
                 null,
-                createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null),
-                createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null)
+                createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null),
+                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
         );
 
         fillFrameGlass();
     }
 
     private ItemStack createPermissionButton(ClaimPermission permission, Material material) {
-        ItemStack item = new ItemStack(material);
+        ItemStack item = createHead(permissionTexture(permission), null, null);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             String nameKey = "permissions." + permission.name().toLowerCase() + ".name";
             String descKey = "permissions." + permission.name().toLowerCase() + ".desc";
 
-            meta.displayName(Component.text(plugin.getConfigManager().getGuiText(nameKey)));
+            meta.displayName(plugin.getConfigManager().getComponent(nameKey));
 
             List<Component> lore = new ArrayList<>();
-            lore.add(Component.text(plugin.getConfigManager().getGuiText(descKey)));
+            lore.add(plugin.getConfigManager().getComponent(descKey));
             lore.add(Component.text(" "));
 
             boolean enabled = claim.getDefaultPermissions().contains(permission);
-            String status = enabled
-                    ? plugin.getConfigManager().getGuiText("permissions.status-enabled")
-                    : plugin.getConfigManager().getGuiText("permissions.status-disabled");
 
-            lore.add(Component.text("§7Статус: " + status));
-            lore.add(Component.text(plugin.getConfigManager().getGuiText("permissions.public-warning")));
+            lore.add(plugin.getConfigManager().getComponent("settings.states.status")
+                    .append(plugin.getConfigManager().getComponent(enabled ? "permissions.status-enabled" : "permissions.status-disabled")));
+            lore.add(plugin.getConfigManager().getComponent("permissions.public-warning"));
             lore.add(Component.text(" "));
-            lore.add(Component.text(plugin.getConfigManager().getGuiText("permissions.click-toggle")));
+            lore.addAll(plugin.getConfigManager().getHelpMessage("permissions.click-toggle"));
 
             meta.lore(lore);
             item.setItemMeta(meta);
