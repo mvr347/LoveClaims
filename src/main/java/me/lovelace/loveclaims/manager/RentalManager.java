@@ -265,6 +265,8 @@ public class RentalManager {
         plugin.getClaimManager().changeOwner(plot, landlord);
         plot.setExpiryWarned(false);
         clearMembers(plot);
+        // Persist the completed release immediately; do not wait for the periodic autosave.
+        plugin.getStorage().saveClaimAsync(plot);
         updateIndicator(plot);
         if (plot.isTradePoint() && former != null && !former.equals(landlord)) {
             Bukkit.getPluginManager().callEvent(new TradePointReleasedEvent(former, plot, reason));
