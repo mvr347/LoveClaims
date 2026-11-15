@@ -34,6 +34,7 @@ public class ChatListener implements Listener {
 
     public void cleanupPlayer(Player player) {
         UUID uuid = player.getUniqueId();
+        me.lovelace.loveclaims.gui.MemberInviteDialog.cancel(player);
         pendingDesc.remove(uuid);
         pendingMember.remove(uuid);
         pendingPrice.remove(uuid);
@@ -77,82 +78,13 @@ public class ChatListener implements Listener {
             return;
         }
 
-        // --- Добавление участника (Инвайт через GUI) ---
+        // Chat and the native input dialog use the same invitation validation.
         if (pendingMember.containsKey(uuid)) {
             UUID claimId = pendingMember.remove(uuid);
-            Bukkit.getScheduler().runTask(plugin, () -> { // Выполняем синхронно
-                Optional<Claim> claimOpt = plugin.getClaimManager().getClaimById(claimId);
-                if (claimOpt.isEmpty()) return;
-                Claim claim = claimOpt.get();
-
-                if (!claim.isManager(uuid) || claim.isClanTerritory()) {
-                    player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
-                    return;
-                }
-
-                if (claim.isTradePoint()) {
-                    player.sendMessage(plugin.getConfigManager().getMessage("trade-point-no-members"));
-                    return;
-                }
-
-                OfflinePlayer target = Bukkit.getOfflinePlayerIfCached(text);
-                if (target == null || (!target.hasPlayedBefore() && !target.isOnline())) {
-                    player.sendMessage(plugin.getConfigManager().getMessage("member-not-found"));
-                    if (claim.isRentalPlot()) {
-                        player.openInventory(new me.lovelace.loveclaims.gui.RentalMembersGUI(plugin, player, claim).getInventory());
-                    } else {
-                        player.openInventory(new me.lovelace.loveclaims.gui.MembersGUI(plugin, player, claim).getInventory());
-                    }
-                    return;
-                }
-
-                if (claim.isOwner(target.getUniqueId()) || claim.getMembers().containsKey(target.getUniqueId())) {
-                    player.sendMessage(plugin.getConfigManager().getMessage("member-already-exists"));
-                    if (claim.isRentalPlot()) {
-                        player.openInventory(new me.lovelace.loveclaims.gui.RentalMembersGUI(plugin, player, claim).getInventory());
-                    } else {
-                        player.openInventory(new me.lovelace.loveclaims.gui.MembersGUI(plugin, player, claim).getInventory());
-                    }
-                    return;
-                }
-
-                // ПРОВЕРКА ЛИМИТОВ: Не более 5 чужих приватов и не более 5 чужих плотов
-                int memberCount = 0;
-                for (Claim c : plugin.getClaimManager().getAllClaims()) {
-                    if (c.isRentalPlot() == claim.isRentalPlot() && c.getMembers().containsKey(target.getUniqueId()) && (c.getOwnerUuid() == null || !c.getOwnerUuid().equals(target.getUniqueId()))) {
-                        memberCount++;
-                    }
-                }
-
-                if (memberCount >= 5) {
-                    player.sendMessage(Component.text("§cЭтот игрок уже состоит в максимальном количестве " + (claim.isRentalPlot() ? "чужих плотов (5)!" : "чужих приватов (5)!")));
-                    return;
-                }
-
-                int defaultLimit = plugin.getConfigManager().getConfig().getInt("claim.members.default-limit", 5);
-                int absoluteLimit = plugin.getConfigManager().getConfig().getInt("claim.members.absolute-limit", 24);
-                int maxMembers = claim.isRentalPlot() ? 10 : Math.min(absoluteLimit, defaultLimit);
-
-                if (claim.getMembers().size() >= maxMembers) {
-                    player.sendMessage(plugin.getConfigManager().getMessage("limit-members"));
-                    return;
-                }
-
-                plugin.getClaimManager().addInvite(target.getUniqueId(), claimId, uuid);
-                player.sendMessage(plugin.getConfigManager().getMessage("invite-sent", "player", target.getName()));
-                plugin.getConfigManager().playSound(player, "gui-click");
-
-                if (target.isOnline() && target.getPlayer() != null) {
-                    Component msg = plugin.getConfigManager().getMessage("invite-received", "player", player.getName())
-                            .append(plugin.getConfigManager().getMessage("invite-accept-btn")
-                                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/ac invite confirm"))
-                                    .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(plugin.getConfigManager().getMessage("invite-accept-hover"))));
-                    target.getPlayer().sendMessage(msg);
-                    plugin.getConfigManager().playSound(target.getPlayer(), "anchor-place");
-                }
-            });
+            Bukkit.getScheduler().runTask(plugin, () -> inviteMember(player, claimId, text));
             return;
         }
+
 
         // --- Изменение цены аренды ---
         if (pendingPrice.containsKey(uuid)) {
@@ -183,5 +115,78 @@ public class ChatListener implements Listener {
                 }
             });
         }
+    }
+    public void inviteMember(Player player, UUID claimId, String text) {
+        if (!player.isOnline()) return;
+        UUID uuid = player.getUniqueId();
+    Optional<Claim> claimOpt = plugin.getClaimManager().getClaimById(claimId);
+    if (claimOpt.isEmpty()) return;
+    Claim claim = claimOpt.get();
+
+    if (!claim.isManager(uuid) || claim.isClanTerritory()) {
+        player.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
+        return;
+    }
+
+    if (claim.isTradePoint()) {
+        player.sendMessage(plugin.getConfigManager().getMessage("trade-point-no-members"));
+        return;
+    }
+
+    OfflinePlayer target = Bukkit.getOfflinePlayerIfCached(text);
+    if (target == null || (!target.hasPlayedBefore() && !target.isOnline())) {
+        player.sendMessage(plugin.getConfigManager().getMessage("member-not-found"));
+        if (claim.isRentalPlot()) {
+            player.openInventory(new me.lovelace.loveclaims.gui.RentalMembersGUI(plugin, player, claim).getInventory());
+        } else {
+            player.openInventory(new me.lovelace.loveclaims.gui.MembersGUI(plugin, player, claim).getInventory());
+        }
+        return;
+    }
+
+    if (claim.isOwner(target.getUniqueId()) || claim.getMembers().containsKey(target.getUniqueId())) {
+        player.sendMessage(plugin.getConfigManager().getMessage("member-already-exists"));
+        if (claim.isRentalPlot()) {
+            player.openInventory(new me.lovelace.loveclaims.gui.RentalMembersGUI(plugin, player, claim).getInventory());
+        } else {
+            player.openInventory(new me.lovelace.loveclaims.gui.MembersGUI(plugin, player, claim).getInventory());
+        }
+        return;
+    }
+
+    // ПРОВЕРКА ЛИМИТОВ: Не более 5 чужих приватов и не более 5 чужих плотов
+    int memberCount = 0;
+    for (Claim c : plugin.getClaimManager().getAllClaims()) {
+        if (c.isRentalPlot() == claim.isRentalPlot() && c.getMembers().containsKey(target.getUniqueId()) && (c.getOwnerUuid() == null || !c.getOwnerUuid().equals(target.getUniqueId()))) {
+            memberCount++;
+        }
+    }
+
+    if (memberCount >= 5) {
+        player.sendMessage(Component.text("§cЭтот игрок уже состоит в максимальном количестве " + (claim.isRentalPlot() ? "чужих плотов (5)!" : "чужих приватов (5)!")));
+        return;
+    }
+
+    int defaultLimit = plugin.getConfigManager().getConfig().getInt("claim.members.default-limit", 5);
+    int absoluteLimit = plugin.getConfigManager().getConfig().getInt("claim.members.absolute-limit", 24);
+    int maxMembers = claim.isRentalPlot() ? 10 : Math.min(absoluteLimit, defaultLimit + plugin.getUserManager().getUserData(claim.getOwnerUuid()).getBonusMemberLimit());
+
+    if (claim.getMembers().size() >= maxMembers) {
+        player.sendMessage(plugin.getConfigManager().getMessage("limit-members"));
+        return;
+    }
+
+    plugin.getClaimManager().addInvite(target.getUniqueId(), claimId, uuid);
+    player.sendMessage(plugin.getConfigManager().getMessage("invite-sent", "player", target.getName()));
+    plugin.getConfigManager().playSound(player, "gui-click");
+
+    if (target.isOnline() && target.getPlayer() != null) {
+        Component msg = plugin.getConfigManager().getMessage("invite-received", "player", player.getName())
+                .append(plugin.getConfigManager().getMessage("invite-accept-btn")
+                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/ac invite confirm"))
+                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(plugin.getConfigManager().getMessage("invite-accept-hover"))));
+        target.getPlayer().sendMessage(msg);
+        plugin.getConfigManager().playSound(target.getPlayer(), "anchor-place");
+    }
     }
 }

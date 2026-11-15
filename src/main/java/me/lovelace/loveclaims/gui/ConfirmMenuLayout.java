@@ -51,7 +51,7 @@ public final class ConfirmMenuLayout {
         for (String candidate : new String[]{"dev.beer.itemsadder.api.CustomStack", "beer.devs.itemsadder.api.CustomStack",
                 "dev.lone.itemsadder.api.CustomStack"}) {
             try {
-                Class<?> clazz = Class.forName(candidate);
+                Class<?> clazz = Class.forName(candidate, true, Bukkit.getPluginManager().getPlugin("ItemsAdder").getClass().getClassLoader());
                 Method getInstance = clazz.getMethod("getInstance", String.class);
                 Object stack = getInstance.invoke(null, INVISIBLE_ITEM);
                 if (stack == null) return null;
@@ -70,17 +70,39 @@ public final class ConfirmMenuLayout {
      * would have no background and no visible labels, so the visible 9-slot window must be kept.
      */
     public static boolean available(Player viewer) {
-        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI") || invisibleItem() == null) return false;
-        return backgroundResolved(PlaceholderAPI.setPlaceholders(viewer, TITLE));
+        return invisibleItem() != null && backgroundResolved(resolveBackground(viewer));
     }
 
-    /** A title counts as resolved when no unresolved {@code %placeholder%} is left in it. */
+    private static String resolveBackground(Player viewer) {
+        var ia = Bukkit.getPluginManager().getPlugin("ItemsAdder");
+        if (ia == null || !ia.isEnabled()) return null;
+        for (String title : new String[]{TITLE, "&f%img_offset_-8%%img_confirm%"}) {
+            String resolved = title;
+            if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                resolved = PlaceholderAPI.setPlaceholders(viewer, title);
+                if (backgroundResolved(resolved)) return resolved;
+            }
+            // Resolve the font image through ItemsAdder itself too: its PAPI expansion is optional.
+            String marker = title.replaceAll("%img_([^%]+)%", ":$1:");
+            for (String root : new String[]{"dev.lone.itemsadder.api", "dev.beer.itemsadder.api", "beer.devs.itemsadder.api"}) {
+                try {
+                    var fonts = Class.forName(root + ".FontImages.FontImageWrapper", true, ia.getClass().getClassLoader());
+                    resolved = (String) fonts.getMethod("replaceFontImages", String.class).invoke(null, marker);
+                    if (backgroundResolved(resolved)) return resolved;
+                } catch (ReflectiveOperationException | LinkageError ignored) { }
+            }
+        }
+        return null;
+    }
+
     static boolean backgroundResolved(String resolved) {
-        return resolved != null && !resolved.contains("%img_") && !resolved.contains("%offset") && !resolved.isBlank();
+        return resolved != null && !resolved.contains("%img_") && !resolved.contains("%offset")
+                && !resolved.contains(":confirm") && !resolved.contains(":offset_") && !resolved.isBlank();
     }
 
     public static Component title(Player viewer) {
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(PlaceholderAPI.setPlaceholders(viewer, TITLE));
+        String resolved = resolveBackground(viewer);
+        return backgroundResolved(resolved) ? LegacyComponentSerializer.legacyAmpersand().deserialize(resolved) : Component.empty();
     }
 
     /** The invisible item with a name and lore, or null when ItemsAdder does not know it. */

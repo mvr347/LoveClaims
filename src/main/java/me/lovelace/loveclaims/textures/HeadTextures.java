@@ -55,4 +55,8 @@ public final class HeadTextures {
 
     public static final String HEAD_BORDER =
             HeadsConfig.get("border", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTRiZTVhN2NlMWE4YjVlYjQzNzRhYjhkOTM3MTQ0N2MzMjhhNWM4ZDI3NjI2YmE3NjE3NDYwY2NlNDcyNmNhNSJ9fX0=");
+    public static final String HEAD_PERMISSION_BUILD = HeadsConfig.get("permission-build", HEAD_MOVE_ANCHOR);
+    public static final String HEAD_PERMISSION_CONTAINERS = HeadsConfig.get("permission-containers", HEAD_INFO);
+    public static final String HEAD_PERMISSION_INTERACT = HeadsConfig.get("permission-interact", HEAD_HIDE_ANCHOR);
+    public static final String HEAD_PERMISSION_MANAGE = HeadsConfig.get("permission-manage", HEAD_SETTINGS);
 }

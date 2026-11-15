@@ -82,7 +82,7 @@ public class LandlordListener implements Listener {
                         }
 
                         // Открываем GUI напрямую (игнорируя проверку позиции)
-                        player.openInventory(new me.lovelace.loveclaims.gui.RentalPaymentGUI(plugin, c).getInventory());
+                        player.openInventory(new me.lovelace.loveclaims.gui.RentalPaymentGUI(plugin, c, player).getInventory());
                         return;
                     }
                 }

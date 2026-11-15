@@ -176,7 +176,7 @@ public class RentalCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(plugin.getConfigManager().getMessage("rental-limit-reached"));
             return;
         }
-        player.openInventory(new RentalPaymentGUI(plugin, targetPlot).getInventory());
+        player.openInventory(new RentalPaymentGUI(plugin, targetPlot, player).getInventory());
     }
 
     private void handleSellCommand(Player player, String[] args) {

@@ -24,7 +24,7 @@ public class DeleteConfirmGUI extends AbstractGUI {
         // The server's 27-slot confirm menu when its background and invisible item exist, otherwise 9 slots.
         super(ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.SIZE : 9,
                 ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.title(viewer)
-                        : Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title")));
+                        : plugin.getConfigManager().getComponent("delete-confirm.title"));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -34,17 +34,17 @@ public class DeleteConfirmGUI extends AbstractGUI {
     @Override
     protected void setMenuItems() {
         if (inventory.getSize() == ConfirmMenuLayout.SIZE) {
-            var yes = ConfirmMenuLayout.button(Component.text(plugin.getConfigManager().getGuiText("delete-confirm.confirm")),
-                    List.of(Component.text(plugin.getConfigManager().getGuiText("delete-confirm.title"))));
-            var no = ConfirmMenuLayout.button(Component.text(plugin.getConfigManager().getGuiText("delete-confirm.cancel")), List.of());
+            var yes = ConfirmMenuLayout.button(plugin.getConfigManager().getComponent("delete-confirm.confirm"),
+                    List.of(plugin.getConfigManager().getComponent("delete-confirm.title")));
+            var no = ConfirmMenuLayout.button(plugin.getConfigManager().getComponent("delete-confirm.cancel"), List.of());
             if (yes != null && no != null) {
                 ConfirmMenuLayout.fill(inventory, yes, no);
                 return;
             }
         }
         // gui-gen-5 Исключение 1: "Назад" в этом шаблоне нет — "Отменить" (✗) уже возвращает в SettingsGUI.
-        inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.confirm")), null));
-        inventory.setItem(CANCEL_SLOT, createHead(HEAD_DELETE_NO, Component.text(plugin.getConfigManager().getGuiText("delete-confirm.cancel")), null));
+        inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES, plugin.getConfigManager().getComponent("delete-confirm.confirm"), null));
+        inventory.setItem(CANCEL_SLOT, createHead(HEAD_DELETE_NO, plugin.getConfigManager().getComponent("delete-confirm.cancel"), null));
         setGlass(0, 2, 6, 8);
         // Слоты 3,4,5 остаются пустыми (AIR) — визуальный разделитель по шаблону.
     }

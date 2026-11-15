@@ -45,7 +45,7 @@ public class RentalInteractListener implements Listener {
                             return;
                         }
                         event.setCancelled(true);
-                        event.getPlayer().openInventory(new RentalPaymentGUI(plugin, claim).getInventory());
+                        event.getPlayer().openInventory(new RentalPaymentGUI(plugin, claim, event.getPlayer()).getInventory());
                         // Short outline so the buyer sees exactly which plot is on offer.
                         me.lovelace.loveclaims.task.ParticleBorder.show(plugin, event.getPlayer(), claim.getBoundingBox(),
                                 Math.max(1L, plugin.getConfigManager().getConfig().getLong("proximity-border.rental-preview-seconds", 3L)) * 20L,

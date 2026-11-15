@@ -275,7 +275,7 @@ members.add-name: "&aДобавить игрока"
 members.add-lore:
   - "&7Свободно мест: &b{free}"
   - "&8&m─────────────────────"
-  - "&aЛКМ &8— &7вписать ник в чат"
+  - "&aЛКМ &8— &7ввести ник в диалоге"
 members.member-name: "&e{player}"
 members.member-lore:
   - "&7Текущая роль: &b{role}"
@@ -474,3 +474,8 @@ taxer-head:
   line2: "<gray>за ваши арендованные участки.</gray>"
 
 permissions.public-warning: "&eЭти разрешения действуют и для неучастников привата"
+members.dialog.title: "<gold>Добавить участника"
+members.dialog.body: "<gray>Введите ник игрока. Он получит приглашение и станет участником после принятия."
+members.dialog.name: "<yellow>Ник игрока"
+members.dialog.send: "<green>Отправить приглашение"
+member-action.profile-lore: "<gray>Настройка прав доступа"

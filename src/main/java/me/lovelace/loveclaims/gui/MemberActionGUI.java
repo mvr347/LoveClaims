@@ -25,7 +25,7 @@ public class MemberActionGUI extends AbstractGUI {
     private final UUID targetId;
 
     public MemberActionGUI(LoveClaims plugin, Player viewer, Claim claim, UUID targetId) {
-        super(27, Component.text(plugin.getConfigManager().getGuiText("member-action.title")));
+        super(27, plugin.getConfigManager().getComponent("member-action.title"));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -45,9 +45,9 @@ public class MemberActionGUI extends AbstractGUI {
         SkullMeta headMeta = (SkullMeta) head.getItemMeta();
         if (headMeta != null) {
             me.lovelace.loveclaims.util.PlayerHeads.apply(headMeta, target);
-            headMeta.displayName(Component.text("§e" + targetName));
+            headMeta.displayName(plugin.getConfigManager().getComponent("members.member-name", "player", targetName));
             List<Component> headLore = new ArrayList<>();
-            headLore.add(Component.text("§7Настройка прав доступа"));
+            headLore.add(plugin.getConfigManager().getComponent("member-action.profile-lore"));
             headMeta.lore(headLore);
             head.setItemMeta(headMeta);
         }
@@ -65,39 +65,37 @@ public class MemberActionGUI extends AbstractGUI {
         // Слот 25 — Назад
         // Слот 26 — Закрыть
         ItemStack kickBtn = createHead(HEAD_BARRIER,
-                Component.text(plugin.getConfigManager().getGuiText("member-action.kick-button")),
-                List.of(Component.text(plugin.getConfigManager().getGuiText("member-action.kick-button-lore"))));
+                plugin.getConfigManager().getComponent("member-action.kick-button"),
+                plugin.getConfigManager().getHelpMessage("member-action.kick-button-lore"));
 
         setFooterButtons(
                 kickBtn,
-                createHead(HEAD_BACK, Component.text(plugin.getConfigManager().getGuiText("common.back")), null),
-                createHead(HEAD_BARRIER, Component.text(plugin.getConfigManager().getGuiText("common.close")), null)
+                createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null),
+                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
         );
 
         fillFrameGlass();
     }
 
     private ItemStack createPermissionToggle(ClaimPermission permission, Material material) {
-        ItemStack item = new ItemStack(material);
+        ItemStack item = createHead(permissionTexture(permission), null, null);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             String nameKey = "permissions." + permission.name().toLowerCase() + ".name";
             String descKey = "permissions." + permission.name().toLowerCase() + ".desc";
 
-            meta.displayName(Component.text(plugin.getConfigManager().getGuiText(nameKey)));
+            meta.displayName(plugin.getConfigManager().getComponent(nameKey));
 
             List<Component> lore = new ArrayList<>();
-            lore.add(Component.text(plugin.getConfigManager().getGuiText(descKey)));
+            lore.add(plugin.getConfigManager().getComponent(descKey));
             lore.add(Component.text(" "));
 
             boolean enabled = claim.hasPermission(targetId, permission);
-            String status = enabled
-                    ? plugin.getConfigManager().getGuiText("permissions.status-enabled")
-                    : plugin.getConfigManager().getGuiText("permissions.status-disabled");
 
-            lore.add(Component.text("§7Статус: " + status));
+            lore.add(plugin.getConfigManager().getComponent("settings.states.status")
+                    .append(plugin.getConfigManager().getComponent(enabled ? "permissions.status-enabled" : "permissions.status-disabled")));
             lore.add(Component.text(" "));
-            lore.add(Component.text(plugin.getConfigManager().getGuiText("permissions.click-toggle")));
+            lore.addAll(plugin.getConfigManager().getHelpMessage("permissions.click-toggle"));
 
             meta.lore(lore);
             item.setItemMeta(meta);
