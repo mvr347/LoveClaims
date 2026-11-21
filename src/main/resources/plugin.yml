@@ -23,6 +23,9 @@ permissions:
   loveclaims.admin:
     description: Доступ к /loveclaimsadmin
     default: op
+  loveclaims.admin.gems:
+    description: Управление гемами (/loveclaims gem)
+    default: op
   loveclaims.bypass:
     description: Игнорирование защиты ВСЕХ приватов (выдаётся явно, включая операторов)
     default: false

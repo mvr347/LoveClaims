@@ -1,239 +1,172 @@
 # ====================================================== #
-#              AdvancedClaims - Якоря                    #
+#               LoveClaims - Якоря Приватов              #
 # ====================================================== #
-# Конфигурация уровней якорей для создания приватов.
-# 
-# ===== МОЖНО ЛИ ИЗМЕНЯТЬ ТИРЫ? =====
-# 
-# ✅ ДА! Вы можете безопасно:
-# - Добавлять новые тиры (tier-7, tier-8, и т.д.)
-# - Удалять существующие тиры
-# - Изменять радиусы и материалы
-# - Изменять названия и описания
-# 
-# Плагин НЕ сломается! Тиры загружаются динамически
-# при старте сервера из этого файла.
-# 
-# ===== КАК ДОБАВИТЬ НОВЫЙ ТИР =====
-# 1. Скопируйте структуру существующего тира
-# 2. Измените ID на новый (например, tier-7)
-# 3. Настройте материал, радиусы, название
-# 4. Сохраните файл и выполните /ac admin reload
-# 
-# ===== КАК УДАЛИТЬ ТИР =====
-# 1. Удалите секцию тира из этого файла
-# 2. Сохраните и выполните /ac admin reload
-# 
-# Примечание: Игроки, у которых уже есть якоря
-# удалённого тира, сохранят свои приваты.
-# 
-# ===== ВАЖНЫЕ ПОЛЯ =====
-# - material: Блок якоря (обязательно)
-# - radius-x/y/z: Размер привата (обязательно)
-# - name: Название предмета (MiniMessage)
-# - lore: Описание предмета (список строк)
-# - custom-model-data: Кастомная модель (0 = нет)
-# - permission: Требуемая пермишн ("none" = всем)
-# - create-cost: Стоимость создания (0 = бесплатно). Число (медные) или строка "5i" (c/i/g/d = медная/железная/золотая/алмазная).
-#   2026-10-03: значения пересчитаны под номиналы 1/100/2000/20000. ВНИМАНИЕ: ключ пока НЕ ИСПОЛЬЗУЕТСЯ — плата за
-#   установку якоря не списывается (подключение — отдельное решение). Сохранён, чтобы суммы были готовы.
-# - border-color: Цвет границы (RGB)
-# - place-sound: Звук установки
-# - break-sound: Звук разрушения
+# 3 уровня якорей с Обычным и Модифицированным подтипом.
+# Апгрейд Обычный -> Модифицированный выполняется у NPC.
+# Переход между уровнями I -> II -> III — на верстаке.
 # ====================================================== #
 
 tiers:
-  # ===== ТИР 1: НАЧИНАЮЩИЙ =====
-  # Базовый уровень для новых игроков
-  # Размер привата: 17x17x17 блоков (радиус 8)
   tier-1:
-    # Материал якоря - блок, который используется как якорь
-    # Доступные материалы: CAMPFIRE, SOUL_CAMPFIRE, LANTERN, и т.д.
+    anchor-level: 1
+    modified: false
+    gem-slots: 3
+    upgrade-target: "tier-1-mod"
+    upgrade-cost: "5i"
     material: "CAMPFIRE"
-    
-    # Название предмета в инвентаре
-    # Использует MiniMessage форматирование
     name: "<green>Якорь Привата I</green>"
-    
-    # Описание предмета (lore)
-    # Каждая строка - новая линия в описании
     lore:
-      - "<gray>Создаёт приват размером 17x17x17</gray>"
+      - "<gray>Создаёт приват размером 25x25</gray>"
       - ""
       - "<white>Характеристики:</white>"
-      - "<gray>• Радиус: 8 блоков</gray>"
-      - "<gray>• Высота: 17 блоков</gray>"
+      - "<gray>• Радиус: <white>12</white> блоков</gray>"
+      - "<gray>• Слоты гемов: <aqua>3</aqua></gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
-    
-    # Радиус привата по оси X (половина ширины)
-    # Общий размер = radius-x * 2 + 1
-    radius-x: 8
-    
-    # Радиус привата по оси Y (высота)
-    # Общий размер = radius-y * 2 + 1
-    radius-y: 8
-    
-    # Радиус привата по оси Z (половина длины)
-    # Общий размер = radius-z * 2 + 1
-    radius-z: 8
-    
-    # CustomModelData для кастомной текстуры
-    # 0 = без кастомной модели
-    # >0 = использовать модель с этим ID
+    radius-x: 12
+    radius-y: 12
+    radius-z: 12
     custom-model-data: 0
-    
-    # Требуемая пермишн для использования
-    # "none" = доступно всем
-    # "loveclaims.anchor.tier-1" = нужна пермишн
     permission: "none"
-    
-    # Стоимость создания привата (в валюте)
-    # 0 = бесплатно
     create-cost: 0
-    
-    # Цвет границы привата (RGB)
-    # Используется для визуализации границ
     border-color:
       red: 0
       green: 255
       blue: 0
-    
-    # Звук при установке якоря
     place-sound: "BLOCK_BEACON_ACTIVATE"
-    
-    # Звук при удалении якоря
     break-sound: "BLOCK_NOTE_BLOCK_BASS"
 
-  # ===== ТИР 2: ОПЫТНЫЙ =====
-  # Для игроков с опытом
-  # Размер привата: 21x21x21 блоков (радиус 10)
-  tier-2:
+  tier-1-mod:
+    anchor-level: 1
+    modified: true
+    gem-slots: 4
     material: "SOUL_CAMPFIRE"
-    name: "<aqua>Якорь Привата II</aqua>"
+    name: "<green>Якорь Привата I <light_purple>[Мод.]</light_purple></green>"
     lore:
-      - "<gray>Создаёт приват размером 21x21x21</gray>"
+      - "<gray>Создаёт приват размером 31x31</gray>"
       - ""
       - "<white>Характеристики:</white>"
-      - "<gray>• Радиус: 10 блоков</gray>"
-      - "<gray>• Высота: 21 блоков</gray>"
+      - "<gray>• Радиус: <white>15</white> блоков</gray>"
+      - "<gray>• Слоты гемов: <aqua>4</aqua></gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
-    radius-x: 10
-    radius-y: 10
-    radius-z: 10
-    custom-model-data: 0
+    radius-x: 15
+    radius-y: 15
+    radius-z: 15
+    custom-model-data: 1
     permission: "none"
     create-cost: "5i"
     border-color:
-      red: 0
+      red: 85
       green: 255
-      blue: 255
+      blue: 85
     place-sound: "BLOCK_SOUL_SPAWN_PLACE"
     break-sound: "BLOCK_SOUL_SPAWN_BREAK"
 
-  # ===== ТИР 3: ЭКСПЕРТ =====
-  # Для опытных игроков
-  # Размер привата: 33x33x33 блоков (радиус 16)
-  tier-3:
+  tier-2:
+    anchor-level: 2
+    modified: false
+    gem-slots: 6
+    upgrade-target: "tier-2-mod"
+    upgrade-cost: "2g"
     material: "LANTERN"
-    name: "<light_purple>Якорь Привата III</light_purple>"
+    name: "<aqua>Якорь Привата II</aqua>"
     lore:
-      - "<gray>Создаёт приват размером 33x33x33</gray>"
+      - "<gray>Создаёт приват размером 49x49</gray>"
       - ""
       - "<white>Характеристики:</white>"
-      - "<gray>• Радиус: 16 блоков</gray>"
-      - "<gray>• Высота: 33 блоков</gray>"
+      - "<gray>• Радиус: <white>24</white> блока</gray>"
+      - "<gray>• Слоты гемов: <aqua>6</aqua></gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
-    radius-x: 16
-    radius-y: 16
-    radius-z: 16
+    radius-x: 24
+    radius-y: 24
+    radius-z: 24
     custom-model-data: 0
     permission: "none"
     create-cost: "25i"
     border-color:
-      red: 255
-      green: 0
+      red: 0
+      green: 255
       blue: 255
     place-sound: "BLOCK_BELL_USE"
     break-sound: "BLOCK_BELL_RESONATE"
 
-  # ===== ТИР 4: МАСТЕР =====
-  # Для мастеров выживания
-  # Размер привата: 65x65x65 блоков (радиус 32)
-  tier-4:
+  tier-2-mod:
+    anchor-level: 2
+    modified: true
+    gem-slots: 7
     material: "SOUL_LANTERN"
-    name: "<gold>Якорь Привата IV</gold>"
+    name: "<aqua>Якорь Привата II <light_purple>[Мод.]</light_purple></aqua>"
     lore:
-      - "<gray>Создаёт приват размером 65x65x65</gray>"
+      - "<gray>Создаёт приват размером 61x61</gray>"
       - ""
       - "<white>Характеристики:</white>"
-      - "<gray>• Радиус: 32 блоков</gray>"
-      - "<gray>• Высота: 65 блоков</gray>"
+      - "<gray>• Радиус: <white>30</white> блоков</gray>"
+      - "<gray>• Слоты гемов: <aqua>7</aqua></gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
-    radius-x: 32
-    radius-y: 32
-    radius-z: 32
-    custom-model-data: 0
+    radius-x: 30
+    radius-y: 30
+    radius-z: 30
+    custom-model-data: 1
     permission: "none"
     create-cost: "5g"
     border-color:
-      red: 255
+      red: 85
       green: 255
-      blue: 0
+      blue: 255
     place-sound: "BLOCK_BEACON_ACTIVATE"
     break-sound: "BLOCK_BEACON_DEACTIVATE"
 
-  # ===== ТИР 5: ЛЕГЕНДАРНЫЙ =====
-  # Для легенд сервера
-  # Размер привата: 129x129x129 блоков (радиус 64)
-  tier-5:
-    material: "DRAGON_EGG"
-    name: "<dark_purple>Якорь Привата V</dark_purple>"
+  tier-3:
+    anchor-level: 3
+    modified: false
+    gem-slots: 8
+    upgrade-target: "tier-3-mod"
+    upgrade-cost: "1d"
+    material: "LODESTONE"
+    name: "<gold>Якорь Привата III</gold>"
     lore:
-      - "<gray>Создаёт приват размером 129x129x129</gray>"
+      - "<gray>Создаёт приват размером 85x85</gray>"
       - ""
       - "<white>Характеристики:</white>"
-      - "<gray>• Радиус: 64 блоков</gray>"
-      - "<gray>• Высота: 129 блоков</gray>"
+      - "<gray>• Радиус: <white>42</white> блока</gray>"
+      - "<gray>• Слоты гемов: <aqua>8</aqua></gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
-    radius-x: 64
-    radius-y: 64
-    radius-z: 64
+    radius-x: 42
+    radius-y: 42
+    radius-z: 42
     custom-model-data: 0
-    permission: "loveclaims.anchor.tier-5"
+    permission: "none"
     create-cost: "1d"
     border-color:
-      red: 128
-      green: 0
-      blue: 128
-    place-sound: "ENTITY_ENDER_DRAGON_GROWL"
-    break-sound: "ENTITY_ENDER_DRAGON_DEATH"
+      red: 255
+      green: 170
+      blue: 0
+    place-sound: "UI_TOAST_CHALLENGE_COMPLETE"
+    break-sound: "BLOCK_BEACON_DEACTIVATE"
 
-  # ===== ТИР 6: БОЖЕСТВЕННЫЙ =====
-  # Максимальный уровень
-  # Размер привата: 257x257x257 блоков (радиус 128)
-  tier-6:
+  tier-3-mod:
+    anchor-level: 3
+    modified: true
+    gem-slots: 9
     material: "BEACON"
-    name: "<white>Якорь Привата VI</white>"
+    name: "<gold>Якорь Привата III <light_purple>[Мод.]</light_purple></gold>"
     lore:
-      - "<gray>Создаёт приват размером 257x257x257</gray>"
+      - "<gray>Создаёт приват размером 105x105</gray>"
       - ""
       - "<white>Характеристики:</white>"
-      - "<gray>• Радиус: 128 блоков</gray>"
-      - "<gray>• Высота: 257 блоков</gray>"
+      - "<gray>• Радиус: <white>52</white> блока</gray>"
+      - "<gray>• Слоты гемов: <aqua>9</aqua></gray>"
       - ""
       - "<yellow>ПКМ для установки</yellow>"
-      - ""
-      - "<rainbow>Легендарный якорь!</rainbow>"
-    radius-x: 128
-    radius-y: 128
-    radius-z: 128
+    radius-x: 52
+    radius-y: 52
+    radius-z: 52
     custom-model-data: 1
-    permission: "loveclaims.anchor.tier-6"
+    permission: "none"
     create-cost: "3d"
     border-color:
       red: 255
@@ -241,3 +174,28 @@ tiers:
       blue: 255
     place-sound: "UI_TOAST_CHALLENGE_COMPLETE"
     break-sound: "BLOCK_END_PORTAL_SPAWN"
+
+# Рецепты перехода уровней на верстаке (I -> II -> III)
+recipes:
+  tier-2:
+    enabled: true
+    requires-anchor-level: 1
+    shape:
+      - "GIG"
+      - "IAI"
+      - "GIG"
+    anchor-char: 'A'
+    ingredients:
+      G: GOLD_INGOT
+      I: IRON_BLOCK
+  tier-3:
+    enabled: true
+    requires-anchor-level: 2
+    shape:
+      - "DND"
+      - "NAN"
+      - "DND"
+    anchor-char: 'A'
+    ingredients:
+      D: DIAMOND_BLOCK
+      N: CRYING_OBSIDIAN

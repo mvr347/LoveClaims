@@ -3,24 +3,29 @@ package me.lovelace.loveclaims;
 import me.lovelace.loveclaims.command.LoveClaimsAdminCommand;
 import me.lovelace.loveclaims.command.MainCommand;
 import me.lovelace.loveclaims.command.RentalCommand;
+import me.lovelace.loveclaims.gems.GemFactory;
+import me.lovelace.loveclaims.gems.GemRegistry;
 import me.lovelace.loveclaims.hook.PAPIExpansion;
 import me.lovelace.loveclaims.listener.ChatListener;
 import me.lovelace.loveclaims.listener.BedrockGuardListener;
 import me.lovelace.loveclaims.listener.DupeGuardListener;
 import me.lovelace.loveclaims.listener.EntitySpawnListener;
 import me.lovelace.loveclaims.listener.AnchorListener;
+import me.lovelace.loveclaims.listener.GemEffectListener;
 import me.lovelace.loveclaims.listener.GuiListener;
 import me.lovelace.loveclaims.listener.PlayerDataListener;
 import me.lovelace.loveclaims.listener.ProtectionListener;
 import me.lovelace.loveclaims.listener.PlayerMoveListener;
 import me.lovelace.loveclaims.listener.RentalInteractListener;
 import me.lovelace.loveclaims.listener.SpawnFoodListener;
+import me.lovelace.loveclaims.listeners.GemCraftListener;
 import me.lovelace.loveclaims.manager.ConfigManager;
 import me.lovelace.loveclaims.manager.ClaimManager;
 import me.lovelace.loveclaims.manager.AnchorManager;
 import me.lovelace.loveclaims.manager.UserManager;
 import me.lovelace.loveclaims.manager.RentalManager;
 import me.lovelace.loveclaims.task.AutoDeleteTask;
+import me.lovelace.loveclaims.task.GemEffectTask;
 import me.lovelace.loveclaims.task.GlobalTickManager;
 import me.lovelace.loveclaims.task.ProximityBorderTask;
 import me.lovelace.loveclaims.task.RentalExpirationTask;
@@ -40,6 +45,9 @@ public class LoveClaims extends JavaPlugin {
     private RentalManager rentalManager;
     private ChatListener chatListener;
     private AnchorListener anchorListener;
+    private GemFactory gemFactory;
+    private GemRegistry gemRegistry;
+    private GemEffectTask gemEffectTask;
     private RentalExpirationTask rentalExpirationTask;
     private AutoDeleteTask autoDeleteTask;
     private GlobalTickManager globalTickManager;
@@ -66,7 +74,8 @@ public class LoveClaims extends JavaPlugin {
             this.configManager.loadAll();
             getLogger().info("Config loaded successfully!");
 
-            // 2. Инициализация БД
+            // 2. Инициализация БД и фабрики гемов
+            this.gemFactory = new GemFactory(this);
             this.storage = new SQLiteStorage(this);
             this.storage.initDatabase().join();
             getLogger().info("SQLite initialized successfully!");
@@ -74,6 +83,7 @@ public class LoveClaims extends JavaPlugin {
             // 3. Создание менеджеров
             this.chatListener = new ChatListener(this);
             this.anchorManager = new AnchorManager(this);
+            this.gemRegistry = new GemRegistry(this, this.gemFactory);
             this.claimManager = new ClaimManager(this);
             this.userManager = new UserManager(this);
             this.rentalManager = new RentalManager(this);
@@ -123,6 +133,8 @@ public class LoveClaims extends JavaPlugin {
             pm.registerEvents(new EntitySpawnListener(this), this);
             pm.registerEvents(new DupeGuardListener(this), this);
             pm.registerEvents(new BedrockGuardListener(this), this);
+            pm.registerEvents(new GemCraftListener(this, this.gemRegistry, this.gemFactory), this);
+            pm.registerEvents(new GemEffectListener(this), this);
             getLogger().info("Listeners registered!");
 
             // 7. Проверка и регистрация PAPI
@@ -158,6 +170,9 @@ public class LoveClaims extends JavaPlugin {
             this.proximityBorderTask = new ProximityBorderTask(this);
             this.proximityBorderTask.start();
 
+            this.gemEffectTask = new GemEffectTask(this);
+            this.gemEffectTask.start();
+
             getLogger().info("LoveClaims enabled successfully!");
 
         } catch (Exception e) {
@@ -178,6 +193,8 @@ public class LoveClaims extends JavaPlugin {
             if (rentalExpirationTask != null) rentalExpirationTask.cancel();
             if (autoDeleteTask != null && !autoDeleteTask.isCancelled()) autoDeleteTask.cancel();
             if (proximityBorderTask != null) proximityBorderTask.cancel();
+            if (gemEffectTask != null) gemEffectTask.cancel();
+            if (gemRegistry != null) gemRegistry.unregisterRecipes();
             me.lovelace.loveclaims.task.ParticleBorder.cancelAll();
             // Revert pending anchor previews and hide borders so no display entity or fake block outlives the plugin.
             if (anchorListener != null) {
@@ -233,4 +250,7 @@ public class LoveClaims extends JavaPlugin {
     public ChatListener getChatListener() { return chatListener; }
     public AnchorListener getAnchorListener() { return anchorListener; }
     public ProximityBorderTask getProximityBorderTask() { return proximityBorderTask; }
+    public GemFactory getGemFactory() { return gemFactory; }
+    public GemRegistry getGemRegistry() { return gemRegistry; }
+    public GemEffectTask getGemEffectTask() { return gemEffectTask; }
 }

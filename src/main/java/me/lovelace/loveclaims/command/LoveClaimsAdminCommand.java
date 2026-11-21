@@ -34,17 +34,21 @@ import java.util.Optional;
  */
 public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "expand", "addmembers", "access", "help");
-    private static final List<String> ANCHOR_TIERS = List.of("tier-1", "tier-2", "tier-3");
+    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "expand", "addmembers", "access", "gem", "spawnupgrader", "help");
 
     private final LoveClaims plugin;
+    private final GemCommandHandler gemCommandHandler;
 
     public LoveClaimsAdminCommand(@NotNull LoveClaims plugin) {
         this.plugin = plugin;
+        this.gemCommandHandler = new GemCommandHandler(plugin);
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("gem")) {
+            return gemCommandHandler.execute(sender, args);
+        }
         // Silent on purpose: a command the sender cannot use is simply not theirs.
         if (!sender.hasPermission("loveclaims.admin")) {
             return true;
@@ -68,6 +72,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
             }
             case "addmembers" -> handleAddMembers(sender, args);
             case "access" -> handleAccess(sender, args);
+            case "spawnupgrader" -> handleSpawnUpgrader(sender);
             default -> sendHelp(sender);
         }
         return true;
@@ -76,7 +81,34 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
     private void handleReload(@NotNull CommandSender player) {
         plugin.getConfigManager().loadAll();
         plugin.getAnchorManager().loadTiers();
+        if (plugin.getGemRegistry() != null) {
+            plugin.getGemRegistry().reload();
+        }
         player.sendMessage(plugin.getConfigManager().getMessage("admin-reloaded"));
+    }
+
+    private void handleSpawnUpgrader(@NotNull CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(plugin.getConfigManager().getMessage("player-only"));
+            return;
+        }
+        var providerOpt = plugin.getRentalManager().getNpcBridge().provider();
+        if (providerOpt.isEmpty()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("rental-admin-npc-unavailable"));
+            return;
+        }
+        try {
+            var spec = dev.lovelace.lovecore.api.npc.NpcSpec.at(
+                            net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<gold>Мастер Якорей</gold>"),
+                            player.getLocation())
+                    .withTags(java.util.Map.of(me.lovelace.loveclaims.integration.NpcTags.ROLE,
+                            me.lovelace.loveclaims.integration.NpcTags.ROLE_ANCHOR_UPGRADER));
+            providerOpt.get().create(spec);
+            player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                    .deserialize("<green>NPC Мастер Якорей создан!</green>"));
+        } catch (RuntimeException e) {
+            player.sendMessage(Component.text("Ошибка создания NPC: " + e.getMessage()));
+        }
     }
 
     private void handleAccess(CommandSender sender, String[] args) {
@@ -152,6 +184,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         // и старые границы (нечем будет обновить чанковый кэш), и claim.boundingBox оказался бы
         // изменён ещё до setBoundingBox().
         org.bukkit.util.BoundingBox oldBox = claim.getBoundingBox().clone();
+        claim.addAdminExpandBonus(amount);
         claim.setBoundingBox(oldBox.clone().expand(amount, amount, amount));
         plugin.getClaimManager().resizeClaimInCache(claim, oldBox);
         plugin.getStorage().saveClaimAsync(claim);
@@ -192,6 +225,9 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
     @Nullable
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length >= 2 && args[0].equalsIgnoreCase("gem")) {
+            return gemCommandHandler.tabComplete(sender, args);
+        }
         if (!sender.hasPermission("loveclaims.admin")) return Collections.emptyList();
 
         if (args.length == 1) {
@@ -206,7 +242,10 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
             return StringUtil.copyPartialMatches(args[1], onlineNames, new ArrayList<>());
         }
         if (args.length == 3 && sub.equals("give")) {
-            return StringUtil.copyPartialMatches(args[2], ANCHOR_TIERS, new ArrayList<>());
+            List<String> tierIds = plugin.getAnchorManager().getAllTiers().stream()
+                    .map(me.lovelace.loveclaims.model.ClaimTier::id)
+                    .toList();
+            return StringUtil.copyPartialMatches(args[2], tierIds, new ArrayList<>());
         }
         return Collections.emptyList();
     }

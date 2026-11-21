@@ -67,6 +67,12 @@ public class AnchorManager {
                 String permission = section.getString(key + ".permission", "none");
                 long createCost = readCost(section, key + ".create-cost");
 
+                int anchorLevel = section.getInt(key + ".anchor-level", ClaimTier.inferLevelFromId(key));
+                boolean modified = section.getBoolean(key + ".modified", key.contains("mod"));
+                int gemSlots = section.getInt(key + ".gem-slots", ClaimTier.defaultSlotsFor(anchorLevel, modified));
+                String upgradeTarget = section.getString(key + ".upgrade-target", null);
+                long upgradeCost = readCost(section, key + ".upgrade-cost");
+
                 // Чтение цвета границы
                 int borderRed = 0, borderGreen = 255, borderBlue = 0;
                 if (section.contains(key + ".border-color")) {
@@ -84,7 +90,8 @@ public class AnchorManager {
                     rX, rY, rZ, cmd,
                     permission, createCost,
                     borderRed, borderGreen, borderBlue,
-                    placeSound, breakSound
+                    placeSound, breakSound,
+                    anchorLevel, modified, gemSlots, upgradeTarget, upgradeCost
                 ));
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to load tier " + key + ": " + e.getMessage());
@@ -323,6 +330,107 @@ public class AnchorManager {
         return tiers.values().stream()
             .filter(tier -> tier.material() == material)
             .findFirst();
+    }
+
+    /**
+     * Получить тир якоря для существующего привата (по сохранённому ID или фолбек по размеру).
+     */
+    public ClaimTier resolveClaimTier(me.lovelace.loveclaims.model.Claim claim) {
+        if (claim == null) return getLowestTier();
+        if (claim.getAnchorTierId() != null) {
+            ClaimTier direct = tiers.get(claim.getAnchorTierId());
+            if (direct != null) return direct;
+        }
+        int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX())
+                - ((claim.getAppliedRadiusBonus() + claim.getBehaviorBonusRadius() + claim.getAdminExpandBonus()) * 2);
+        ClaimTier bySize = getTierBySize(Math.max(1, currentSize));
+        return bySize != null ? bySize : getLowestTier();
+    }
+
+    /**
+     * Апгрейд установленного якоря привата (Обычный -> Модифицированный) через NPC.
+     *
+     * @return результат операции
+     */
+    public UpgradeOutcome upgradeClaimAnchor(me.lovelace.loveclaims.model.Claim claim) {
+        if (claim == null || claim.getWorld() == null) return UpgradeOutcome.INVALID_CLAIM;
+        ClaimTier current = resolveClaimTier(claim);
+        if (current == null || !current.canUpgradeAtNpc()) return UpgradeOutcome.ALREADY_MODIFIED;
+        ClaimTier target = tiers.get(current.upgradeTargetId());
+        if (target == null) return UpgradeOutcome.TARGET_NOT_FOUND;
+
+        int deltaX = target.radiusX() - current.radiusX();
+        int deltaY = target.radiusY() - current.radiusY();
+        int deltaZ = target.radiusZ() - current.radiusZ();
+
+        org.bukkit.util.BoundingBox oldBox = claim.getBoundingBox().clone();
+        org.bukkit.util.BoundingBox newBox = oldBox.clone().expand(deltaX, deltaY, deltaZ);
+        if (plugin.getClaimManager().checkOverlap(claim.getWorld(), newBox, claim.getId())) {
+            return UpgradeOutcome.OVERLAP;
+        }
+
+        claim.setAnchorTierId(target.id());
+        claim.setBoundingBox(newBox);
+        plugin.getClaimManager().resizeClaimInCache(claim, oldBox);
+        if (!claim.getFlag(me.lovelace.loveclaims.model.ClaimFlag.HIDE_ANCHOR) && claim.getAnchorLocation() != null) {
+            claim.getAnchorLocation().getBlock().setType(target.material());
+        }
+        plugin.getStorage().saveClaimAsync(claim);
+        return UpgradeOutcome.SUCCESS;
+    }
+
+    /**
+     * Выдать игроку якорь и все вставленные в него гемы (при удалении или переносе привата).
+     */
+    public void giveClaimAnchorAndGems(me.lovelace.loveclaims.model.Claim claim, org.bukkit.entity.Player receiver) {
+        if (claim == null || receiver == null) return;
+        ClaimTier tier = resolveClaimTier(claim);
+        String tierId = tier != null ? tier.id() : "tier-1";
+        ItemStack anchor = createAnchorItem(tierId);
+        if (anchor != null) {
+            receiver.getInventory().addItem(anchor).values()
+                    .forEach(left -> receiver.getWorld().dropItemNaturally(receiver.getLocation(), left));
+        }
+        var registry = plugin.getGemRegistry();
+        if (registry != null) {
+            for (var gemStats : claim.getInstalledGems()) {
+                ItemStack gemItem = registry.createItemFromStats(gemStats);
+                if (gemItem != null) {
+                    receiver.getInventory().addItem(gemItem).values()
+                            .forEach(left -> receiver.getWorld().dropItemNaturally(receiver.getLocation(), left));
+                }
+            }
+        }
+    }
+
+    /**
+     * Выбросить якорь и все вставленные гемы в точке якоря (при автоудалении).
+     */
+    public void dropClaimAnchorAndGems(me.lovelace.loveclaims.model.Claim claim) {
+        if (claim == null || claim.getWorld() == null || claim.getAnchorLocation() == null) return;
+        ClaimTier tier = resolveClaimTier(claim);
+        String tierId = tier != null ? tier.id() : "tier-1";
+        ItemStack anchor = createAnchorItem(tierId);
+        if (anchor != null) {
+            claim.getWorld().dropItemNaturally(claim.getAnchorLocation(), anchor);
+        }
+        var registry = plugin.getGemRegistry();
+        if (registry != null) {
+            for (var gemStats : claim.getInstalledGems()) {
+                ItemStack gemItem = registry.createItemFromStats(gemStats);
+                if (gemItem != null) {
+                    claim.getWorld().dropItemNaturally(claim.getAnchorLocation(), gemItem);
+                }
+            }
+        }
+    }
+
+    public enum UpgradeOutcome {
+        SUCCESS,
+        INVALID_CLAIM,
+        ALREADY_MODIFIED,
+        TARGET_NOT_FOUND,
+        OVERLAP
     }
 
     /** create-cost: a number or a money string like "5i" (LoveCore MoneyConfig); unreadable -> 0 (free). */

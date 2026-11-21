@@ -483,6 +483,103 @@ public class ClaimManager {
     // ===== МЕТОДЫ ДЛЯ КЭШЕЙ (Производительность O(1)) =====
 
     /**
+     * Effective member limit for a claim: rental plots stay fixed at 10; player claims combine
+     * default limit + owner bonus + installed gem modifiers, clamped to [1, absoluteLimit].
+     */
+    public int getMemberLimit(Claim claim) {
+        if (claim == null) return 5;
+        if (claim.isRentalPlot()) return 10;
+        var cfg = plugin.getConfigManager().getConfig();
+        int defaultLimit = cfg.getInt("claim.members.default-limit", 5);
+        int absoluteLimit = cfg.getInt("claim.members.absolute-limit", 24);
+        int ownerBonus = (claim.getOwnerUuid() != null && plugin.getUserManager() != null)
+                ? plugin.getUserManager().getUserData(claim.getOwnerUuid()).getBonusMemberLimit()
+                : 0;
+        int gemBonus = claim.getModifiers().membersBonus();
+        return Math.min(absoluteLimit, Math.max(1, defaultLimit + ownerBonus + gemBonus));
+    }
+
+    /**
+     * Maximum number of player claims allowed for a player based on their playstyle
+     * ("Добрый" -> up to 3, "Агрессивный" -> 1) plus any admin/user bonus slots.
+     */
+    public int getMaxClaimsForPlayer(UUID playerId) {
+        var cfg = plugin.getConfigManager().getConfig();
+        int aggressiveMax = cfg.getInt("claims.aggressive-playstyle-max-claims", 1);
+        int goodMax = cfg.getInt("claims.good-playstyle-max-claims", 3);
+        int baseLimit = cfg.getInt("claims.max-claims-default", goodMax);
+
+        if (cfg.getBoolean("integrations.behavior.enabled", true)) {
+            int playstyleThreshold = cfg.getInt("integrations.behavior.playstyle-threshold", 6);
+            baseLimit = dev.lovelace.lovecore.api.LoveCore.service(dev.lovelace.lovecore.api.social.BehaviorLevels.class)
+                    .map(levels -> levels.playstyleLevel(playerId) >= playstyleThreshold ? goodMax : aggressiveMax)
+                    .orElse(aggressiveMax);
+        }
+
+        if (plugin.getUserManager() != null) {
+            baseLimit += plugin.getUserManager().getUserData(playerId).getBonusClaimSlots();
+        }
+        return Math.max(1, baseLimit);
+    }
+
+    /**
+     * Computes the candidate BoundingBox if the claim's total gem/extra radius bonus changes to {@code newRadiusBonus}.
+     */
+    public BoundingBox previewBoxForRadiusBonus(Claim claim, int newRadiusBonus) {
+        int delta = newRadiusBonus - claim.getAppliedRadiusBonus();
+        BoundingBox box = claim.getBoundingBox().clone();
+        if (delta == 0) return box;
+        if (delta < 0) {
+            double maxShrinkX = Math.max(0.0, (box.getWidthX() - 2.0) / 2.0);
+            double maxShrinkY = Math.max(0.0, (box.getHeight() - 2.0) / 2.0);
+            double maxShrinkZ = Math.max(0.0, (box.getWidthZ() - 2.0) / 2.0);
+            double shrink = Math.min(-delta, Math.min(maxShrinkX, Math.min(maxShrinkY, maxShrinkZ)));
+            return box.expand(-shrink, -shrink, -shrink);
+        }
+        return box.expand(delta, delta, delta);
+    }
+
+    public boolean canApplyCandidateGems(Claim claim, List<me.lovelace.loveclaims.gems.GemStats> candidateGems) {
+        if (claim == null || claim.getWorld() == null) return false;
+        int extraExpRadius = plugin.getGemRegistry() != null ? plugin.getGemRegistry().getExtraExpansionRadius() : 10;
+        var nextMods = me.lovelace.loveclaims.gems.ClaimModifiers.fromGems(candidateGems);
+        int targetRadiusBonus = nextMods.radiusBonus()
+                + (nextMods.allowLimitBypass() && claim.isExtraExpansionUnlocked() ? extraExpRadius : 0);
+        BoundingBox newBox = previewBoxForRadiusBonus(claim, targetRadiusBonus);
+        int delta = targetRadiusBonus - claim.getAppliedRadiusBonus();
+        return !(delta > 0 && checkOverlap(claim.getWorld(), newBox, claim.getId()));
+    }
+
+    /**
+     * Recomputes claim modifiers from installed gems and updates its bounding box + chunk cache.
+     *
+     * @return true if the new box was applied without overlapping another claim; false if overlap blocked expansion.
+     */
+    public boolean recalculateClaimModifiers(Claim claim) {
+        if (claim == null || claim.getWorld() == null) return false;
+        int extraExpRadius = plugin.getGemRegistry() != null ? plugin.getGemRegistry().getExtraExpansionRadius() : 10;
+        var nextMods = me.lovelace.loveclaims.gems.ClaimModifiers.fromGems(claim.getInstalledGems());
+        int targetRadiusBonus = nextMods.radiusBonus()
+                + (nextMods.allowLimitBypass() && claim.isExtraExpansionUnlocked() ? extraExpRadius : 0);
+
+        BoundingBox oldBox = claim.getBoundingBox().clone();
+        BoundingBox newBox = previewBoxForRadiusBonus(claim, targetRadiusBonus);
+        int delta = targetRadiusBonus - claim.getAppliedRadiusBonus();
+        if (delta > 0 && checkOverlap(claim.getWorld(), newBox, claim.getId())) {
+            return false;
+        }
+
+        claim.setModifiers(nextMods);
+        if (!newBox.equals(oldBox)) {
+            int appliedDelta = (int) Math.round((newBox.getWidthX() - oldBox.getWidthX()) / 2.0);
+            claim.setAppliedRadiusBonus(claim.getAppliedRadiusBonus() + appliedDelta);
+            claim.setBoundingBox(newBox);
+            resizeClaimInCache(claim, oldBox);
+        }
+        return true;
+    }
+
+    /**
      * Получить все приваты владельца.
      * @param ownerUuid UUID владельца
      * @return Список приватов (пустой если нет)

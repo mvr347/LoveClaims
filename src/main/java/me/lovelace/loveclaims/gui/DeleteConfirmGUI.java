@@ -71,12 +71,7 @@ public class DeleteConfirmGUI extends AbstractGUI {
             plugin.getStorage().deleteClaimAsync(claim.getId());
             plugin.getClaimManager().removeClaimFromCache(claim.getId());
 
-            int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
-            me.lovelace.loveclaims.model.ClaimTier currentTier = plugin.getAnchorManager().getTierBySize(currentSize);
-            String tierId = currentTier != null ? currentTier.id() : "tier-1";
-
-            ItemStack anchor = plugin.getAnchorManager().createAnchorItem(tierId);
-            if (anchor != null) viewer.getInventory().addItem(anchor);
+            plugin.getAnchorManager().giveClaimAnchorAndGems(claim, viewer);
 
             viewer.sendMessage(plugin.getConfigManager().getComponent("delete-confirm.deleted"));
         } else if (no) {

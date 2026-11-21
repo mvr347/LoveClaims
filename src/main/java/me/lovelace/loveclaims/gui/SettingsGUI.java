@@ -170,8 +170,7 @@ public class SettingsGUI extends AbstractGUI {
                 if (newState) {
                     claim.getAnchorLocation().getBlock().setType(Material.AIR);
                 } else {
-                    int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
-                    me.lovelace.loveclaims.model.ClaimTier currentTier = plugin.getAnchorManager().getTierBySize(currentSize);
+                    me.lovelace.loveclaims.model.ClaimTier currentTier = plugin.getAnchorManager().resolveClaimTier(claim);
                     claim.getAnchorLocation().getBlock().setType(currentTier != null ? currentTier.material() : Material.CAMPFIRE);
                 }
             }
@@ -190,15 +189,16 @@ public class SettingsGUI extends AbstractGUI {
 
         // Перенести якорь (свернуть приват)
         if (slot == 16 && isOwner) {
+            if (plugin.getClaimManager().getClaimById(claim.getId()).orElse(null) != claim
+                    || claim.isRentalPlot()) {
+                viewer.closeInventory();
+                viewer.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
+                plugin.getConfigManager().playSound(viewer, "gui-error");
+                return;
+            }
             viewer.closeInventory();
 
-            int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
-            me.lovelace.loveclaims.model.ClaimTier currentTier = plugin.getAnchorManager().getTierBySize(currentSize);
-
-            ItemStack anchor = plugin.getAnchorManager().createAnchorItem(currentTier != null ? currentTier.id() : "tier-1");
-            if (anchor != null) {
-                viewer.getInventory().addItem(anchor).values().forEach(item -> viewer.getWorld().dropItemNaturally(viewer.getLocation(), item));
-            }
+            plugin.getAnchorManager().giveClaimAnchorAndGems(claim, viewer);
 
             plugin.getStorage().deleteClaimAsync(claim.getId());
             plugin.getClaimManager().removeClaimFromCache(claim.getId());

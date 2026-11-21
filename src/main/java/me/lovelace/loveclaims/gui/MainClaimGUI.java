@@ -40,12 +40,30 @@ public class MainClaimGUI extends AbstractGUI {
                 plugin.getConfigManager().getComponent("main.info-name"),
                 plugin.getConfigManager().getHelpMessage("main.info-lore", "owner", ownerName, "size", String.valueOf(currentSize))));
 
-        // Рабочая зона (9-17): 2 контентные кнопки, центрированы 12 и 14.
-        inventory.setItem(12, createHead(HEAD_SETTINGS,
+        // Рабочая зона (9-17): 3 контентные кнопки, центрированы 11, 13, 15.
+        inventory.setItem(11, createHead(HEAD_SETTINGS,
                 plugin.getConfigManager().getComponent("main.settings-name"),
                 plugin.getConfigManager().getHelpMessage("main.settings-lore")));
 
-        inventory.setItem(14, createHead(HEAD_MEMBERS,
+        var tier = plugin.getAnchorManager().resolveClaimTier(claim);
+        int maxSlots = tier != null ? tier.gemSlots() : 3;
+        int usedSlots = claim.getModifiers().usedSlots();
+        inventory.setItem(13, createHead(HEAD_INFO,
+                net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<aqua>Гемы якоря</aqua>")
+                        .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
+                List.of(
+                        net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                                .deserialize("<gray>Занято слотов: <aqua>" + usedSlots + "<gray>/<white>" + maxSlots)
+                                .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
+                        net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                                .deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")
+                                .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
+                        net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                                .deserialize("<green>ЛКМ <dark_gray>— <gray>управление гемами")
+                                .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
+                )));
+
+        inventory.setItem(15, createHead(HEAD_MEMBERS,
                 plugin.getConfigManager().getComponent("main.members-name"),
                 plugin.getConfigManager().getHelpMessage("main.members-lore")));
 
@@ -84,11 +102,15 @@ public class MainClaimGUI extends AbstractGUI {
                     }
                 }
             }
-            case 12 -> {
+            case 11 -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 viewer.openInventory(new SettingsGUI(plugin, viewer, claim).getInventory());
             }
-            case 14 -> {
+            case 13 -> {
+                plugin.getConfigManager().playSound(viewer, "gui-click");
+                viewer.openInventory(new AnchorGemsGUI(plugin, viewer, claim).getInventory());
+            }
+            case 15 -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 viewer.openInventory(new MembersGUI(plugin, viewer, claim).getInventory());
             }

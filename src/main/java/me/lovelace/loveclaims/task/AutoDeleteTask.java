@@ -45,22 +45,18 @@ public class AutoDeleteTask {
             }
 
             for (Claim claim : toDelete) {
-                plugin.getStorage().deleteClaimAsync(claim.getId());
-                plugin.getClaimManager().removeClaimFromCache(claim.getId());
-
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (plugin.getClaimManager().getClaimById(claim.getId()).orElse(null) != claim) {
+                        return;
+                    }
+                    plugin.getStorage().deleteClaimAsync(claim.getId());
+                    plugin.getClaimManager().removeClaimFromCache(claim.getId());
+
                     if (claim.getAnchorLocation() != null && claim.getAnchorLocation().getWorld() != null) {
                         claim.getAnchorLocation().getBlock().setType(Material.AIR);
 
                         if (dropAnchor && claim.getWorld() != null) {
-                            int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
-                            me.lovelace.loveclaims.model.ClaimTier currentTier = plugin.getAnchorManager().getTierBySize(currentSize);
-                            String tierId = currentTier != null ? currentTier.id() : "tier-1";
-
-                            ItemStack anchor = plugin.getAnchorManager().createAnchorItem(tierId);
-                            if (anchor != null) {
-                                claim.getWorld().dropItemNaturally(claim.getAnchorLocation(), anchor);
-                            }
+                            plugin.getAnchorManager().dropClaimAnchorAndGems(claim);
                         }
                     }
 

@@ -20,7 +20,10 @@ public class GuiListener implements Listener {
         if (event.getInventory().getHolder() instanceof AbstractGUI gui) {
             event.setCancelled(true);
             if (event.getClickedInventory() == null) return;
-            if (event.getClickedInventory().equals(event.getView().getBottomInventory())) return;
+            if (event.getClickedInventory().equals(event.getView().getBottomInventory())) {
+                gui.handleBottomClick(event);
+                return;
+            }
 
             gui.handleClick(event);
         } else if (event.getInventory().getHolder() instanceof RentalPlayerGUI gui) {

@@ -49,6 +49,13 @@ public class LandlordListener implements Listener {
             return;
         }
 
+        if (NpcTags.isAnchorUpgrader(npc)) {
+            e.setCancelled(true);
+            plugin.getConfigManager().playSound(e.getPlayer(), "gui-click");
+            e.getPlayer().openInventory(new me.lovelace.loveclaims.gui.AnchorUpgradeGUI(plugin, e.getPlayer()).getInventory());
+            return;
+        }
+
         Location loc = npc.location();
         if (loc != null && loc.getWorld() != null) checkLandlordClick(e.getPlayer(), loc);
     }

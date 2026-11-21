@@ -43,10 +43,15 @@ public record ClaimTier(
     int borderGreen,
     int borderBlue,
     String placeSound,
-    String breakSound
+    String breakSound,
+    int anchorLevel,
+    boolean modified,
+    int gemSlots,
+    String upgradeTargetId,
+    long upgradeCost
 ) {
     /**
-     * Конструктор с минимальными параметрами (обратная совместимость).
+     * Конструктор с валидацией параметров.
      */
     public ClaimTier {
         if (permission == null || permission.isEmpty()) permission = "none";
@@ -59,6 +64,26 @@ public record ClaimTier(
         if (borderBlue > 255) borderBlue = 255;
         if (placeSound == null || placeSound.isEmpty()) placeSound = "BLOCK_BEACON_ACTIVATE";
         if (breakSound == null || breakSound.isEmpty()) breakSound = "BLOCK_NOTE_BLOCK_BASS";
+        if (anchorLevel < 1) anchorLevel = 1;
+        if (gemSlots < 0) gemSlots = 0;
+        if (upgradeTargetId != null && upgradeTargetId.isBlank()) upgradeTargetId = null;
+        if (upgradeCost < 0) upgradeCost = 0;
+    }
+
+    /**
+     * Конструктор обратной совместимости (15 параметров).
+     */
+    public ClaimTier(
+        String id, Material material, String name, List<String> lore,
+        int radiusX, int radiusY, int radiusZ, int customModelData,
+        String permission, long createCost,
+        int borderRed, int borderGreen, int borderBlue,
+        String placeSound, String breakSound
+    ) {
+        this(id, material, name, lore, radiusX, radiusY, radiusZ, customModelData,
+                permission, createCost, borderRed, borderGreen, borderBlue, placeSound, breakSound,
+                inferLevelFromId(id), id != null && id.contains("mod"), defaultSlotsFor(inferLevelFromId(id), id != null && id.contains("mod")),
+                null, 0L);
     }
 
     /**
@@ -69,6 +94,26 @@ public record ClaimTier(
         this(id, material, name, lore, radiusX, radiusY, radiusZ,
              customModelData, "none", 0, 0, 255, 0,
              "BLOCK_BEACON_ACTIVATE", "BLOCK_NOTE_BLOCK_BASS");
+    }
+
+    public static int inferLevelFromId(String id) {
+        if (id == null) return 1;
+        if (id.contains("tier-3") || id.contains("tier_3")) return 3;
+        if (id.contains("tier-2") || id.contains("tier_2")) return 2;
+        return 1;
+    }
+
+    public static int defaultSlotsFor(int level, boolean modified) {
+        int base = switch (level) {
+            case 2 -> 6;
+            case 3 -> 8;
+            default -> 3;
+        };
+        return modified ? base + 1 : base;
+    }
+
+    public boolean canUpgradeAtNpc() {
+        return !modified && upgradeTargetId != null && !upgradeTargetId.isBlank();
     }
 
     /**

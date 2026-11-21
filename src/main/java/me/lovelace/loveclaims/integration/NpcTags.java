@@ -10,6 +10,7 @@ public final class NpcTags {
     public static final String ROLE = "loveclaims:role";
     public static final String ROLE_TAXER = "taxer";
     public static final String ROLE_LANDLORD = "landlord";
+    public static final String ROLE_ANCHOR_UPGRADER = "anchor_upgrader";
     public static final String CLAIM = "loveclaims:claim";
 
     private NpcTags() {
@@ -26,6 +27,11 @@ public final class NpcTags {
         if (!legacyNameMatches(npc.name(), taxerName)) return false;
         npc.tag(ROLE, ROLE_TAXER);
         return true;
+    }
+
+    /** Whether {@code npc} is the anchor upgrader NPC (Обычный -> Модифицированный). */
+    public static boolean isAnchorUpgrader(NpcHandle npc) {
+        return ROLE_ANCHOR_UPGRADER.equals(npc.tag(ROLE).orElse(null));
     }
 
     /** Whether {@code npc} is the landlord NPC of the claim with id {@code claimId}. */
