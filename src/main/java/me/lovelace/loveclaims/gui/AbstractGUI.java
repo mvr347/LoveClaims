@@ -57,6 +57,7 @@ public abstract class AbstractGUI implements InventoryHolder {
     public @NotNull Inventory getInventory() { return inventory; }
 
     public abstract void handleClick(InventoryClickEvent event);
+    public void handleBottomClick(InventoryClickEvent event) {}
     protected abstract void setMenuItems();
 
     // Генератор кастомных голов через Paper API

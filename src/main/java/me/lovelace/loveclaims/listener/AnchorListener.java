@@ -40,7 +40,7 @@ public class AnchorListener implements Listener {
     private final LoveClaims plugin;
     private final ConcurrentHashMap<UUID, PendingClaim> pendingClaims = new ConcurrentHashMap<>();
 
-    public record PendingClaim(Location location, ClaimTier tier, BlockPreviewTask previewTask, long createdAt) {}
+    public record PendingClaim(Location location, ClaimTier tier, BlockPreviewTask previewTask, long createdAt, int behaviorBonusRadius) {}
 
     public ConcurrentHashMap<UUID, PendingClaim> getPendingClaims() {
         return pendingClaims;
@@ -206,12 +206,7 @@ public class AnchorListener implements Listener {
             }
         }
 
-        int maxClaims = 1;
-
-        if (plugin.getUserManager() != null) {
-            me.lovelace.loveclaims.model.UserData userData = plugin.getUserManager().getUserData(player.getUniqueId());
-            maxClaims += userData.getBonusClaimSlots();
-        }
+        int maxClaims = plugin.getClaimManager().getMaxClaimsForPlayer(player.getUniqueId());
 
         if (currentClaims >= maxClaims) {
             player.sendMessage(plugin.getConfigManager().getMessage("claim-limit-reached"));
@@ -223,7 +218,7 @@ public class AnchorListener implements Listener {
 
         BlockPreviewTask previewTask = new BlockPreviewTask(plugin, player, newBox, tier, () -> pendingClaims.remove(player.getUniqueId()));
 
-        pendingClaims.put(player.getUniqueId(), new PendingClaim(targetLoc, tier, previewTask, System.currentTimeMillis()));
+        pendingClaims.put(player.getUniqueId(), new PendingClaim(targetLoc, tier, previewTask, System.currentTimeMillis(), bonusRadius));
 
         Notify.title(player, plugin.getConfigManager().getMessage("claim-preview-title")
                 .append(net.kyori.adventure.text.Component.space())

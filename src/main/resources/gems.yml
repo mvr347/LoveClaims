@@ -1,0 +1,376 @@
+# ====================================================== #
+#               LoveClaims - Система Гемов               #
+# ====================================================== #
+# ВНИМАНИЕ: Легендарные гемы (imperium_* и archon_*) НЕ
+# регистрируются в рецептах верстака по правилам баланса.
+# Уровни зелий задаются человекочитаемо (1 = I, 2 = II).
+# ====================================================== #
+
+settings:
+  # Бонус радиуса при активации 1 расширения сверх лимита якоря от Домейн Империум
+  imperium-extra-expansion-radius: 10
+
+gems:
+  # ===== ВЕТКА ДОМЕЙН (ТЕРРИТОРИЯ) =====
+  domain:
+    rarity: BASIC
+    material: AMETHYST_SHARD
+    custom-model-data: 1001
+    name: "<aqua>Гем Домейн</aqua>"
+    lore:
+      - "<dark_gray>Базовый гем территории (1 слот)</dark_gray>"
+      - ""
+      - "<gray>Расширяет границы привата.</gray>"
+    radius-bonus: 6
+    recipe:
+      enabled: true
+      shape:
+        - "EAE"
+        - "ADA"
+        - "EAE"
+      ingredients:
+        E: ENDER_PEARL
+        A: AMETHYST_SHARD
+        D: DIAMOND
+
+  modified_domain:
+    rarity: MODIFIED
+    material: AMETHYST_SHARD
+    custom-model-data: 1002
+    name: "<light_purple>Модифицированный Домейн</light_purple>"
+    lore:
+      - "<dark_gray>Модифицированный гем территории (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Значительно расширяет границы привата.</gray>"
+    radius-bonus: 14
+    members-bonus: 1
+    recipe:
+      enabled: true
+      base-gem: domain
+      shape:
+        - "ABA"
+        - "GDG"
+        - "ABA"
+      ingredients:
+        A: AMETHYST_BLOCK
+        B: ENDER_EYE
+        G: AMETHYST_SHARD
+        D: DIAMOND_BLOCK
+
+  imperium_domain:
+    rarity: LEGENDARY
+    material: AMETHYST_SHARD
+    custom-model-data: 1003
+    name: "<gold>Домейн Империум</gold>"
+    lore:
+      - "<dark_gray>Легендарный гем территории (3 слота)</dark_gray>"
+      - ""
+      - "<gray>Огромное расширение территории и прорыв лимита якоря.</gray>"
+    radius-bonus: 26
+    allow-limit-bypass: true
+
+  # ===== ВЕТКА ДЕМОС (УЧАСТНИКИ) =====
+  demos:
+    rarity: BASIC
+    material: EMERALD
+    custom-model-data: 1011
+    name: "<green>Гем Демос</green>"
+    lore:
+      - "<dark_gray>Базовый гем участников (1 слот)</dark_gray>"
+      - ""
+      - "<gray>Увеличивает число мест для союзников.</gray>"
+    members-bonus: 2
+    recipe:
+      enabled: true
+      shape:
+        - "EGE"
+        - "GDG"
+        - "EGE"
+      ingredients:
+        E: EMERALD
+        G: GOLD_INGOT
+        D: DIAMOND
+
+  modified_demos:
+    rarity: MODIFIED
+    material: EMERALD
+    custom-model-data: 1012
+    name: "<light_purple>Модифицированный Демос</light_purple>"
+    lore:
+      - "<dark_gray>Модифицированный гем участников (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Больше мест в привате и ускорение участников.</gray>"
+    members-bonus: 5
+    effects:
+      SPEED: 1
+    recipe:
+      enabled: true
+      base-gem: demos
+      shape:
+        - "EBE"
+        - "GDG"
+        - "EBE"
+      ingredients:
+        E: EMERALD_BLOCK
+        B: GOLDEN_APPLE
+        G: EMERALD
+        D: DIAMOND_BLOCK
+
+  imperium_demos:
+    rarity: LEGENDARY
+    material: EMERALD
+    custom-model-data: 1013
+    name: "<gold>Демос Империум</gold>"
+    lore:
+      - "<dark_gray>Легендарный гем участников (3 слота)</dark_gray>"
+      - ""
+      - "<gray>Вместительный регион и боевые баффы союзникам.</gray>"
+    members-bonus: 10
+    effects:
+      SPEED: 1
+      RESISTANCE: 1
+
+  # ===== ВЕТКА ЦЕРЕС (ФЕРМЫ И ПРОИЗВОДСТВО) =====
+  ceres:
+    rarity: BASIC
+    material: PRISMARINE_CRYSTALS
+    custom-model-data: 1021
+    name: "<yellow>Гем Церес</yellow>"
+    lore:
+      - "<dark_gray>Базовый гем ферм (1 слот)</dark_gray>"
+      - ""
+      - "<gray>Ускоряет рост культур и размножение животных.</gray>"
+    crop-growth-multiplier: 0.25
+    recipe:
+      enabled: true
+      shape:
+        - "CWC"
+        - "WDW"
+        - "CWC"
+      ingredients:
+        C: GOLDEN_CARROT
+        W: WHEAT
+        D: DIAMOND
+
+  modified_ceres:
+    rarity: MODIFIED
+    material: PRISMARINE_CRYSTALS
+    custom-model-data: 1022
+    name: "<light_purple>Модифицированный Церес</light_purple>"
+    lore:
+      - "<dark_gray>Модифицированный гем ферм (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Ускоряет рост культур, печи и зельеварение.</gray>"
+    crop-growth-multiplier: 0.50
+    furnace-speed-multiplier: 0.30
+    recipe:
+      enabled: true
+      base-gem: ceres
+      shape:
+        - "HBH"
+        - "GDG"
+        - "HBH"
+      ingredients:
+        H: HAY_BLOCK
+        B: BLAZE_POWDER
+        G: PRISMARINE_CRYSTALS
+        D: DIAMOND_BLOCK
+
+  imperium_ceres:
+    rarity: LEGENDARY
+    material: PRISMARINE_CRYSTALS
+    custom-model-data: 1023
+    name: "<gold>Церес Империум</gold>"
+    lore:
+      - "<dark_gray>Легендарный гем ферм (3 слота)</dark_gray>"
+      - ""
+      - "<gray>Максимальное ускорение ферм и шанс двойного урожая.</gray>"
+    crop-growth-multiplier: 1.00
+    furnace-speed-multiplier: 1.00
+    double-drop-chance: 0.15
+
+  # ===== ВЕТКА ВИТА (КОМФОРТ И БАФФЫ) =====
+  vita:
+    rarity: BASIC
+    material: GHAST_TEAR
+    custom-model-data: 1031
+    name: "<red>Гем Вита</red>"
+    lore:
+      - "<dark_gray>Базовый гем жизни (1 слот)</dark_gray>"
+      - ""
+      - "<gray>Дарует регенерацию участникам внутри привата.</gray>"
+    effects:
+      REGENERATION: 1
+    recipe:
+      enabled: true
+      shape:
+        - "RMR"
+        - "MDM"
+        - "RMR"
+      ingredients:
+        R: GLOWSTONE_DUST
+        M: GLISTERING_MELON_SLICE
+        D: DIAMOND
+
+  modified_vita:
+    rarity: MODIFIED
+    material: GHAST_TEAR
+    custom-model-data: 1032
+    name: "<light_purple>Модифицированный Вита</light_purple>"
+    lore:
+      - "<dark_gray>Модифицированный гем жизни (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Регенерация и спешка для участников привата.</gray>"
+    effects:
+      REGENERATION: 1
+      HASTE: 1
+    recipe:
+      enabled: true
+      base-gem: vita
+      shape:
+        - "ABA"
+        - "GDG"
+        - "ABA"
+      ingredients:
+        A: GOLDEN_APPLE
+        B: GLOWSTONE
+        G: GHAST_TEAR
+        D: DIAMOND_BLOCK
+
+  imperium_vita:
+    rarity: LEGENDARY
+    material: GHAST_TEAR
+    custom-model-data: 1033
+    name: "<gold>Вита Империум</gold>"
+    lore:
+      - "<dark_gray>Легендарный гем жизни (3 слота)</dark_gray>"
+      - ""
+      - "<gray>Мощные баффы жизни и скорости внутри привата.</gray>"
+    effects:
+      REGENERATION: 2
+      HASTE: 2
+      SPEED: 1
+
+  # ===== ЛЕГЕНДАРНЫЕ СЛИЯНИЯ (АРХОНТЫ, БЕЗ КРАФТА) =====
+  archon_domain_demos:
+    rarity: LEGENDARY
+    material: NETHER_STAR
+    custom-model-data: 1101
+    name: "<gradient:#FFAA00:#FF55FF>Архонт Домейн-Демос</gradient>"
+    lore:
+      - "<dark_gray>Легендарное слияние (3 слота)</dark_gray>"
+      - ""
+      - "<gray>Сила территории и союза без изъянов.</gray>"
+    radius-bonus: 22
+    members-bonus: 8
+    effects:
+      SPEED: 1
+
+  archon_ceres_vita:
+    rarity: LEGENDARY
+    material: NETHER_STAR
+    custom-model-data: 1102
+    name: "<gradient:#55FF55:#FF5555>Архонт Церес-Вита</gradient>"
+    lore:
+      - "<dark_gray>Легендарное слияние (3 слота)</dark_gray>"
+      - ""
+      - "<gray>Сила плодородия и жизненной энергии.</gray>"
+    crop-growth-multiplier: 0.80
+    furnace-speed-multiplier: 0.80
+    effects:
+      REGENERATION: 1
+      HASTE: 1
+
+  archon_domain_ceres:
+    rarity: LEGENDARY
+    material: NETHER_STAR
+    custom-model-data: 1103
+    name: "<gradient:#55FFFF:#FFFF55>Архонт Домейн-Церес</gradient>"
+    lore:
+      - "<dark_gray>Легендарное слияние (3 слота)</dark_gray>"
+      - ""
+      - "<gray>Сила бескрайних угодий и производств.</gray>"
+    radius-bonus: 22
+    crop-growth-multiplier: 0.80
+    furnace-speed-multiplier: 0.80
+
+  archon_demos_vita:
+    rarity: LEGENDARY
+    material: NETHER_STAR
+    custom-model-data: 1104
+    name: "<gradient:#55FF55:#FFAA00>Архонт Демос-Вита</gradient>"
+    lore:
+      - "<dark_gray>Легендарное слияние (3 слота)</dark_gray>"
+      - ""
+      - "<gray>Сила братства и несгибаемой стойкости.</gray>"
+    members-bonus: 8
+    effects:
+      REGENERATION: 2
+      HASTE: 1
+      SPEED: 1
+
+# ===== МОДИФИЦИРОВАННЫЕ ГИБРИДЫ (РИСК-КРАФТ: 2 РАЗНЫХ БАЗОВЫХ ГЕМА) =====
+hybrids:
+  hybrid_domain_demos:
+    material: ECHO_SHARD
+    custom-model-data: 1201
+    name: "<light_purple>Гибрид Домейн-Демос</light_purple>"
+    lore:
+      - "<dark_gray>Гибридный гем (2 слота)</dark_gray>"
+      - "<gray>Нестабильное слияние территории и союза.</gray>"
+    first-base: domain
+    second-base: demos
+    first-modified: modified_domain
+    second-modified: modified_demos
+    debuffs:
+      - members-bonus: -2
+      - radius-bonus: -4
+
+  hybrid_ceres_vita:
+    material: ECHO_SHARD
+    custom-model-data: 1202
+    name: "<light_purple>Гибрид Церес-Вита</light_purple>"
+    lore:
+      - "<dark_gray>Гибридный гем (2 слота)</dark_gray>"
+      - "<gray>Нестабильное слияние ферм и жизни.</gray>"
+    first-base: ceres
+    second-base: vita
+    first-modified: modified_ceres
+    second-modified: modified_vita
+    debuffs:
+      - effects:
+          HUNGER: 1
+      - effects:
+          MINING_FATIGUE: 1
+      - crop-growth-multiplier: -0.25
+
+  hybrid_domain_ceres:
+    material: ECHO_SHARD
+    custom-model-data: 1203
+    name: "<light_purple>Гибрид Домейн-Церес</light_purple>"
+    lore:
+      - "<dark_gray>Гибридный гем (2 слота)</dark_gray>"
+      - "<gray>Нестабильное слияние территории и ферм.</gray>"
+    first-base: domain
+    second-base: ceres
+    first-modified: modified_domain
+    second-modified: modified_ceres
+    debuffs:
+      - furnace-speed-multiplier: -0.25
+      - radius-bonus: -4
+
+  hybrid_demos_vita:
+    material: ECHO_SHARD
+    custom-model-data: 1204
+    name: "<light_purple>Гибрид Демос-Вита</light_purple>"
+    lore:
+      - "<dark_gray>Гибридный гем (2 слота)</dark_gray>"
+      - "<gray>Нестабильное слияние союза и жизни.</gray>"
+    first-base: demos
+    second-base: vita
+    first-modified: modified_demos
+    second-modified: modified_vita
+    debuffs:
+      - effects:
+          SLOWNESS: 1
+      - members-bonus: -2

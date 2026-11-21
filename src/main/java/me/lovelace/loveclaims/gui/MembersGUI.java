@@ -45,10 +45,7 @@ public class MembersGUI extends AbstractGUI {
         inventory.clear();
         renderedEntries.clear();
 
-        me.lovelace.loveclaims.model.UserData userData = plugin.getUserManager().getUserData(claim.getOwnerUuid());
-        int defaultLimit = plugin.getConfigManager().getConfig().getInt("claim.members.default-limit", 5);
-        int absoluteLimit = plugin.getConfigManager().getConfig().getInt("claim.members.absolute-limit", 24);
-        int maxMembers = Math.min(absoluteLimit, defaultLimit + userData.getBonusMemberLimit());
+        int maxMembers = plugin.getClaimManager().getMemberLimit(claim);
 
         boolean isManagerOrOwner = claim.isManager(viewer.getUniqueId());
 

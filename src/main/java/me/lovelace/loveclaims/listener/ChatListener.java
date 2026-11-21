@@ -167,9 +167,7 @@ public class ChatListener implements Listener {
         return;
     }
 
-    int defaultLimit = plugin.getConfigManager().getConfig().getInt("claim.members.default-limit", 5);
-    int absoluteLimit = plugin.getConfigManager().getConfig().getInt("claim.members.absolute-limit", 24);
-    int maxMembers = claim.isRentalPlot() ? 10 : Math.min(absoluteLimit, defaultLimit + plugin.getUserManager().getUserData(claim.getOwnerUuid()).getBonusMemberLimit());
+    int maxMembers = plugin.getClaimManager().getMemberLimit(claim);
 
     if (claim.getMembers().size() >= maxMembers) {
         player.sendMessage(plugin.getConfigManager().getMessage("limit-members"));

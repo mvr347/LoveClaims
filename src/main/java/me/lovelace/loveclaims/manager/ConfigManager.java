@@ -22,6 +22,7 @@ public class ConfigManager {
     private FileConfiguration config;
     private FileConfiguration lang;
     private FileConfiguration anchors;
+    private FileConfiguration gems;
     private final MiniMessage mm = MiniMessage.miniMessage();
 
     // Кэшированные настройки
@@ -60,6 +61,18 @@ public class ConfigManager {
         if (!anchorsFile.exists()) plugin.saveResource("anchors.yml", false);
         anchors = YamlConfiguration.loadConfiguration(anchorsFile);
 
+        File gemsFile = new File(plugin.getDataFolder(), "gems.yml");
+        if (!gemsFile.exists()) plugin.saveResource("gems.yml", false);
+        gems = YamlConfiguration.loadConfiguration(gemsFile);
+        try (java.io.InputStream bundledGems = plugin.getResource("gems.yml")) {
+            if (bundledGems != null) {
+                gems.setDefaults(YamlConfiguration.loadConfiguration(
+                        new java.io.InputStreamReader(bundledGems, java.nio.charset.StandardCharsets.UTF_8)));
+            }
+        } catch (java.io.IOException e) {
+            plugin.getLogger().warning("Could not read bundled gems.yml defaults: " + e.getMessage());
+        }
+
         if (debugMode) {
             plugin.getLogger().info("Debug mode enabled");
         }
@@ -89,6 +102,7 @@ public class ConfigManager {
 
     public FileConfiguration getConfig() { return config; }
     public FileConfiguration getAnchors() { return anchors; }
+    public FileConfiguration getGems() { return gems; }
     public FileConfiguration getLang() { return lang; }
 
     public boolean isDebugMode() {

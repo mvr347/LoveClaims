@@ -201,6 +201,8 @@ admin-help-body:
   - "<aqua>/loveclaimsadmin give <игрок> <тир></aqua> <gray>- Выдать якорь</gray>"
   - "<aqua>/loveclaimsadmin expand <игрок> <кол-во></aqua> <gray>- Увеличить приват (встаньте внутри него)</gray>"
   - "<aqua>/loveclaimsadmin addmembers <игрок> <кол-во></aqua> <gray>- Добавить слоты участников</gray>"
+  - "<aqua>/loveclaimsadmin spawnupgrader</aqua> <gray>- Создать NPC Мастера Якорей</gray>"
+  - "<aqua>/loveclaims gem <give|givehybrid|list|inspect></aqua> <gray>- Управление гемами</gray>"
 
 rental-help:
   - "<dark_gray><st>━━━━━━━━━━━━━━</st></dark_gray> <gold>Аренда Участков</gold> <dark_gray><st>━━━━━━━━━━━━━━</st></dark_gray>"

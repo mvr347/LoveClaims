@@ -75,5 +75,8 @@ public class PlayerDataListener implements Listener {
         // Очистка новых найденных утечек
         me.lovelace.loveclaims.gui.MainClaimGUI.removeCooldown(uuid);
         plugin.getClaimManager().removeInvite(uuid);
+        if (plugin.getGemEffectTask() != null) {
+            plugin.getGemEffectTask().clearPlayerEffects(player);
+        }
     }
 }

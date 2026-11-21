@@ -14,13 +14,19 @@ import java.util.stream.Collectors;
 
 public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompleter {
     private final LoveClaims plugin;
+    private final GemCommandHandler gemCommandHandler;
 
     public MainCommand(LoveClaims plugin) {
         this.plugin = plugin;
+        this.gemCommandHandler = new GemCommandHandler(plugin);
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("gem")) {
+            return gemCommandHandler.execute(sender, args);
+        }
+
         if (!(sender instanceof Player player)) {
             sender.sendMessage(plugin.getConfigManager().getMessage("player-only"));
             return true;
@@ -67,11 +73,35 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
             }
             case "home" -> {
                 Claim targetClaim = null;
+                if (args.length >= 2) {
+                    String query = args[1];
+                    for (Claim c : plugin.getClaimManager().getAllClaims()) {
+                        if (!c.isRentalPlot() && !c.isClanTerritory()
+                                && (c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))
+                                && c.getName() != null && c.getName().equalsIgnoreCase(query)) {
+                            targetClaim = c;
+                            break;
+                        }
+                    }
+                }
+                // Если игрок стоит внутри доступного привата, телепортируем на его точку дома
+                if (targetClaim == null) {
+                    Optional<Claim> here = plugin.getClaimManager().getClaimAt(player.getLocation());
+                    if (here.isPresent()) {
+                        Claim c = here.get();
+                        if (!c.isRentalPlot() && !c.isClanTerritory()
+                                && (c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))) {
+                            targetClaim = c;
+                        }
+                    }
+                }
                 // Ищем свой приват
-                for (Claim c : plugin.getClaimManager().getAllClaims()) {
-                    if (!c.isRentalPlot() && !c.isClanTerritory() && c.getOwnerUuid() != null && c.getOwnerUuid().equals(player.getUniqueId())) {
-                        targetClaim = c;
-                        break;
+                if (targetClaim == null) {
+                    for (Claim c : plugin.getClaimManager().getAllClaims()) {
+                        if (!c.isRentalPlot() && !c.isClanTerritory() && c.getOwnerUuid() != null && c.getOwnerUuid().equals(player.getUniqueId())) {
+                            targetClaim = c;
+                            break;
+                        }
                     }
                 }
                 // Если нет своего, ищем приват, где есть доступ
@@ -85,7 +115,14 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                 }
 
                 if (targetClaim != null) {
-                    player.teleportAsync(targetClaim.getHomeLocation());
+                    org.bukkit.Location home = targetClaim.getHomeLocation();
+                    if (home != null && targetClaim.getAnchorLocation() != null
+                            && home.getBlockX() == targetClaim.getAnchorLocation().getBlockX()
+                            && home.getBlockY() == targetClaim.getAnchorLocation().getBlockY()
+                            && home.getBlockZ() == targetClaim.getAnchorLocation().getBlockZ()) {
+                        home = home.clone().add(0.5, 1.0, 0.5);
+                    }
+                    player.teleportAsync(home);
                     player.sendMessage(plugin.getConfigManager().getMessage("teleport-home"));
                     plugin.getConfigManager().playSound(player, "anchor-place");
                 } else {
@@ -113,11 +150,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                     player.sendMessage(plugin.getConfigManager().getMessage("member-already-exists"));
                                     return true;
                                 }
-                                var cfg = plugin.getConfigManager().getConfig();
-                                int memberLimit = claim.isRentalPlot() ? 10 : Math.min(
-                                        cfg.getInt("claim.members.absolute-limit", 24),
-                                        cfg.getInt("claim.members.default-limit", 5)
-                                                + plugin.getUserManager().getUserData(claim.getOwnerUuid()).getBonusMemberLimit());
+                                int memberLimit = plugin.getClaimManager().getMemberLimit(claim);
                                 if (claim.getMembers().size() >= memberLimit) {
                                     plugin.getClaimManager().removeInvite(player.getUniqueId());
                                     player.sendMessage(plugin.getConfigManager().getMessage("limit-members"));
@@ -234,7 +267,17 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                         return true;
                     }
 
+                    long currentClaims = plugin.getClaimManager().getClaimsByOwner(player.getUniqueId()).stream()
+                            .filter(c -> !c.isRentalPlot() && !c.isClanTerritory())
+                            .count();
+                    if (currentClaims >= plugin.getClaimManager().getMaxClaimsForPlayer(player.getUniqueId())) {
+                        player.sendMessage(plugin.getConfigManager().getMessage("claim-limit-reached"));
+                        return true;
+                    }
+
                     Claim newClaim = new Claim(java.util.UUID.randomUUID(), pending.location().getWorld(), pending.previewTask().getBox(), player.getUniqueId(), pending.location());
+                    newClaim.setAnchorTierId(pending.tier().id());
+                    newClaim.setBehaviorBonusRadius(pending.behaviorBonusRadius());
                     plugin.getClaimManager().addClaimToCache(newClaim);
                     plugin.getStorage().saveClaimAsync(newClaim);
                     me.lovelace.loveclaims.integration.AchievementsHook.claimCreated(player.getUniqueId());
@@ -296,13 +339,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     return true;
                 }
 
-                int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
-                me.lovelace.loveclaims.model.ClaimTier currentTier = plugin.getAnchorManager().getTierBySize(currentSize);
-
-                org.bukkit.inventory.ItemStack anchor = plugin.getAnchorManager().createAnchorItem(currentTier != null ? currentTier.id() : "tier-1");
-                if (anchor != null) {
-                    player.getInventory().addItem(anchor).values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
-                }
+                plugin.getAnchorManager().giveClaimAnchorAndGems(claim, player);
 
                 plugin.getClaimManager().removeClaimFromCache(claim.getId());
                 plugin.getStorage().deleteClaimAsync(claim.getId());
@@ -346,9 +383,15 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
+        if (args.length >= 2 && args[0].equalsIgnoreCase("gem")) {
+            return gemCommandHandler.tabComplete(sender, args);
+        }
         java.util.List<String> completions = new java.util.ArrayList<>();
         if (args.length == 1) {
             completions.addAll(java.util.List.of("home", "show", "confirm", "invite", "move", "border", "help"));
+            if (sender.hasPermission(GemCommandHandler.PERMISSION)) {
+                completions.add("gem");
+            }
             if (sender instanceof Player player) {
                 plugin.getClaimManager().getAllClaims().stream()
                         .filter(c -> !c.isRentalPlot())

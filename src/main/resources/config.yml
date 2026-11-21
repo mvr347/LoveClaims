@@ -32,6 +32,8 @@ integrations:
 # ===== НАСТРОЙКИ ПРИВАТОВ =====
 claims:
   max-claims-default: 3
+  good-playstyle-max-claims: 3
+  aggressive-playstyle-max-claims: 1
   max-radius-default: 50
   min-radius: 5
   # 2026-10-03: удалены мёртвые ключи claim-cost-per-block и unclaim-refund-percent — код их не читал, и

@@ -1,14 +1,19 @@
 package me.lovelace.loveclaims.model;
 
+import me.lovelace.loveclaims.gems.ClaimModifiers;
+import me.lovelace.loveclaims.gems.GemStats;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.BoundingBox;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Claim {
 
@@ -19,8 +24,8 @@ public class Claim {
 
     private final UUID id;
     private final World world;
-    private BoundingBox boundingBox;
-    private UUID ownerUuid;
+    private volatile BoundingBox boundingBox;
+    private volatile UUID ownerUuid;
     private final Location anchorLocation;
     private String name;
     private String description;
@@ -46,6 +51,15 @@ public class Claim {
     private IndicatorType indicatorType = IndicatorType.NONE;
     private String hologramId = null;
     private long lastTaxTime = 0;
+
+    // Anchor & Gem system fields
+    private volatile String anchorTierId = null;
+    private volatile int behaviorBonusRadius = 0;
+    private volatile int adminExpandBonus = 0;
+    private volatile int appliedRadiusBonus = 0;
+    private volatile boolean extraExpansionUnlocked = false;
+    private final List<GemStats> installedGems = new CopyOnWriteArrayList<>();
+    private volatile ClaimModifiers modifiers = ClaimModifiers.EMPTY;
 
     private final java.util.concurrent.atomic.AtomicLong modificationVersion =
             new java.util.concurrent.atomic.AtomicLong(1);
@@ -335,5 +349,77 @@ public class Claim {
     public void setLastTaxTime(long lastTaxTime) {
         this.lastTaxTime = lastTaxTime;
         markModified();
+    }
+
+    // ===== Anchor & Gem Getters/Setters =====
+
+    public String getAnchorTierId() { return anchorTierId; }
+    public void setAnchorTierId(String anchorTierId) {
+        this.anchorTierId = anchorTierId;
+        markModified();
+    }
+
+    public int getBehaviorBonusRadius() { return behaviorBonusRadius; }
+    public void setBehaviorBonusRadius(int behaviorBonusRadius) {
+        this.behaviorBonusRadius = Math.max(0, behaviorBonusRadius);
+        markModified();
+    }
+
+    public int getAdminExpandBonus() { return adminExpandBonus; }
+    public void addAdminExpandBonus(int delta) {
+        this.adminExpandBonus += delta;
+        markModified();
+    }
+    public void setAdminExpandBonus(int adminExpandBonus) {
+        this.adminExpandBonus = adminExpandBonus;
+        markModified();
+    }
+
+    public int getAppliedRadiusBonus() { return appliedRadiusBonus; }
+    public void setAppliedRadiusBonus(int appliedRadiusBonus) {
+        this.appliedRadiusBonus = appliedRadiusBonus;
+        markModified();
+    }
+
+    public boolean isExtraExpansionUnlocked() { return extraExpansionUnlocked; }
+    public void setExtraExpansionUnlocked(boolean extraExpansionUnlocked) {
+        this.extraExpansionUnlocked = extraExpansionUnlocked;
+        markModified();
+    }
+
+    public List<GemStats> getInstalledGems() {
+        return Collections.unmodifiableList(installedGems);
+    }
+
+    public void addInstalledGem(GemStats stats) {
+        if (stats != null) {
+            installedGems.add(stats);
+            this.modifiers = ClaimModifiers.fromGems(installedGems);
+            markModified();
+        }
+    }
+
+    public GemStats removeInstalledGem(int index) {
+        if (index < 0 || index >= installedGems.size()) return null;
+        GemStats removed = installedGems.remove(index);
+        this.modifiers = ClaimModifiers.fromGems(installedGems);
+        markModified();
+        return removed;
+    }
+
+    public void loadInstalledGems(List<GemStats> gems) {
+        installedGems.clear();
+        if (gems != null) {
+            installedGems.addAll(gems);
+        }
+        this.modifiers = ClaimModifiers.fromGems(installedGems);
+    }
+
+    public ClaimModifiers getModifiers() {
+        return modifiers;
+    }
+
+    public void setModifiers(ClaimModifiers modifiers) {
+        this.modifiers = modifiers == null ? ClaimModifiers.EMPTY : modifiers;
     }
 }
