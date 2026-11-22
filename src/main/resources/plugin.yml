@@ -1,7 +1,7 @@
 name: LoveClaims
 version: '1.5'
 main: me.lovelace.loveclaims.LoveClaims
-api-version: '26.2'
+api-version: '26.3'
 depend: [LoveCore, LoveEssential, PlaceholderAPI]
 softdepend: [ItemsAdder]
 authors: [lovelace]
