@@ -359,7 +359,8 @@ public class ProtectionListener implements Listener {
         // взаимодействие внутри обычного привата корректно требует прав.
         if (isSpawnProtected(block.getLocation()) && !plugin.getConfigManager().getSpawnFlag("interact")) {
             Material type = block.getType();
-            if (isContainerBlock(type) || isDoorOrButtonBlock(type)) {
+            boolean allowDoor = isDoorOrButtonBlock(type) && plugin.getConfigManager().getSpawnFlag("doors");
+            if (!allowDoor && (isContainerBlock(type) || isDoorOrButtonBlock(type))) {
                 event.setCancelled(true);
                 if (plugin.getConfigManager().getConfig().getBoolean("spawn-claim.say-break-message", false)) {
                     deny(event.getPlayer(), null, plugin.getConfigManager().getMessage("deny-interact"));
