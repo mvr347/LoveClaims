@@ -37,34 +37,27 @@ class NpcIntegrationTest {
                 });
     }
 
-    // ----- provider choice -----
+    // ----- provider -----
 
     @Test
-    void choiceDefaultsToCitizens() {
-        assertEquals("citizens", NpcProviderChoice.resolve(null));
-        assertEquals("citizens", NpcProviderChoice.resolve("  "));
-        assertEquals("citizens", NpcProviderChoice.resolve("global"), "without a core 'global' means citizens");
-        assertEquals("citizens", NpcProviderChoice.resolve(" GLOBAL "));
-        assertTrue(NpcProviderChoice.isKnown("global"));
-        assertTrue(NpcProviderChoice.isKnown(null));
+    void leftoverProviderValuesAreReportedButNeverUsed() {
+        assertEquals("citizens", NpcBridge.ignoredProviderValue("citizens"));
+        assertEquals("znpcs", NpcBridge.ignoredProviderValue(" znpcs "));
+        assertNull(NpcBridge.ignoredProviderValue(null));
+        assertNull(NpcBridge.ignoredProviderValue("  "));
+        assertNull(NpcBridge.ignoredProviderValue(" GLOBAL "));
+        assertNull(NpcBridge.ignoredProviderValue("LoveEssential"));
     }
 
-    @Test
-    void choiceIsCaseInsensitiveAndRejectsUnknown() {
-        assertEquals("loveessential", NpcProviderChoice.resolve(" LoveEssential "));
-        assertTrue(NpcProviderChoice.isKnown("Citizens"));
-        assertEquals("citizens", NpcProviderChoice.resolve("znpcs"));
-        assertFalse(NpcProviderChoice.isKnown("znpcs"));
-    }
-
-    // ----- bridge: selection fallback and warn-once -----
+    // ----- bridge: warn-once -----
 
     @Test
-    void bridgeReturnsConfiguredProvider() {
+    void bridgeReturnsLoveEssential() {
         List<String> warnings = new ArrayList<>();
         NpcProvider ess = provider("loveessential");
-        NpcBridge bridge = new NpcBridge(() -> "loveessential",
+        NpcBridge bridge = new NpcBridge(() -> null,
                 id -> id.equals("loveessential") ? Optional.of(ess) : Optional.empty(), warnings::add);
+        assertEquals("loveessential", bridge.providerId());
         assertSame(ess, bridge.provider().orElseThrow());
         assertTrue(bridge.isConfigured("loveessential"));
         assertFalse(bridge.isConfigured("citizens"));
@@ -75,14 +68,14 @@ class NpcIntegrationTest {
     void missingProviderWarnsOnceAndWarnsAgainAfterItAppeared() {
         List<String> warnings = new ArrayList<>();
         Map<String, NpcProvider> registry = new HashMap<>();
-        NpcBridge bridge = new NpcBridge(() -> "citizens", id -> Optional.ofNullable(registry.get(id)), warnings::add);
+        NpcBridge bridge = new NpcBridge(() -> null, id -> Optional.ofNullable(registry.get(id)), warnings::add);
 
         assertTrue(bridge.provider().isEmpty());
         assertTrue(bridge.provider().isEmpty());
         assertEquals(1, warnings.size());
-        assertTrue(warnings.get(0).contains("'citizens'"));
+        assertTrue(warnings.get(0).contains("'loveessential'"));
 
-        registry.put("citizens", provider("citizens"));
+        registry.put("loveessential", provider("loveessential"));
         assertTrue(bridge.provider().isPresent());
         registry.clear();
         assertTrue(bridge.provider().isEmpty());
@@ -90,15 +83,15 @@ class NpcIntegrationTest {
     }
 
     @Test
-    void unknownConfigValueFallsBackToCitizensWithOneWarning() {
+    void leftoverConfigValueIsIgnoredWithOneWarning() {
         List<String> warnings = new ArrayList<>();
-        NpcProvider citizens = provider("citizens");
-        NpcBridge bridge = new NpcBridge(() -> "znpcs",
-                id -> id.equals("citizens") ? Optional.of(citizens) : Optional.empty(), warnings::add);
-        assertSame(citizens, bridge.provider().orElseThrow());
-        assertSame(citizens, bridge.provider().orElseThrow());
+        NpcProvider ess = provider("loveessential");
+        NpcBridge bridge = new NpcBridge(() -> "citizens",
+                id -> id.equals("loveessential") ? Optional.of(ess) : Optional.empty(), warnings::add);
+        assertSame(ess, bridge.provider().orElseThrow(), "the old value must not pick another provider");
+        assertSame(ess, bridge.provider().orElseThrow());
         assertEquals(1, warnings.size());
-        assertTrue(warnings.get(0).contains("znpcs"));
+        assertTrue(warnings.get(0).contains("citizens"));
     }
 
     // ----- tag recognition and the legacy name fallback -----

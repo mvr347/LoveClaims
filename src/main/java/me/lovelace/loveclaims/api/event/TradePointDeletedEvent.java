@@ -10,7 +10,7 @@ import java.util.UUID;
 /**
  * A trade-point claim was fully removed from the world (admin delete, auto-delete, etc.).
  * Fired after the claim is already out of ClaimManager cache. Main thread.
- * LoveShops listens and destroys Citizens NPCs + market row for this point.
+ * LoveShops listens and destroys the LoveEssential NPCs + market row for this point.
  */
 public class TradePointDeletedEvent extends Event {
     private static final HandlerList HANDLERS = new HandlerList();
