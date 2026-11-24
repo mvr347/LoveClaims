@@ -176,7 +176,7 @@ proximity-border:
 # Формат имён: BLOCK_ANVIL_USE или block.anvil.use. NONE отключает звук.
 sounds:
   gui-click: UI_BUTTON_CLICK
-  gui-error: ENTITY_VILLAGER_NO
+  gui-error: BLOCK_NOTE_BLOCK_BASS   # gui_gen: звук заблокированной кнопки
   anchor-place: BLOCK_BEACON_ACTIVATE
   anchor-error: ENTITY_VILLAGER_NO
   anchor-break: BLOCK_GLASS_BREAK
