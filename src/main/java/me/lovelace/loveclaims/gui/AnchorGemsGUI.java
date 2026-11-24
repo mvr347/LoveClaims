@@ -373,6 +373,16 @@ public class AnchorGemsGUI extends AbstractGUI {
             plugin.getConfigManager().playSound(viewer, "gui-error");
             return;
         }
+        // The confirmation window may have been open for a while: another manager could have filled the slots.
+        plugin.getClaimManager().syncAnchorLevel(claim);
+        ClaimTier tierNow = plugin.getAnchorManager().resolveClaimTier(claim);
+        int maxSlotsNow = tierNow != null ? tierNow.gemSlots() : 3;
+        if (claim.getModifiers().usedSlots() + stats.slotCost() > maxSlotsNow) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            viewer.sendMessage(noItalic(MM.deserialize("<red>Недостаточно слотов в якоре: пока вы подтверждали, их заняли.</red>")));
+            setMenuItems();
+            return;
+        }
         List<GemStats> candidate = new ArrayList<>(claim.getInstalledGems());
         candidate.add(stats);
         if (!plugin.getClaimManager().canApplyCandidateGems(claim, candidate)) {

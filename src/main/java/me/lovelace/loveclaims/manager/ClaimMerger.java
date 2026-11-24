@@ -79,8 +79,9 @@ public final class ClaimMerger {
     }
 
     public double maxGap() {
-        int gap = plugin.getConfig().getInt("merge.max-gap");
-        return gap > 0 ? gap : 3;
+        // Single-argument getter: a missing key falls back to the jar default (3), an explicit 0 stays 0
+        // and then only touching claims may merge.
+        return Math.max(0, plugin.getConfig().getInt("merge.max-gap"));
     }
 
     // ===== checks =====

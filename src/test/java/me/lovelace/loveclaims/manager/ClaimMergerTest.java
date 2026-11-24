@@ -118,6 +118,17 @@ class ClaimMergerTest {
     }
 
     @Test
+    void explicitZeroGapAllowsOnlyTouchingClaims() {
+        plugin.getConfig().set("merge.max-gap", 0);
+        assertEquals(0.0, plugin.getClaimMerger().maxGap());
+        Claim a = claim(owner, 0, 10);
+        Claim gap2 = claim(owner, 12, 22);
+        assertEquals(NOT_NEIGHBOURS, plugin.getClaimMerger().check(a, gap2));
+        plugin.getConfig().set("merge.max-gap", 3);
+        assertEquals(OK, plugin.getClaimMerger().check(a, gap2));
+    }
+
+    @Test
     void aClaimCannotMergeWithItself() {
         Claim a = claim(owner, 0, 10);
         assertEquals(SAME_CLAIM, plugin.getClaimMerger().check(a, a));
