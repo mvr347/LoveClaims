@@ -20,6 +20,8 @@ import java.util.*;
 public class AnchorManager {
     private final LoveClaims plugin;
     private final Map<String, ClaimTier> tiers = new HashMap<>();
+    /** Optional ItemsAdder ids ("namespace:id") per tier, from anchors.yml key {@code itemsadder}. */
+    private final Map<String, String> iaIds = new HashMap<>();
     private final NamespacedKey anchorKey;
     private final NamespacedKey anchorOwnerKey;
     private final NamespacedKey fusedGemKey;
@@ -40,6 +42,7 @@ public class AnchorManager {
      */
     public void loadTiers() {
         tiers.clear();
+        iaIds.clear();
         ConfigurationSection section = plugin.getConfigManager().getAnchors().getConfigurationSection("tiers");
         if (section == null) {
             plugin.getLogger().warning("No tiers section in anchors.yml!");
@@ -76,6 +79,7 @@ public class AnchorManager {
                 // gems.bonus-slots is added in code, so servers with an old anchors.yml get the extra slot too
                 int gemSlots = section.getInt(key + ".gem-slots", ClaimTier.defaultSlotsFor(anchorLevel, modified))
                         + Math.max(0, plugin.getConfig().getInt("gems.bonus-slots"));
+                iaIds.put(key, section.getString(key + ".itemsadder", ""));
                 String upgradeTarget = section.getString(key + ".upgrade-target", null);
                 long upgradeCost = readCost(section, key + ".upgrade-cost");
 
@@ -143,6 +147,9 @@ public class AnchorManager {
         }
 
         ItemStack item = new ItemStack(tier.material());
+        // An ItemsAdder base is taken only when it has the tier's material: recipes and placement depend on it.
+        ItemStack ia = me.lovelace.loveclaims.util.IaItems.get(iaIds.get(tier.id()));
+        if (ia != null && ia.getType() == tier.material()) item = ia;
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 

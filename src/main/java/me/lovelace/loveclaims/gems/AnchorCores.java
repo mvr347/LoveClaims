@@ -34,11 +34,12 @@ public final class AnchorCores {
 
     public static ItemStack create(LoveClaims plugin, int tier) {
         int t = Math.max(1, Math.min(3, tier));
-        ItemStack item = new ItemStack(switch (t) {
-            case 1 -> Material.COPPER_INGOT;
-            case 2 -> Material.AMETHYST_SHARD;
-            default -> Material.ECHO_SHARD;
-        });
+        ItemStack item = me.lovelace.loveclaims.util.IaItems.orElse(plugin.getConfig().getString("itemsadder.core-tier-" + t),
+                new ItemStack(switch (t) {
+                    case 1 -> Material.COPPER_INGOT;
+                    case 2 -> Material.AMETHYST_SHARD;
+                    default -> Material.ECHO_SHARD;
+                }));
         item.editMeta(meta -> {
             meta.displayName(noItalic(MM.deserialize("<gold>Ядро якоря <dark_gray>|</dark_gray> <yellow>Тир " + ROMAN[t] + "</yellow>")));
             meta.lore(List.of(

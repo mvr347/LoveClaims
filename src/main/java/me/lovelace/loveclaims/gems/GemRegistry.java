@@ -45,6 +45,8 @@ public final class GemRegistry {
     private final Map<String, GemDescriptor> descriptors = new LinkedHashMap<>();
     private final Map<String, Material> gemMaterials = new HashMap<>();
     private final Map<String, Integer> gemCmds = new HashMap<>();
+    /** Optional ItemsAdder ids ("namespace:id") used as the visual base of a gem item. */
+    private final Map<String, String> gemIaIds = new HashMap<>();
     private final Map<String, String> gemNames = new HashMap<>();
     private final Map<String, List<String>> gemBaseLore = new HashMap<>();
 
@@ -74,6 +76,7 @@ public final class GemRegistry {
         descriptors.clear();
         gemMaterials.clear();
         gemCmds.clear();
+        gemIaIds.clear();
         gemNames.clear();
         gemBaseLore.clear();
 
@@ -113,6 +116,7 @@ public final class GemRegistry {
         descriptors.put(id, new PureGemDescriptor(id, rarity, stats));
         gemMaterials.put(id, material);
         gemCmds.put(id, cmd);
+        gemIaIds.put(id, sec.getString("itemsadder", ""));
         gemNames.put(id, name);
         gemBaseLore.put(id, lore);
     }
@@ -151,6 +155,7 @@ public final class GemRegistry {
         descriptors.put(id, new HybridGemDescriptor(id, firstBase, secondBase, firstMod, secondMod, debuffs));
         gemMaterials.put(id, material);
         gemCmds.put(id, cmd);
+        gemIaIds.put(id, sec.getString("itemsadder", ""));
         gemNames.put(id, name);
         gemBaseLore.put(id, lore);
     }
@@ -496,6 +501,8 @@ public final class GemRegistry {
     private ItemStack buildTemplate(String gemId) {
         Material mat = gemMaterials.getOrDefault(gemId.toLowerCase(Locale.ROOT), Material.EMERALD);
         int cmd = gemCmds.getOrDefault(gemId.toLowerCase(Locale.ROOT), 0);
+        ItemStack ia = me.lovelace.loveclaims.util.IaItems.get(gemIaIds.get(gemId.toLowerCase(Locale.ROOT)));
+        if (ia != null) return ia;
         ItemStack item = new ItemStack(mat);
         if (cmd > 0) {
             item.editMeta(meta -> meta.setCustomModelData(cmd));

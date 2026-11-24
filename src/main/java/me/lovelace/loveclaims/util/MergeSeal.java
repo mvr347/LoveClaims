@@ -24,7 +24,7 @@ public final class MergeSeal {
     }
 
     public static ItemStack create(LoveClaims plugin) {
-        ItemStack item = new ItemStack(Material.NAUTILUS_SHELL);
+        ItemStack item = IaItems.orElse(plugin.getConfig().getString("itemsadder.merge-seal"), new ItemStack(Material.NAUTILUS_SHELL));
         item.editMeta(meta -> {
             meta.displayName(noItalic(MM.deserialize("<gold>Печать слияния <dark_gray>|</dark_gray> <yellow>Клеймы</yellow>")));
             meta.lore(List.of(
