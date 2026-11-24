@@ -89,6 +89,24 @@ public class AnchorGemsGUI extends AbstractGUI {
         GemRegistry registry = plugin.getGemRegistry();
 
         int idx = 0;
+        GemStats permanent = claim.getPermanentGem();
+        if (permanent != null) {
+            ItemStack fusedItem = registry != null ? registry.createItemFromStats(permanent) : new ItemStack(Material.EMERALD);
+            if (fusedItem != null) {
+                fusedItem.editMeta(meta -> {
+                    List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+                    lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
+                    lore.add(noItalic(MM.deserialize("<gold>★ Вшит в якорь навсегда")));
+                    lore.add(noItalic(MM.deserialize("<red>✕ Извлечение недоступно")));
+                    lore.add(noItalic(MM.deserialize("<red>Причина: <gray>гем вшит в якорь")));
+                    lore.add(noItalic(MM.deserialize("<dark_gray>ЛКМ — извлечь (заблокировано)")));
+                    meta.lore(lore);
+                });
+                inventory.setItem(WORK_SLOTS[idx], fusedItem);
+                slotToGemIndex.add(-2); // fused gem: shown, never clickable
+                idx++;
+            }
+        }
         for (int gemIdx = 0; gemIdx < installed.size() && idx < WORK_SLOTS.length; gemIdx++) {
             GemStats gs = installed.get(gemIdx);
             ItemStack item = registry != null ? registry.createItemFromStats(gs) : new ItemStack(Material.EMERALD);

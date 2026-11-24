@@ -81,6 +81,16 @@ public final class GemCraftListener implements Listener {
                 if (!inputGems.isEmpty() || inputAnchors.size() != 1
                         || inputAnchors.get(0).anchorLevel() != anchorRecipe.requiredAnchorLevel()) {
                     inv.setResult(null);
+                    return;
+                }
+                // The fusion is part of the anchor: an upgraded anchor keeps the gem fused into the old one.
+                for (ItemStack matrixItem : inv.getMatrix()) {
+                    var fused = anchorManager != null ? anchorManager.readFusedGem(matrixItem) : Optional.<GemStats>empty();
+                    if (fused.isPresent()) {
+                        ItemStack carried = anchorManager.createAnchorItem(anchorRecipe.targetTierId(), null, fused.get());
+                        if (carried != null) inv.setResult(carried);
+                        break;
+                    }
                 }
                 return;
             }

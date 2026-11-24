@@ -62,6 +62,8 @@ public class Claim {
     private volatile int anchorLevel = 0;
     /** True after an overloaded anchor core cracked; cleared when the core is replaced. */
     private volatile boolean anchorBroken = false;
+    /** The one gem fused into the anchor for good; null until the claim is fused (see GemFusion). */
+    private volatile GemStats permanentGem = null;
     private final List<GemStats> installedGems = new CopyOnWriteArrayList<>();
     private volatile ClaimModifiers modifiers = ClaimModifiers.EMPTY;
 
@@ -396,14 +398,22 @@ public class Claim {
     /** Sets the tier used for overload penalties and recomputes the modifiers. */
     public void setAnchorLevel(int level) {
         this.anchorLevel = Math.max(0, level);
-        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken, permanentGem);
+    }
+
+    public GemStats getPermanentGem() { return permanentGem; }
+
+    public void setPermanentGem(GemStats gem) {
+        this.permanentGem = gem;
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken, permanentGem);
+        markModified();
     }
 
     public boolean isAnchorBroken() { return anchorBroken; }
 
     public void setAnchorBroken(boolean broken) {
         this.anchorBroken = broken;
-        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken, permanentGem);
         markModified();
     }
 
@@ -414,7 +424,7 @@ public class Claim {
     public void addInstalledGem(GemStats stats) {
         if (stats != null) {
             installedGems.add(stats);
-            this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
+            this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken, permanentGem);
             markModified();
         }
     }
@@ -422,7 +432,7 @@ public class Claim {
     public GemStats removeInstalledGem(int index) {
         if (index < 0 || index >= installedGems.size()) return null;
         GemStats removed = installedGems.remove(index);
-        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken, permanentGem);
         markModified();
         return removed;
     }
@@ -432,7 +442,7 @@ public class Claim {
         if (gems != null) {
             installedGems.addAll(gems);
         }
-        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken, permanentGem);
     }
 
     public ClaimModifiers getModifiers() {

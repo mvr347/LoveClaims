@@ -36,9 +36,18 @@ public record ClaimModifiers(
      *                    other buff off, so a break never shrinks the claim around existing builds
      */
     public static ClaimModifiers fromGems(Collection<GemStats> gems, int anchorLevel, boolean broken) {
-        if (gems == null || gems.isEmpty()) {
+        return fromGems(gems, anchorLevel, broken, null);
+    }
+
+    /**
+     * @param permanent the gem fused into the anchor for good, or null: counts as exactly one slot, always at
+     *                  full strength (never cut by overload, kept while the core is cracked)
+     */
+    public static ClaimModifiers fromGems(Collection<GemStats> gems, int anchorLevel, boolean broken, GemStats permanent) {
+        if ((gems == null || gems.isEmpty()) && permanent == null) {
             return EMPTY;
         }
+        if (gems == null) gems = java.util.List.of();
         int slots = 0;
         int radius = 0;
         int members = 0;
@@ -67,6 +76,17 @@ public record ClaimModifiers(
                 int reduced = amp - gap; // amplifier is 0-based: one gap = one level lower, below 0 the effect is gone
                 if (reduced >= 0) effects.merge(type, reduced, Math::max);
             });
+        }
+
+        if (permanent != null) {
+            slots += 1;
+            radius += permanent.radiusBonus();
+            members += permanent.membersBonus();
+            crop += permanent.cropGrowthMultiplier();
+            furnace += permanent.furnaceSpeedMultiplier();
+            doubleDrop = Math.max(doubleDrop, permanent.doubleDropChance());
+            bypass = bypass || permanent.allowLimitBypass();
+            permanent.potionEffects().forEach((type, amp) -> effects.merge(type, amp, Math::max));
         }
 
         return new ClaimModifiers(

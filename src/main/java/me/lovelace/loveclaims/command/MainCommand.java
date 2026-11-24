@@ -273,7 +273,23 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     Claim newClaim = new Claim(java.util.UUID.randomUUID(), pending.location().getWorld(), pending.previewTask().getBox(), player.getUniqueId(), pending.location());
                     newClaim.setAnchorTierId(pending.tier().id());
                     newClaim.setBehaviorBonusRadius(pending.behaviorBonusRadius());
+                    // A gem fused into the anchor item stays fused in the new claim. If its radius would overlap
+                    // a neighbour, the gem is handed back as an ordinary gem item instead of losing it.
+                    var fused = plugin.getAnchorManager().readFusedGem(player.getInventory().getItemInMainHand());
                     plugin.getClaimManager().addClaimToCache(newClaim);
+                    if (fused.isPresent()) {
+                        if (plugin.getClaimManager().canApplyCandidateGems(newClaim, java.util.List.of(), fused.get())) {
+                            newClaim.setPermanentGem(fused.get());
+                            plugin.getClaimManager().recalculateClaimModifiers(newClaim);
+                        } else {
+                            var gemItem = plugin.getGemRegistry().createItemFromStats(fused.get());
+                            if (gemItem != null) {
+                                player.getInventory().addItem(gemItem).values()
+                                        .forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+                            }
+                            player.sendMessage(plugin.getConfigManager().getMessage("claim-overlap"));
+                        }
+                    }
                     plugin.getStorage().saveClaimAsync(newClaim);
                     me.lovelace.loveclaims.integration.AchievementsHook.claimCreated(player.getUniqueId());
 

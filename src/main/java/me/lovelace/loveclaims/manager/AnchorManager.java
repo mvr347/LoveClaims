@@ -22,12 +22,14 @@ public class AnchorManager {
     private final Map<String, ClaimTier> tiers = new HashMap<>();
     private final NamespacedKey anchorKey;
     private final NamespacedKey anchorOwnerKey;
+    private final NamespacedKey fusedGemKey;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public AnchorManager(LoveClaims plugin) {
         this.plugin = plugin;
         this.anchorKey = new NamespacedKey(plugin, "anchor_tier");
         this.anchorOwnerKey = new NamespacedKey(plugin, "anchor_owner");
+        this.fusedGemKey = new NamespacedKey(plugin, "anchor_fused_gem");
         loadTiers();
     }
 
@@ -165,6 +167,31 @@ public class AnchorManager {
 
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Anchor item that carries the gem fused into it, so moving or re-crafting an anchor keeps the fusion.
+     * The fused gem is stored as serialized stats; a null gem gives a plain anchor.
+     */
+    public ItemStack createAnchorItem(String tierId, UUID ownerUUID, me.lovelace.loveclaims.gems.GemStats fused) {
+        ItemStack item = createAnchorItem(tierId, ownerUUID);
+        if (item == null || fused == null || plugin.getGemFactory() == null) return item;
+        item.editMeta(meta -> {
+            meta.getPersistentDataContainer().set(fusedGemKey, PersistentDataType.STRING,
+                    plugin.getGemFactory().serializeStatsForDb(fused));
+            List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+            lore.add(Component.empty());
+            lore.add(miniMessage.deserialize("<dark_gray>▪ <gray>Вшитый гем: <light_purple>" + fused.gemId()));
+            meta.lore(lore.stream().map(c -> c.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)).toList());
+        });
+        return item;
+    }
+
+    /** The gem fused into this anchor item, if any. */
+    public Optional<me.lovelace.loveclaims.gems.GemStats> readFusedGem(ItemStack item) {
+        if (item == null || !item.hasItemMeta() || plugin.getGemFactory() == null) return Optional.empty();
+        String raw = item.getItemMeta().getPersistentDataContainer().get(fusedGemKey, PersistentDataType.STRING);
+        return raw == null ? Optional.empty() : plugin.getGemFactory().deserializeStatsFromDb(raw);
     }
 
     /**
@@ -386,7 +413,7 @@ public class AnchorManager {
         if (claim == null || receiver == null) return;
         ClaimTier tier = resolveClaimTier(claim);
         String tierId = tier != null ? tier.id() : "tier-1";
-        ItemStack anchor = createAnchorItem(tierId);
+        ItemStack anchor = createAnchorItem(tierId, null, claim.getPermanentGem());
         if (anchor != null) {
             receiver.getInventory().addItem(anchor).values()
                     .forEach(left -> receiver.getWorld().dropItemNaturally(receiver.getLocation(), left));
@@ -410,7 +437,7 @@ public class AnchorManager {
         if (claim == null || claim.getWorld() == null || claim.getAnchorLocation() == null) return;
         ClaimTier tier = resolveClaimTier(claim);
         String tierId = tier != null ? tier.id() : "tier-1";
-        ItemStack anchor = createAnchorItem(tierId);
+        ItemStack anchor = createAnchorItem(tierId, null, claim.getPermanentGem());
         if (anchor != null) {
             claim.getWorld().dropItemNaturally(claim.getAnchorLocation(), anchor);
         }

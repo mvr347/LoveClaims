@@ -102,6 +102,16 @@ public class AnchorUpgradeGUI extends AbstractGUI {
             }
         }
 
+        // Header control button (gui_gen RULE 4: one button -> slot 4)
+        inventory.setItem(headerControlSlots(1)[0], createHead(HEAD_PROMOTE,
+                noItalic(MM.deserialize("<gold>Вшить гем <dark_gray>|</dark_gray> <yellow>Навсегда</yellow>")),
+                List.of(
+                        noItalic(MM.deserialize("<dark_gray>Постоянное улучшение якоря")),
+                        Component.empty(),
+                        noItalic(MM.deserialize("<gray>Один гем на якорь, занимает <white>1</white> слот")),
+                        noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
+                        noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>открыть вшивание")))));
+
         setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
         fillFrameGlass();
     }
@@ -129,6 +139,12 @@ public class AnchorUpgradeGUI extends AbstractGUI {
         if (slot == inventory.getSize() - 1) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.closeInventory();
+            return;
+        }
+
+        if (slot == headerControlSlots(1)[0]) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.openInventory(new GemFuseGUI(plugin, viewer).getInventory());
             return;
         }
 
@@ -192,7 +208,8 @@ public class AnchorUpgradeGUI extends AbstractGUI {
         long cost = current.upgradeCost();
         if (!checkAndCharge(cost)) return;
 
-        ItemStack upgraded = plugin.getAnchorManager().createAnchorItem(target.id(), viewer.getUniqueId());
+        ItemStack upgraded = plugin.getAnchorManager().createAnchorItem(target.id(), viewer.getUniqueId(),
+                plugin.getAnchorManager().readFusedGem(inHand).orElse(null));
         if (upgraded == null) {
             refundIfCharged(cost);
             return;

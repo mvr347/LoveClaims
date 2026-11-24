@@ -37,6 +37,9 @@ public class SQLiteStorage {
     private Connection rentalsConnection;
     private final ExecutorService dbExecutor;
 
+    /** claim_gems row index that holds the gem fused into the anchor (regular gems use 0, 1, 2...). */
+    private static final int PERMANENT_GEM_SLOT = -1;
+
     private static final String CLAIMS_UPSERT =
             "INSERT INTO claims (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, claim_type, is_clan_territory, is_under_siege, owner_display_name, default_permissions, anchor_tier_id, behavior_bonus_radius, admin_expand_bonus, applied_radius_bonus, extra_expansion_unlocked, anchor_broken) " +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
@@ -314,12 +317,17 @@ public class SQLiteStorage {
 
             if (plugin.getGemFactory() != null) {
                 Map<UUID, List<GemStats>> gemsByClaim = new HashMap<>();
+                Map<UUID, GemStats> permanentByClaim = new HashMap<>();
                 try (Statement stmt = conn.createStatement();
-                     ResultSet rs = stmt.executeQuery("SELECT claim_id, gem_data FROM claim_gems ORDER BY claim_id, slot_index ASC")) {
+                     ResultSet rs = stmt.executeQuery("SELECT claim_id, slot_index, gem_data FROM claim_gems ORDER BY claim_id, slot_index ASC")) {
                     while (rs.next()) {
                         UUID cid = UUID.fromString(rs.getString("claim_id"));
+                        boolean permanent = rs.getInt("slot_index") == PERMANENT_GEM_SLOT;
                         plugin.getGemFactory().deserializeStatsFromDb(rs.getString("gem_data"))
-                                .ifPresent(gs -> gemsByClaim.computeIfAbsent(cid, k -> new ArrayList<>()).add(gs));
+                                .ifPresent(gs -> {
+                                    if (permanent) permanentByClaim.put(cid, gs);
+                                    else gemsByClaim.computeIfAbsent(cid, k -> new ArrayList<>()).add(gs);
+                                });
                     }
                 } catch (SQLException e) {
                     plugin.getLogger().severe("Error loading claim gems: " + e.getMessage());
@@ -327,6 +335,10 @@ public class SQLiteStorage {
                 gemsByClaim.forEach((cid, list) -> {
                     Claim c = claimsMap.get(cid);
                     if (c != null) c.loadInstalledGems(list);
+                });
+                permanentByClaim.forEach((cid, gem) -> {
+                    Claim c = claimsMap.get(cid);
+                    if (c != null) c.setPermanentGem(gem);
                 });
             }
         }
@@ -432,17 +444,21 @@ public class SQLiteStorage {
 
             if (plugin.getGemFactory() != null) {
                 List<GemStats> gems = new ArrayList<>();
-                try (PreparedStatement ps = conn.prepareStatement("SELECT gem_data FROM claim_gems WHERE claim_id = ? ORDER BY slot_index ASC")) {
+                GemStats[] permanentHolder = new GemStats[1];
+                try (PreparedStatement ps = conn.prepareStatement("SELECT slot_index, gem_data FROM claim_gems WHERE claim_id = ? ORDER BY slot_index ASC")) {
                     ps.setString(1, claimId.toString());
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            plugin.getGemFactory().deserializeStatsFromDb(rs.getString("gem_data")).ifPresent(gems::add);
+                            boolean permanent = rs.getInt("slot_index") == PERMANENT_GEM_SLOT;
+                            plugin.getGemFactory().deserializeStatsFromDb(rs.getString("gem_data"))
+                                    .ifPresent(g -> { if (permanent) permanentHolder[0] = g; else gems.add(g); });
                         }
                     }
                 } catch (SQLException e) {
                     plugin.getLogger().severe("Error loading gems for claim " + claimId + ": " + e.getMessage());
                 }
                 claim.loadInstalledGems(gems);
+                if (permanentHolder[0] != null) claim.setPermanentGem(permanentHolder[0]);
             }
         }
 
@@ -639,8 +655,15 @@ public class SQLiteStorage {
             del.executeUpdate();
         }
         List<GemStats> gems = claim.getInstalledGems();
-        if (gems.isEmpty()) return;
+        GemStats permanent = claim.getPermanentGem();
+        if (gems.isEmpty() && permanent == null) return;
         try (PreparedStatement ins = conn.prepareStatement("INSERT INTO claim_gems (claim_id, slot_index, gem_data) VALUES (?, ?, ?)")) {
+            if (permanent != null) {
+                ins.setString(1, claim.getId().toString());
+                ins.setInt(2, PERMANENT_GEM_SLOT);
+                ins.setString(3, plugin.getGemFactory().serializeStatsForDb(permanent));
+                ins.addBatch();
+            }
             for (int i = 0; i < gems.size(); i++) {
                 ins.setString(1, claim.getId().toString());
                 ins.setInt(2, i);
