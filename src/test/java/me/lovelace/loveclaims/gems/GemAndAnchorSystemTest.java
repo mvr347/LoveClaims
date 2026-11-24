@@ -482,14 +482,26 @@ class GemAndAnchorSystemTest {
         Recipe tier2Recipe = Bukkit.getRecipe(new NamespacedKey(plugin, "anchor_upgrade_tier_2_0"));
         assertNotNull(tier2Recipe);
         CraftingInventory anchorInv = (CraftingInventory) Bukkit.createInventory(null, InventoryType.WORKBENCH);
+        // tier-2 recipe (anchors.yml): GIG / IAI / GCG with a tier 2 anchor core in C
+        ItemStack core2 = me.lovelace.loveclaims.gems.AnchorCores.create(plugin, 2);
         anchorInv.setMatrix(new ItemStack[]{
-                new ItemStack(Material.GOLD_INGOT), new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.GOLD_INGOT),
+                new ItemStack(Material.GOLD_BLOCK), new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.GOLD_BLOCK),
                 new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.CAMPFIRE), new ItemStack(Material.IRON_BLOCK),
-                new ItemStack(Material.GOLD_INGOT), new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.GOLD_INGOT)
+                new ItemStack(Material.GOLD_BLOCK), core2, new ItemStack(Material.GOLD_BLOCK)
         });
         anchorInv.setResult(tier2Recipe.getResult().clone());
         Bukkit.getPluginManager().callEvent(new PrepareItemCraftEvent(anchorInv, mockView(owner, anchorInv), false));
         assertNull(anchorInv.getResult(), "Vanilla CAMPFIRE must not craft tier-2 anchor");
+
+        // a real tier-1 anchor with the core does craft it
+        anchorInv.setMatrix(new ItemStack[]{
+                new ItemStack(Material.GOLD_BLOCK), new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.GOLD_BLOCK),
+                new ItemStack(Material.IRON_BLOCK), plugin.getAnchorManager().createAnchorItem("tier-1"), new ItemStack(Material.IRON_BLOCK),
+                new ItemStack(Material.GOLD_BLOCK), core2, new ItemStack(Material.GOLD_BLOCK)
+        });
+        anchorInv.setResult(tier2Recipe.getResult().clone());
+        Bukkit.getPluginManager().callEvent(new PrepareItemCraftEvent(anchorInv, mockView(owner, anchorInv), false));
+        assertNotNull(anchorInv.getResult(), "A real tier-1 anchor plus the core must craft the tier-2 anchor");
 
         // 3. Unmatched 2-gem pair (domain + vita) must not bypass custom item guard
         CraftingInventory pairInv = (CraftingInventory) Bukkit.createInventory(null, InventoryType.WORKBENCH);

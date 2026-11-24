@@ -57,7 +57,8 @@ public final class GemCraftListener implements Listener {
         // 0. An anchor core is made of ordinary materials (copper, amethyst, echo shard), so it would otherwise be
         // consumed by unrelated vanilla recipes. It may only be used in its own upgrade recipes.
         if (hasCore && !(event.getRecipe() instanceof Keyed coreKeyed
-                && AnchorCores.isCoreRecipe(plugin, coreKeyed.getKey()))) {
+                && (AnchorCores.isCoreRecipe(plugin, coreKeyed.getKey())
+                || registry.getAnchorRecipe(coreKeyed.getKey()).isPresent()))) {
             inv.setResult(null);
             return;
         }
@@ -78,8 +79,10 @@ public final class GemCraftListener implements Listener {
             Optional<GemRegistry.AnchorUpgradeRecipe> anchorRecipeOpt = registry.getAnchorRecipe(key);
             if (anchorRecipeOpt.isPresent()) {
                 var anchorRecipe = anchorRecipeOpt.get();
-                if (!inputGems.isEmpty() || inputAnchors.size() != 1
-                        || inputAnchors.get(0).anchorLevel() != anchorRecipe.requiredAnchorLevel()) {
+                boolean noAnchorRecipe = anchorRecipe.requiredAnchorLevel() <= 0;
+                if (!inputGems.isEmpty()
+                        || (noAnchorRecipe ? !inputAnchors.isEmpty()
+                        : inputAnchors.size() != 1 || inputAnchors.get(0).anchorLevel() != anchorRecipe.requiredAnchorLevel())) {
                     inv.setResult(null);
                     return;
                 }

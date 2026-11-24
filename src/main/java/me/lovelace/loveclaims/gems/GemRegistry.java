@@ -11,6 +11,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.potion.PotionEffectType;
@@ -244,6 +245,7 @@ public final class GemRegistry {
                 ClaimTier targetTier = plugin.getAnchorManager().getTier(targetTierId);
                 if (targetTier == null) continue;
 
+                // 0 = the recipe makes a tier without an older anchor (tier 1)
                 int reqLevel = sec.getInt("requires-anchor-level", Math.max(1, targetTier.anchorLevel() - 1));
                 char anchorChar = sec.getString("anchor-char", "A").charAt(0);
                 List<String> shape = sec.getStringList("shape");
@@ -252,9 +254,13 @@ public final class GemRegistry {
 
                 // Register one recipe per anchor material at reqLevel (normal & modified share the craft transition)
                 Set<Material> sourceMaterials = new LinkedHashSet<>();
-                for (ClaimTier candidate : plugin.getAnchorManager().getAllTiers()) {
-                    if (candidate.anchorLevel() == reqLevel) {
-                        sourceMaterials.add(candidate.material());
+                if (reqLevel <= 0) {
+                    sourceMaterials.add(null); // single recipe, no anchor in the grid
+                } else {
+                    for (ClaimTier candidate : plugin.getAnchorManager().getAllTiers()) {
+                        if (candidate.anchorLevel() == reqLevel) {
+                            sourceMaterials.add(candidate.material());
+                        }
                     }
                 }
                 int idx = 0;
@@ -265,16 +271,17 @@ public final class GemRegistry {
 
                     ShapedRecipe recipe = new ShapedRecipe(key, result);
                     recipe.shape(shape.toArray(new String[0]));
-                    recipe.setIngredient(anchorChar, srcMat);
+                    if (srcMat != null) recipe.setIngredient(anchorChar, srcMat);
                     boolean valid = true;
                     for (String sym : ingSec.getKeys(false)) {
                         if (sym.length() != 1) continue;
-                        Material mat = Material.getMaterial(ingSec.getString(sym, "").toUpperCase(Locale.ROOT));
-                        if (mat == null || mat.isAir()) {
+                        RecipeChoice choice = ingredientChoice(ingSec.get(sym));
+                        if (choice == null) {
+                            plugin.getLogger().warning("anchors.yml recipes." + targetTierId + ": unknown ingredient for '" + sym + "'");
                             valid = false;
                             break;
                         }
-                        recipe.setIngredient(sym.charAt(0), mat);
+                        recipe.setIngredient(sym.charAt(0), choice);
                     }
                     if (!valid) continue;
 
@@ -284,6 +291,34 @@ public final class GemRegistry {
             }
         }
         AnchorCores.registerRecipes(plugin, this::addRecipeSafely);
+    }
+
+    /**
+     * An ingredient from anchors.yml: a material name, a list of material names (any of them works) or
+     * {@code core:N} for the anchor core of tier N. Null when nothing in it can be resolved.
+     */
+    private RecipeChoice ingredientChoice(Object raw) {
+        if (raw instanceof List<?> list) {
+            List<Material> materials = new ArrayList<>();
+            for (Object o : list) {
+                Material m = Material.getMaterial(String.valueOf(o).toUpperCase(Locale.ROOT));
+                if (m != null && !m.isAir()) materials.add(m);
+            }
+            return materials.isEmpty() ? null : new RecipeChoice.MaterialChoice(materials);
+        }
+        if (raw == null) return null;
+        String text = String.valueOf(raw).trim();
+        if (text.toLowerCase(Locale.ROOT).startsWith("core:")) {
+            try {
+                int tier = Integer.parseInt(text.substring(5).trim());
+                if (tier < 1 || tier > 3) return null;
+                return new RecipeChoice.ExactChoice(AnchorCores.create(plugin, tier));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        Material m = Material.getMaterial(text.toUpperCase(Locale.ROOT));
+        return m == null || m.isAir() ? null : new RecipeChoice.MaterialChoice(m);
     }
 
     private void addRecipeSafely(NamespacedKey key, org.bukkit.inventory.Recipe recipe) {
