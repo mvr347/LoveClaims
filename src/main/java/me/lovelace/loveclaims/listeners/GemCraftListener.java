@@ -42,14 +42,24 @@ public final class GemCraftListener implements Listener {
         List<GemStats> inputGems = new ArrayList<>();
         List<ClaimTier> inputAnchors = new ArrayList<>();
         int nonAirCount = 0;
+        boolean hasCore = false;
 
         for (ItemStack matrixItem : inv.getMatrix()) {
             if (matrixItem == null || matrixItem.getType().isAir()) continue;
             nonAirCount++;
+            hasCore |= AnchorCores.isCore(plugin, matrixItem);
             factory.readStats(matrixItem).ifPresent(inputGems::add);
             if (anchorManager != null) {
                 anchorManager.getTierFromItem(matrixItem).ifPresent(inputAnchors::add);
             }
+        }
+
+        // 0. An anchor core is made of ordinary materials (copper, amethyst, echo shard), so it would otherwise be
+        // consumed by unrelated vanilla recipes. It may only be used in its own upgrade recipes.
+        if (hasCore && !(event.getRecipe() instanceof Keyed coreKeyed
+                && AnchorCores.isCoreRecipe(plugin, coreKeyed.getKey()))) {
+            inv.setResult(null);
+            return;
         }
 
         // 1. Запрет крафта с участием LEGENDARY гемов
@@ -145,7 +155,8 @@ public final class GemCraftListener implements Listener {
             AnchorManager anchorManager = plugin.getAnchorManager();
             for (ItemStack item : crafter.getInventory().getContents()) {
                 if (item == null || item.getType().isAir()) continue;
-                if (factory.isGem(item) || (anchorManager != null && anchorManager.isAnchor(item))) {
+                if (factory.isGem(item) || AnchorCores.isCore(plugin, item)
+                        || (anchorManager != null && anchorManager.isAnchor(item))) {
                     event.setCancelled(true);
                     return;
                 }

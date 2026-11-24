@@ -60,6 +60,16 @@ public final class AnchorCores {
         return t == null ? OptionalInt.empty() : OptionalInt.of(t);
     }
 
+    public static boolean isCore(LoveClaims plugin, ItemStack item) {
+        return readTier(plugin, item).isPresent();
+    }
+
+    /** True for the recipes registered by {@link #registerRecipes}. */
+    public static boolean isCoreRecipe(LoveClaims plugin, NamespacedKey key) {
+        return key != null && key.getNamespace().equals(new NamespacedKey(plugin, "x").getNamespace())
+                && key.getKey().startsWith("core_craft_");
+    }
+
     /** Recipes: tier 1 from cheap materials, tiers 2 and 3 upgrade the previous core (it sits in the centre). */
     public static void registerRecipes(LoveClaims plugin, BiConsumer<NamespacedKey, Recipe> sink) {
         NamespacedKey k1 = new NamespacedKey(plugin, "core_craft_1");
