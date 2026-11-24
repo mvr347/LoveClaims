@@ -9,7 +9,7 @@ description: Advanced anchor-based claiming system.
 commands:
   ac:
     description: Основная команда приватов
-    aliases: [ claim, loveclaims, приват ]
+    aliases: [ claim, claims, loveclaims, приват ]
   rental:
     description: Управление арендой
     aliases: [ rent ]

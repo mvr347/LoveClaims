@@ -49,13 +49,8 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                 return true;
             }
 
-            player.sendMessage(plugin.getConfigManager().getMessage("rental-multiple-claims"));
-            for (Claim c : accessibleClaims) {
-                String ownerName = Bukkit.getOfflinePlayer(c.getOwnerUuid()).getName();
-                if (ownerName == null) ownerName = "Неизвестно";
-                player.sendMessage(plugin.getConfigManager().getComponent("msg-invite-list-entry", "player", ownerName));
-            }
-            player.sendMessage(plugin.getConfigManager().getMessage("rental-multiple-claims-hint"));
+            // Several claims: a mini menu to pick one (replaces the old chat list without coordinates)
+            player.openInventory(new me.lovelace.loveclaims.gui.ClaimPickerGUI(plugin, player, accessibleClaims).getInventory());
             return true;
         }
 
