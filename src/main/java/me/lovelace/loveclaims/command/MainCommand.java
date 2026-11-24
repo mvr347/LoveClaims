@@ -302,6 +302,19 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                 }
                 return true;
             }
+            case "master" -> {
+                // The anchor master's counter (upgrade, fusing). Only through the craftsman hub, which sets
+                // craftsman_hub_until for a few seconds; administrators may always open it.
+                boolean viaHub = player.getMetadata("craftsman_hub_until").stream()
+                        .anyMatch(v -> v.asLong() > System.currentTimeMillis());
+                if (!viaHub && !player.hasPermission("loveclaims.admin")) {
+                    player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                            .deserialize("<red>Якоря улучшает ремесленник: подойдите к нему и выберите «Якоря и гемы».</red>"));
+                    return true;
+                }
+                player.openInventory(new me.lovelace.loveclaims.gui.AnchorUpgradeGUI(plugin, player).getInventory());
+                return true;
+            }
             case "merge" -> {
                 handleMerge(player, args);
                 return true;
