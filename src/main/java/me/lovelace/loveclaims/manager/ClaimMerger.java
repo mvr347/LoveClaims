@@ -220,7 +220,11 @@ public final class ClaimMerger {
         // 4. hand the absorbed claim's anchor and ordinary gems back to its owner
         giveBack(absorbed);
         Location anchor = absorbed.getAnchorLocation();
-        if (anchor != null && anchor.getWorld() != null && anchor.getBlock().getType() != Material.AIR) {
+        // Only the visible anchor block goes: with HIDE_ANCHOR the spot is air and the owner may have built
+        // something else there since, which must not be deleted.
+        var absorbedTier = plugin.getAnchorManager().resolveClaimTier(absorbed);
+        if (anchor != null && anchor.getWorld() != null && !absorbed.getFlag(me.lovelace.loveclaims.model.ClaimFlag.HIDE_ANCHOR)
+                && absorbedTier != null && anchor.getBlock().getType() == absorbedTier.material()) {
             anchor.getBlock().setType(Material.AIR);
         }
 
@@ -228,6 +232,9 @@ public final class ClaimMerger {
         BoundingBox oldBox = survivor.getBoundingBox().clone();
         survivor.setBoundingBox(fresh.merged());
         claims.resizeClaimInCache(survivor, oldBox);
+        // The absorbed claim leaves the cache before the fit check below: otherwise the merged box overlaps it
+        // and a gem that fits is wrongly refused.
+        claims.removeClaimFromCache(absorbed.getId());
         // A fused gem taken over from the absorbed claim may add radius that would reach a neighbour of the
         // merged area: then the survivor keeps its own state and the gem comes back as an ordinary item.
         GemStats own = survivor.getPermanentGem();
@@ -240,7 +247,6 @@ public final class ClaimMerger {
         survivor.setPermanentGem(chosen);
         claims.recalculateClaimModifiers(survivor);
         plugin.getStorage().saveClaimAsync(survivor);
-        claims.removeClaimFromCache(absorbed.getId());
         plugin.getStorage().deleteClaimAsync(absorbed.getId());
 
         plugin.getEffects().playAt(survivor.getAnchorLocation(), "claim-merge");

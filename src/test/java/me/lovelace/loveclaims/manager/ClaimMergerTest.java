@@ -116,6 +116,17 @@ class ClaimMergerTest {
     }
 
     @Test
+    void fusedRadiusGemFromAbsorbedClaimIsKeptWhenNothingElseBlocksIt() {
+        Claim a = claim(owner, 0, 10);
+        Claim b = claim(owner, 12, 22);
+        // +4 radius: the absorbed claim is the only thing the merged box overlaps, and it is leaving
+        b.setPermanentGem(new GemStats("domain", GemRarity.BASIC, 1, 4, 0, 0.0, 0.0, 0.0, false, Map.of(), null));
+        assertEquals(OK, plugin.getClaimMerger().execute(plugin.getClaimMerger().plan(a, b).orElseThrow()));
+        assertNotNull(a.getPermanentGem(), "a gem that fits must survive the merge");
+        assertEquals(4, a.getModifiers().radiusBonus());
+    }
+
+    @Test
     void bothFusedGemsLeaveExactlyOne() {
         Claim a = claim(owner, 0, 10);
         Claim b = claim(owner, 12, 22);
@@ -137,6 +148,17 @@ class ClaimMergerTest {
         assertEquals(NOT_NEIGHBOURS, plugin.getClaimMerger().check(a, gap2));
         plugin.getConfig().set("merge.max-gap", 3);
         assertEquals(OK, plugin.getClaimMerger().check(a, gap2));
+    }
+
+    @Test
+    void hiddenAnchorSpotIsNotClearedByAMerge() {
+        Claim a = claim(owner, 0, 10);
+        Claim b = claim(owner, 12, 22);
+        b.setFlag(me.lovelace.loveclaims.model.ClaimFlag.HIDE_ANCHOR, true);
+        var spot = b.getAnchorLocation().getBlock();
+        spot.setType(org.bukkit.Material.STONE); // the owner built here after hiding the anchor
+        assertEquals(OK, plugin.getClaimMerger().execute(plugin.getClaimMerger().plan(a, b).orElseThrow()));
+        assertEquals(org.bukkit.Material.STONE, spot.getType());
     }
 
     @Test
