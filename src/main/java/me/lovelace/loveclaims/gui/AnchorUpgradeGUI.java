@@ -189,7 +189,7 @@ public class AnchorUpgradeGUI extends AbstractGUI {
             return;
         }
 
-        plugin.getConfigManager().playSound(viewer, "anchor-place");
+        plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "anchor-upgrade");
         viewer.sendMessage(noItalic(MM.deserialize("<green>Якорь привата улучшен до <light_purple>Модифицированного</light_purple>!</green>")));
         setMenuItems();
     }
@@ -209,7 +209,8 @@ public class AnchorUpgradeGUI extends AbstractGUI {
         if (!checkAndCharge(cost)) return;
 
         ItemStack upgraded = plugin.getAnchorManager().createAnchorItem(target.id(), viewer.getUniqueId(),
-                plugin.getAnchorManager().readFusedGem(inHand).orElse(null));
+                plugin.getAnchorManager().readFusedGem(inHand).orElse(null),
+                plugin.getAnchorManager().readBroken(inHand));
         if (upgraded == null) {
             refundIfCharged(cost);
             return;
@@ -223,7 +224,7 @@ public class AnchorUpgradeGUI extends AbstractGUI {
             viewer.getInventory().setItemInMainHand(upgraded);
         }
 
-        plugin.getConfigManager().playSound(viewer, "anchor-place");
+        plugin.getEffects().playFor(viewer, viewer.getLocation(), "anchor-upgrade");
         viewer.sendMessage(noItalic(MM.deserialize("<green>Якорь в руке улучшен до <light_purple>Модифицированного</light_purple>!</green>")));
         setMenuItems();
     }

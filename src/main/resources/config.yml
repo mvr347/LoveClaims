@@ -258,6 +258,12 @@ effects:
     pitch: 1.0
     particle: NONE
     count: 0
+  craft-anchor:
+    sound: BLOCK_SMITHING_TABLE_USE
+    volume: 0.8
+    pitch: 0.8
+    particle: NONE
+    count: 0
 
 # ====================================================== #
 #        ПЕРЕГРУЗ ЯКОРЯ СИЛЬНЫМИ ГЕМАМИ (2026-11-24)     #

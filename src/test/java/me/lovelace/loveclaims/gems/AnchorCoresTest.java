@@ -41,6 +41,20 @@ class AnchorCoresTest {
     }
 
     @Test
+    void crackedCoreAndFusedGemTravelWithTheAnchorItem() {
+        var gem = new GemStats("domain", GemRarity.BASIC, 1, 6, 0, 0.0, 0.0, 0.0, false, java.util.Map.of(), null);
+        var item = plugin.getAnchorManager().createAnchorItem("tier-2", null, gem, true);
+        assertTrue(plugin.getAnchorManager().readBroken(item));
+        assertEquals("domain", plugin.getAnchorManager().readFusedGem(item).orElseThrow().gemId());
+        // a plain anchor carries neither
+        var plain = plugin.getAnchorManager().createAnchorItem("tier-2");
+        assertFalse(plugin.getAnchorManager().readBroken(plain));
+        assertTrue(plugin.getAnchorManager().readFusedGem(plain).isEmpty());
+        // the item is still recognised as an anchor of the right tier
+        assertEquals("tier-2", plugin.getAnchorManager().getTierFromItem(item).orElseThrow().id());
+    }
+
+    @Test
     void onlyOwnUpgradeRecipesCountAsCoreRecipes() {
         assertTrue(AnchorCores.isCoreRecipe(plugin, new NamespacedKey(plugin, "core_craft_2")));
         assertFalse(AnchorCores.isCoreRecipe(plugin, new NamespacedKey(plugin, "gem_craft_domain")));

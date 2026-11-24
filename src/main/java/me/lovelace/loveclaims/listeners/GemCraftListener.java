@@ -179,6 +179,14 @@ public final class GemCraftListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCraftGem(CraftItemEvent event) {
+        // Crafting an anchor core or an anchor: workshop effect for the crafter
+        if (event.getRecipe() instanceof Keyed craftedKey && event.getWhoClicked() instanceof Player crafter) {
+            if (AnchorCores.isCoreRecipe(plugin, craftedKey.getKey())) {
+                plugin.getEffects().playFor(crafter, "craft-core");
+            } else if (registry.getAnchorRecipe(craftedKey.getKey()).isPresent()) {
+                plugin.getEffects().playFor(crafter, "craft-anchor");
+            }
+        }
         ItemStack result = event.getInventory().getResult();
         if (result == null || result.getType().isAir()) {
             result = event.getCurrentItem();

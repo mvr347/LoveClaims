@@ -276,6 +276,8 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     // A gem fused into the anchor item stays fused in the new claim. If its radius would overlap
                     // a neighbour, the gem is handed back as an ordinary gem item instead of losing it.
                     var fused = plugin.getAnchorManager().readFusedGem(player.getInventory().getItemInMainHand());
+                    // A cracked core stays cracked when the anchor is placed again: it is repaired only by a new core.
+                    newClaim.setAnchorBroken(plugin.getAnchorManager().readBroken(player.getInventory().getItemInMainHand()));
                     plugin.getClaimManager().addClaimToCache(newClaim);
                     if (fused.isPresent()) {
                         if (plugin.getClaimManager().canApplyCandidateGems(newClaim, java.util.List.of(), fused.get())) {

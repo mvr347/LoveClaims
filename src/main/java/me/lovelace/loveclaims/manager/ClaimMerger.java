@@ -256,7 +256,7 @@ public final class ClaimMerger {
 
     private void giveBack(Claim absorbed) {
         var tier = plugin.getAnchorManager().resolveClaimTier(absorbed);
-        ItemStack anchorItem = plugin.getAnchorManager().createAnchorItem(tier != null ? tier.id() : "tier-1");
+        ItemStack anchorItem = plugin.getAnchorManager().createAnchorItem(tier != null ? tier.id() : "tier-1", null, null, absorbed.isAnchorBroken());
         java.util.List<ItemStack> items = new java.util.ArrayList<>();
         if (anchorItem != null) items.add(anchorItem);
         var registry = plugin.getGemRegistry();
