@@ -244,6 +244,10 @@ class GemAndAnchorSystemTest {
         assertEquals(36, Math.round(claim.getBoundingBox().getWidthX())); // 24 + 12
         assertTrue(plugin.getClaimManager().getClaimAt(center.clone().add(17, 0, 0)).isPresent());
 
+        // Extraction needs extract mode: toggle button sits in header slot 4 (gui_gen RULE 4, one button)
+        Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
+                view, InventoryType.SlotType.CONTAINER, 4,
+                ClickType.LEFT, InventoryAction.PICKUP_ALL));
         // Extract gem from top slot 10 (first work slot) -> shrinks back to 24 width
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, 10,
@@ -580,6 +584,9 @@ class GemAndAnchorSystemTest {
 
         // Attempting to remove the negative-radius debuff must be blocked due to neighbor overlap
         owner.getInventory().clear();
+        Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
+                mockView(owner, top), InventoryType.SlotType.CONTAINER, 4,
+                ClickType.LEFT, InventoryAction.PICKUP_ALL));
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 mockView(owner, top), InventoryType.SlotType.CONTAINER, 10,
                 ClickType.LEFT, InventoryAction.PICKUP_ALL));

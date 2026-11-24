@@ -168,6 +168,97 @@ proximity-border:
   rental-preview-seconds: 3    # Сколько секунд виден rental / торговая точка при ПКМ на покупку
   particle-max-points: 600     # Потолок частиц на один контур: большие участки не должны заваливать клиента
 
+# ====================================================== #
+#             ЗВУКИ И ЧАСТИЦЫ (2026-11-24)               #
+# ====================================================== #
+# 2026-11-24: раньше секции sounds не было вообще, поэтому ConfigManager#playSound молча
+# возвращал NONE и ни вставка гема, ни клик по меню ничего не играли. Теперь значения заданы явно.
+# Формат имён: BLOCK_ANVIL_USE или block.anvil.use. NONE отключает звук.
+sounds:
+  gui-click: UI_BUTTON_CLICK
+  gui-error: ENTITY_VILLAGER_NO
+  anchor-place: BLOCK_BEACON_ACTIVATE
+  anchor-error: ENTITY_VILLAGER_NO
+  anchor-break: BLOCK_GLASS_BREAK
+  tax-paid: ENTITY_EXPERIENCE_ORB_PICKUP
+
+# 2026-11-24: события гемов, якоря и слияния играют звук и частицы из одного места (ClaimEffects).
+# Частицы видят только игроки в view-radius, а число частиц на событие ограничено: эффект слома
+# или слияния разовый, без повторяющихся задач, чтобы не нагружать клиентов рядом с приватом.
+effects-settings:
+  view-radius: 32            # Дальше этого расстояния частицы не отправляются
+  max-particles-per-event: 60 # Потолок частиц на одно событие
+
+effects:
+  gem-insert:
+    sound: BLOCK_AMETHYST_BLOCK_CHIME
+    volume: 1.0
+    pitch: 1.2
+    particle: ENCHANT
+    count: 30
+    spread: 0.6
+  gem-extract:
+    sound: BLOCK_AMETHYST_BLOCK_BREAK
+    volume: 0.8
+    pitch: 0.9
+    particle: SMOKE
+    count: 12
+    spread: 0.4
+  gem-overload-warning:
+    sound: BLOCK_BEACON_DEACTIVATE
+    volume: 0.8
+    pitch: 1.0
+    particle: ELECTRIC_SPARK
+    count: 20
+    spread: 0.5
+  gem-fuse:
+    sound: BLOCK_BEACON_ACTIVATE
+    volume: 1.0
+    pitch: 1.4
+    particle: ENCHANT
+    count: 50
+    spread: 0.8
+  anchor-break:
+    sound: BLOCK_GLASS_BREAK
+    volume: 1.0
+    pitch: 0.7
+    particle: EXPLOSION
+    count: 3
+    spread: 0.5
+  core-replace:
+    sound: BLOCK_ANVIL_USE
+    volume: 0.7
+    pitch: 1.1
+    particle: WAX_ON
+    count: 25
+    spread: 0.6
+  anchor-upgrade:
+    sound: BLOCK_BEACON_POWER_SELECT
+    volume: 1.0
+    pitch: 1.0
+    particle: END_ROD
+    count: 40
+    spread: 0.7
+  claim-merge:
+    sound: BLOCK_END_PORTAL_SPAWN
+    volume: 0.4
+    pitch: 1.5
+    particle: PORTAL
+    count: 60
+    spread: 1.0
+  claim-merge-denied:
+    sound: ENTITY_VILLAGER_NO
+    volume: 1.0
+    pitch: 1.0
+    particle: NONE
+    count: 0
+  craft-core:
+    sound: BLOCK_SMITHING_TABLE_USE
+    volume: 0.8
+    pitch: 1.0
+    particle: NONE
+    count: 0
+
 # ===== ПРОЧЕЕ =====
 messages:
   prefix: "<gradient:#55FF55:#00AA00>Территория</gradient> <white>»</white> "

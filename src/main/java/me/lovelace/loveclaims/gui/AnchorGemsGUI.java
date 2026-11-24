@@ -35,6 +35,8 @@ public class AnchorGemsGUI extends AbstractGUI {
     private final Player viewer;
     private final Claim claim;
     private final List<Integer> slotToGemIndex = new ArrayList<>();
+    /** false = insert mode (click gems in own inventory), true = extract mode (click installed gems). */
+    private boolean extractMode = false;
 
     public AnchorGemsGUI(LoveClaims plugin, Player viewer, Claim claim) {
         super(36, noItalic(MM.deserialize("<gold>Гемы якоря</gold>")));
@@ -86,7 +88,13 @@ public class AnchorGemsGUI extends AbstractGUI {
                 item.editMeta(meta -> {
                     List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
                     lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
-                    lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>извлечь гем <dark_gray>(" + gs.slotCost() + " сл.)")));
+                    if (extractMode) {
+                        lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>извлечь гем <dark_gray>(" + gs.slotCost() + " сл.)")));
+                    } else {
+                        lore.add(noItalic(MM.deserialize("<red>✕ Извлечение недоступно")));
+                        lore.add(noItalic(MM.deserialize("<red>Причина: <gray>включён режим вставки")));
+                        lore.add(noItalic(MM.deserialize("<dark_gray>ЛКМ — извлечь (заблокировано)")));
+                    }
                     meta.lore(lore);
                 });
                 inventory.setItem(WORK_SLOTS[idx], item);
@@ -107,6 +115,21 @@ public class AnchorGemsGUI extends AbstractGUI {
             slotToGemIndex.add(-1);
             idx++;
         }
+
+        // Header control button (gui_gen RULE 4: one button -> slot 4)
+        int[] ctl = headerControlSlots(1);
+        inventory.setItem(ctl[0], createHead(extractMode ? HEAD_DELETE_YES : HEAD_ADD_MEMBER,
+                noItalic(MM.deserialize("<gold>Режим <dark_gray>|</dark_gray> "
+                        + (extractMode ? "<yellow>Извлечение</yellow>" : "<green>Вставка</green>"))),
+                List.of(
+                        noItalic(MM.deserialize("<dark_gray>Управление гемами якоря")),
+                        Component.empty(),
+                        noItalic(MM.deserialize("<dark_gray>▪ <gray>Режимы:")),
+                        noItalic(MM.deserialize(extractMode ? "  <gray>Вставка" : "  <green>✓ <white>Вставка")),
+                        noItalic(MM.deserialize(extractMode ? "  <green>✓ <white>Извлечение" : "  <gray>Извлечение")),
+                        noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
+                        noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>сменить режим"))
+                )));
 
         ItemStack extraBtn = null;
         if (mods.allowLimitBypass()) {
@@ -147,6 +170,12 @@ public class AnchorGemsGUI extends AbstractGUI {
             viewer.closeInventory();
             return;
         }
+        if (slot == headerControlSlots(1)[0]) {
+            extractMode = !extractMode;
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            setMenuItems();
+            return;
+        }
         if (slot == size - 2) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new MainClaimGUI(plugin, viewer, claim).getInventory());
@@ -173,6 +202,11 @@ public class AnchorGemsGUI extends AbstractGUI {
         int gemIdx = slotToGemIndex.get(workIdx);
         if (gemIdx < 0) return;
 
+        if (!extractMode) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            viewer.sendMessage(noItalic(MM.deserialize("<red>Включите режим извлечения кнопкой в шапке меню.</red>")));
+            return;
+        }
         if (!validateClaimAccess()) return;
         if (gemIdx >= claim.getInstalledGems().size()) {
             setMenuItems();
@@ -207,7 +241,7 @@ public class AnchorGemsGUI extends AbstractGUI {
             viewer.getInventory().addItem(gemItem);
         }
         plugin.getStorage().saveClaimAsync(claim);
-        plugin.getConfigManager().playSound(viewer, "gui-click");
+        plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "gem-extract");
         setMenuItems();
     }
 
@@ -221,6 +255,11 @@ public class AnchorGemsGUI extends AbstractGUI {
         var statsOpt = factory.readStats(clicked);
         if (statsOpt.isEmpty()) return;
 
+        if (extractMode) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            viewer.sendMessage(noItalic(MM.deserialize("<red>Включите режим вставки кнопкой в шапке меню.</red>")));
+            return;
+        }
         if (!validateClaimAccess()) return;
 
         GemStats stats = statsOpt.get();
@@ -263,7 +302,7 @@ public class AnchorGemsGUI extends AbstractGUI {
         }
 
         plugin.getStorage().saveClaimAsync(claim);
-        plugin.getConfigManager().playSound(viewer, "anchor-place");
+        plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "gem-insert");
         setMenuItems();
     }
 

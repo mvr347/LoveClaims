@@ -39,6 +39,7 @@ public class LoveClaims extends JavaPlugin {
     private static LoveClaims instance;
     private SQLiteStorage storage;
     private ConfigManager configManager;
+    private me.lovelace.loveclaims.effects.ClaimEffects effects;
     private ClaimManager claimManager;
     private AnchorManager anchorManager;
     private UserManager userManager;
@@ -75,6 +76,7 @@ public class LoveClaims extends JavaPlugin {
             getLogger().info("Config loaded successfully!");
 
             // 2. Инициализация БД и фабрики гемов
+            this.effects = new me.lovelace.loveclaims.effects.ClaimEffects(this);
             this.gemFactory = new GemFactory(this);
             this.storage = new SQLiteStorage(this);
             this.storage.initDatabase().join();
@@ -243,6 +245,7 @@ public class LoveClaims extends JavaPlugin {
     // Getters
     public SQLiteStorage getStorage() { return storage; }
     public ConfigManager getConfigManager() { return configManager; }
+    public me.lovelace.loveclaims.effects.ClaimEffects getEffects() { return effects; }
     public ClaimManager getClaimManager() { return claimManager; }
     public AnchorManager getAnchorManager() { return anchorManager; }
     public UserManager getUserManager() { return userManager; }
