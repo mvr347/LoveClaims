@@ -56,12 +56,13 @@ public record ClaimModifiers(
             // Only positive bonuses are cut: a debuff gem must keep its full penalty.
             radius += gem.radiusBonus() > 0 ? (int) Math.round(gem.radiusBonus() * f) : gem.radiusBonus();
             members += gem.membersBonus() > 0 ? (int) Math.round(gem.membersBonus() * f) : gem.membersBonus();
+            // The limit bypass keeps the unlocked extra perimeter, so it is territory, not a buff: a cracked
+            // core must not shrink the protected area. It is still refused for a gem that does not fit.
+            bypass = bypass || (gem.allowLimitBypass() && gap == 0);
             if (broken) continue;
             crop += gem.cropGrowthMultiplier() > 0 ? gem.cropGrowthMultiplier() * f : gem.cropGrowthMultiplier();
             furnace += gem.furnaceSpeedMultiplier() > 0 ? gem.furnaceSpeedMultiplier() * f : gem.furnaceSpeedMultiplier();
             doubleDrop = Math.max(doubleDrop, gem.doubleDropChance() * f);
-            // A gem that does not fit cannot lift the claim limits.
-            bypass = bypass || (gem.allowLimitBypass() && gap == 0);
             gem.potionEffects().forEach((type, amp) -> {
                 int reduced = amp - gap; // amplifier is 0-based: one gap = one level lower, below 0 the effect is gone
                 if (reduced >= 0) effects.merge(type, reduced, Math::max);

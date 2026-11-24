@@ -46,6 +46,14 @@ class GemOverloadTest {
     }
 
     @Test
+    void brokenAnchorKeepsTheLimitBypassPerimeter() {
+        var imperium = new GemStats("imperium_domain", GemRarity.LEGENDARY, 3, 0, 0, 0.0, 0.0, 0.0, true, Map.of(), null);
+        assertTrue(ClaimModifiers.fromGems(List.of(imperium), 3, true).allowLimitBypass());
+        // a gem that does not fit the anchor still cannot lift the limits
+        assertFalse(ClaimModifiers.fromGems(List.of(imperium), 1, true).allowLimitBypass());
+    }
+
+    @Test
     void breakChanceGrowsWithOverloadAboveThreshold() {
         int t = GemOverload.explodeThreshold();
         assertEquals(0.0, GemOverload.breakChance(t - 1));

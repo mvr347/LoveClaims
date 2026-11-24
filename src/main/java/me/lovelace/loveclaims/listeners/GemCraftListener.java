@@ -208,6 +208,7 @@ public final class GemCraftListener implements Listener {
                 crafted++;
             }
             if (crafted > 0) {
+                plugin.getEffects().playFor(player, player.getLocation(), "gem-fuse");
                 for (int idx = 0; idx < matrix.length; idx++) {
                     ItemStack slot = matrix[idx];
                     if (slot != null && !slot.getType().isAir()) {
@@ -236,5 +237,6 @@ public final class GemCraftListener implements Listener {
         }
 
         event.setCurrentItem(registry.createHybridItem(hybrid, null, false));
+        plugin.getEffects().playFor(player, player.getLocation(), "gem-fuse");
     }
 }
