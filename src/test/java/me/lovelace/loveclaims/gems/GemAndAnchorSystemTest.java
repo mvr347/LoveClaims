@@ -244,6 +244,10 @@ class GemAndAnchorSystemTest {
         assertEquals(36, Math.round(claim.getBoundingBox().getWidthX())); // 24 + 12
         assertTrue(plugin.getClaimManager().getClaimAt(center.clone().add(17, 0, 0)).isPresent());
 
+        // Extraction needs extract mode: toggle button sits in header slot 4 (gui_gen RULE 4, one button)
+        Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
+                view, InventoryType.SlotType.CONTAINER, 4,
+                ClickType.LEFT, InventoryAction.PICKUP_ALL));
         // Extract gem from top slot 10 (first work slot) -> shrinks back to 24 width
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, 10,
@@ -409,6 +413,7 @@ class GemAndAnchorSystemTest {
                 BoundingBox.of(center.clone().add(-20, -20, -20), center.clone().add(20, 20, 20)),
                 owner.getUniqueId(), center);
         GemStats impCeres = ((PureGemDescriptor) plugin.getGemRegistry().getDescriptor("imperium_ceres").orElseThrow()).baseStats();
+        claim.setAnchorTierId("tier-3"); // legendary gem fits only a tier 3 anchor without the overload cut
         claim.addInstalledGem(impCeres); // +100% growth
         plugin.getClaimManager().addClaimToCache(claim);
 
@@ -477,14 +482,26 @@ class GemAndAnchorSystemTest {
         Recipe tier2Recipe = Bukkit.getRecipe(new NamespacedKey(plugin, "anchor_upgrade_tier_2_0"));
         assertNotNull(tier2Recipe);
         CraftingInventory anchorInv = (CraftingInventory) Bukkit.createInventory(null, InventoryType.WORKBENCH);
+        // tier-2 recipe (anchors.yml): GIG / IAI / GCG with a tier 2 anchor core in C
+        ItemStack core2 = me.lovelace.loveclaims.gems.AnchorCores.create(plugin, 2);
         anchorInv.setMatrix(new ItemStack[]{
-                new ItemStack(Material.GOLD_INGOT), new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.GOLD_INGOT),
+                new ItemStack(Material.GOLD_BLOCK), new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.GOLD_BLOCK),
                 new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.CAMPFIRE), new ItemStack(Material.IRON_BLOCK),
-                new ItemStack(Material.GOLD_INGOT), new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.GOLD_INGOT)
+                new ItemStack(Material.GOLD_BLOCK), core2, new ItemStack(Material.GOLD_BLOCK)
         });
         anchorInv.setResult(tier2Recipe.getResult().clone());
         Bukkit.getPluginManager().callEvent(new PrepareItemCraftEvent(anchorInv, mockView(owner, anchorInv), false));
         assertNull(anchorInv.getResult(), "Vanilla CAMPFIRE must not craft tier-2 anchor");
+
+        // a real tier-1 anchor with the core does craft it
+        anchorInv.setMatrix(new ItemStack[]{
+                new ItemStack(Material.GOLD_BLOCK), new ItemStack(Material.IRON_BLOCK), new ItemStack(Material.GOLD_BLOCK),
+                new ItemStack(Material.IRON_BLOCK), plugin.getAnchorManager().createAnchorItem("tier-1"), new ItemStack(Material.IRON_BLOCK),
+                new ItemStack(Material.GOLD_BLOCK), core2, new ItemStack(Material.GOLD_BLOCK)
+        });
+        anchorInv.setResult(tier2Recipe.getResult().clone());
+        Bukkit.getPluginManager().callEvent(new PrepareItemCraftEvent(anchorInv, mockView(owner, anchorInv), false));
+        assertNotNull(anchorInv.getResult(), "A real tier-1 anchor plus the core must craft the tier-2 anchor");
 
         // 3. Unmatched 2-gem pair (domain + vita) must not bypass custom item guard
         CraftingInventory pairInv = (CraftingInventory) Bukkit.createInventory(null, InventoryType.WORKBENCH);
@@ -581,6 +598,9 @@ class GemAndAnchorSystemTest {
         // Attempting to remove the negative-radius debuff must be blocked due to neighbor overlap
         owner.getInventory().clear();
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
+                mockView(owner, top), InventoryType.SlotType.CONTAINER, 4,
+                ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 mockView(owner, top), InventoryType.SlotType.CONTAINER, 10,
                 ClickType.LEFT, InventoryAction.PICKUP_ALL));
         assertEquals(1, claim1.getInstalledGems().size(), "Debuff removal must be blocked on neighbor overlap");
@@ -640,6 +660,7 @@ class GemAndAnchorSystemTest {
                 BoundingBox.of(center.clone().add(-20, -20, -20), center.clone().add(20, 20, 20)),
                 owner.getUniqueId(), center);
         claim.setName("MyFarm");
+        claim.setAnchorTierId("tier-3"); // legendary gem fits only a tier 3 anchor without the overload cut
         claim.addInstalledGem(new GemStats("imperium_ceres", GemRarity.LEGENDARY, 3, 0, 0, 1.0, 1.0, 1.0, false, Map.of()));
         claim.addInstalledGem(new GemStats("hybrid_demos_vita", GemRarity.MODIFIED, 2, 0, 0, 0, 0, 0, false,
                 Map.of(PotionEffectType.SLOWNESS, 0), HybridRollOutcome.DEBUFF));

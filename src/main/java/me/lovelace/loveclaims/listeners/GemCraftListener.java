@@ -42,14 +42,25 @@ public final class GemCraftListener implements Listener {
         List<GemStats> inputGems = new ArrayList<>();
         List<ClaimTier> inputAnchors = new ArrayList<>();
         int nonAirCount = 0;
+        boolean hasCore = false;
 
         for (ItemStack matrixItem : inv.getMatrix()) {
             if (matrixItem == null || matrixItem.getType().isAir()) continue;
             nonAirCount++;
+            hasCore |= AnchorCores.isCore(plugin, matrixItem);
             factory.readStats(matrixItem).ifPresent(inputGems::add);
             if (anchorManager != null) {
                 anchorManager.getTierFromItem(matrixItem).ifPresent(inputAnchors::add);
             }
+        }
+
+        // 0. An anchor core is made of ordinary materials (copper, amethyst, echo shard), so it would otherwise be
+        // consumed by unrelated vanilla recipes. It may only be used in its own upgrade recipes.
+        if (hasCore && !(event.getRecipe() instanceof Keyed coreKeyed
+                && (AnchorCores.isCoreRecipe(plugin, coreKeyed.getKey())
+                || registry.getAnchorRecipe(coreKeyed.getKey()).isPresent()))) {
+            inv.setResult(null);
+            return;
         }
 
         // 1. Запрет крафта с участием LEGENDARY гемов
@@ -68,9 +79,21 @@ public final class GemCraftListener implements Listener {
             Optional<GemRegistry.AnchorUpgradeRecipe> anchorRecipeOpt = registry.getAnchorRecipe(key);
             if (anchorRecipeOpt.isPresent()) {
                 var anchorRecipe = anchorRecipeOpt.get();
-                if (!inputGems.isEmpty() || inputAnchors.size() != 1
-                        || inputAnchors.get(0).anchorLevel() != anchorRecipe.requiredAnchorLevel()) {
+                boolean noAnchorRecipe = anchorRecipe.requiredAnchorLevel() <= 0;
+                if (!inputGems.isEmpty()
+                        || (noAnchorRecipe ? !inputAnchors.isEmpty()
+                        : inputAnchors.size() != 1 || inputAnchors.get(0).anchorLevel() != anchorRecipe.requiredAnchorLevel())) {
                     inv.setResult(null);
+                    return;
+                }
+                // The fusion is part of the anchor: an upgraded anchor keeps the gem fused into the old one.
+                for (ItemStack matrixItem : inv.getMatrix()) {
+                    var fused = anchorManager != null ? anchorManager.readFusedGem(matrixItem) : Optional.<GemStats>empty();
+                    if (fused.isPresent()) {
+                        ItemStack carried = anchorManager.createAnchorItem(anchorRecipe.targetTierId(), null, fused.get());
+                        if (carried != null) inv.setResult(carried);
+                        break;
+                    }
                 }
                 return;
             }
@@ -145,7 +168,8 @@ public final class GemCraftListener implements Listener {
             AnchorManager anchorManager = plugin.getAnchorManager();
             for (ItemStack item : crafter.getInventory().getContents()) {
                 if (item == null || item.getType().isAir()) continue;
-                if (factory.isGem(item) || (anchorManager != null && anchorManager.isAnchor(item))) {
+                if (factory.isGem(item) || AnchorCores.isCore(plugin, item)
+                        || (anchorManager != null && anchorManager.isAnchor(item))) {
                     event.setCancelled(true);
                     return;
                 }
@@ -155,6 +179,14 @@ public final class GemCraftListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCraftGem(CraftItemEvent event) {
+        // Crafting an anchor core or an anchor: workshop effect for the crafter
+        if (event.getRecipe() instanceof Keyed craftedKey && event.getWhoClicked() instanceof Player crafter) {
+            if (AnchorCores.isCoreRecipe(plugin, craftedKey.getKey())) {
+                plugin.getEffects().playFor(crafter, "craft-core");
+            } else if (registry.getAnchorRecipe(craftedKey.getKey()).isPresent()) {
+                plugin.getEffects().playFor(crafter, "craft-anchor");
+            }
+        }
         ItemStack result = event.getInventory().getResult();
         if (result == null || result.getType().isAir()) {
             result = event.getCurrentItem();
@@ -208,6 +240,7 @@ public final class GemCraftListener implements Listener {
                 crafted++;
             }
             if (crafted > 0) {
+                plugin.getEffects().playFor(player, player.getLocation(), "gem-fuse");
                 for (int idx = 0; idx < matrix.length; idx++) {
                     ItemStack slot = matrix[idx];
                     if (slot != null && !slot.getType().isAir()) {
@@ -236,5 +269,6 @@ public final class GemCraftListener implements Listener {
         }
 
         event.setCurrentItem(registry.createHybridItem(hybrid, null, false));
+        plugin.getEffects().playFor(player, player.getLocation(), "gem-fuse");
     }
 }

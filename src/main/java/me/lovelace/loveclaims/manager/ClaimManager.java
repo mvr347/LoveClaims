@@ -140,8 +140,16 @@ public class ClaimManager {
         }
     }
 
+    /** Copies the anchor tier into the claim so gem penalties for too-strong gems use the live tier. */
+    public void syncAnchorLevel(Claim claim) {
+        if (claim == null || plugin.getAnchorManager() == null) return;
+        var tier = plugin.getAnchorManager().resolveClaimTier(claim);
+        claim.setAnchorLevel(tier != null ? tier.anchorLevel() : 0);
+    }
+
     private void addClaimToCacheInternal(Claim claim) {
         if (claim.getWorld() == null) return;
+        syncAnchorLevel(claim);
         claimsById.put(claim.getId(), claim);
 
         // Обновляем кэш владельца
@@ -540,9 +548,16 @@ public class ClaimManager {
     }
 
     public boolean canApplyCandidateGems(Claim claim, List<me.lovelace.loveclaims.gems.GemStats> candidateGems) {
+        return canApplyCandidateGems(claim, candidateGems, claim == null ? null : claim.getPermanentGem());
+    }
+
+    /** Same check for a given fused gem (used before fusing, when the claim does not hold it yet). */
+    public boolean canApplyCandidateGems(Claim claim, List<me.lovelace.loveclaims.gems.GemStats> candidateGems,
+                                         me.lovelace.loveclaims.gems.GemStats permanent) {
         if (claim == null || claim.getWorld() == null) return false;
+        syncAnchorLevel(claim);
         int extraExpRadius = plugin.getGemRegistry() != null ? plugin.getGemRegistry().getExtraExpansionRadius() : 10;
-        var nextMods = me.lovelace.loveclaims.gems.ClaimModifiers.fromGems(candidateGems);
+        var nextMods = me.lovelace.loveclaims.gems.ClaimModifiers.fromGems(candidateGems, claim.getAnchorLevel(), claim.isAnchorBroken(), permanent);
         int targetRadiusBonus = nextMods.radiusBonus()
                 + (nextMods.allowLimitBypass() && claim.isExtraExpansionUnlocked() ? extraExpRadius : 0);
         BoundingBox newBox = previewBoxForRadiusBonus(claim, targetRadiusBonus);
@@ -557,8 +572,9 @@ public class ClaimManager {
      */
     public boolean recalculateClaimModifiers(Claim claim) {
         if (claim == null || claim.getWorld() == null) return false;
+        syncAnchorLevel(claim);
         int extraExpRadius = plugin.getGemRegistry() != null ? plugin.getGemRegistry().getExtraExpansionRadius() : 10;
-        var nextMods = me.lovelace.loveclaims.gems.ClaimModifiers.fromGems(claim.getInstalledGems());
+        var nextMods = me.lovelace.loveclaims.gems.ClaimModifiers.fromGems(claim.getInstalledGems(), claim.getAnchorLevel(), claim.isAnchorBroken(), claim.getPermanentGem());
         int targetRadiusBonus = nextMods.radiusBonus()
                 + (nextMods.allowLimitBypass() && claim.isExtraExpansionUnlocked() ? extraExpRadius : 0);
 

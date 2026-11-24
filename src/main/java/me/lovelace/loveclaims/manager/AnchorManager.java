@@ -22,12 +22,16 @@ public class AnchorManager {
     private final Map<String, ClaimTier> tiers = new HashMap<>();
     private final NamespacedKey anchorKey;
     private final NamespacedKey anchorOwnerKey;
+    private final NamespacedKey fusedGemKey;
+    private final NamespacedKey brokenKey;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public AnchorManager(LoveClaims plugin) {
         this.plugin = plugin;
         this.anchorKey = new NamespacedKey(plugin, "anchor_tier");
         this.anchorOwnerKey = new NamespacedKey(plugin, "anchor_owner");
+        this.fusedGemKey = new NamespacedKey(plugin, "anchor_fused_gem");
+        this.brokenKey = new NamespacedKey(plugin, "anchor_broken");
         loadTiers();
     }
 
@@ -165,6 +169,55 @@ public class AnchorManager {
 
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Anchor item that carries the gem fused into it, so moving or re-crafting an anchor keeps the fusion.
+     * The fused gem is stored as serialized stats; a null gem gives a plain anchor.
+     */
+    public ItemStack createAnchorItem(String tierId, UUID ownerUUID, me.lovelace.loveclaims.gems.GemStats fused) {
+        return createAnchorItem(tierId, ownerUUID, fused, false);
+    }
+
+    /**
+     * Anchor item that also carries a cracked core: moving or dropping a cracked anchor must not repair it for
+     * free, so the state travels with the item and is restored when the claim is placed again.
+     */
+    public ItemStack createAnchorItem(String tierId, UUID ownerUUID, me.lovelace.loveclaims.gems.GemStats fused, boolean broken) {
+        ItemStack item = createAnchorItem(tierId, ownerUUID);
+        if (item == null) return item;
+        boolean withGem = fused != null && plugin.getGemFactory() != null;
+        if (!withGem && !broken) return item;
+        item.editMeta(meta -> {
+            List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+            if (withGem) {
+                meta.getPersistentDataContainer().set(fusedGemKey, PersistentDataType.STRING,
+                        plugin.getGemFactory().serializeStatsForDb(fused));
+                lore.add(Component.empty());
+                lore.add(miniMessage.deserialize("<dark_gray>▪ <gray>Вшитый гем: <light_purple>" + fused.gemId()));
+            }
+            if (broken) {
+                meta.getPersistentDataContainer().set(brokenKey, PersistentDataType.BYTE, (byte) 1);
+                if (!withGem) lore.add(Component.empty());
+                lore.add(miniMessage.deserialize("<red>✕ Ядро якоря треснуло"));
+                lore.add(miniMessage.deserialize("<red>Причина: <gray>перегруз сильными гемами"));
+            }
+            meta.lore(lore.stream().map(c -> c.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)).toList());
+        });
+        return item;
+    }
+
+    /** True when this anchor item carries a cracked core. */
+    public boolean readBroken(ItemStack item) {
+        return item != null && item.hasItemMeta()
+                && item.getItemMeta().getPersistentDataContainer().has(brokenKey, PersistentDataType.BYTE);
+    }
+
+    /** The gem fused into this anchor item, if any. */
+    public Optional<me.lovelace.loveclaims.gems.GemStats> readFusedGem(ItemStack item) {
+        if (item == null || !item.hasItemMeta() || plugin.getGemFactory() == null) return Optional.empty();
+        String raw = item.getItemMeta().getPersistentDataContainer().get(fusedGemKey, PersistentDataType.STRING);
+        return raw == null ? Optional.empty() : plugin.getGemFactory().deserializeStatsFromDb(raw);
     }
 
     /**
@@ -386,7 +439,7 @@ public class AnchorManager {
         if (claim == null || receiver == null) return;
         ClaimTier tier = resolveClaimTier(claim);
         String tierId = tier != null ? tier.id() : "tier-1";
-        ItemStack anchor = createAnchorItem(tierId);
+        ItemStack anchor = createAnchorItem(tierId, null, claim.getPermanentGem(), claim.isAnchorBroken());
         if (anchor != null) {
             receiver.getInventory().addItem(anchor).values()
                     .forEach(left -> receiver.getWorld().dropItemNaturally(receiver.getLocation(), left));
@@ -410,7 +463,7 @@ public class AnchorManager {
         if (claim == null || claim.getWorld() == null || claim.getAnchorLocation() == null) return;
         ClaimTier tier = resolveClaimTier(claim);
         String tierId = tier != null ? tier.id() : "tier-1";
-        ItemStack anchor = createAnchorItem(tierId);
+        ItemStack anchor = createAnchorItem(tierId, null, claim.getPermanentGem(), claim.isAnchorBroken());
         if (anchor != null) {
             claim.getWorld().dropItemNaturally(claim.getAnchorLocation(), anchor);
         }

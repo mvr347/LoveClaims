@@ -168,6 +168,141 @@ proximity-border:
   rental-preview-seconds: 3    # Сколько секунд виден rental / торговая точка при ПКМ на покупку
   particle-max-points: 600     # Потолок частиц на один контур: большие участки не должны заваливать клиента
 
+# ====================================================== #
+#             ЗВУКИ И ЧАСТИЦЫ (2026-11-24)               #
+# ====================================================== #
+# 2026-11-24: раньше секции sounds не было вообще, поэтому ConfigManager#playSound молча
+# возвращал NONE и ни вставка гема, ни клик по меню ничего не играли. Теперь значения заданы явно.
+# Формат имён: BLOCK_ANVIL_USE или block.anvil.use. NONE отключает звук.
+sounds:
+  gui-click: UI_BUTTON_CLICK
+  gui-error: BLOCK_NOTE_BLOCK_BASS   # gui_gen: звук заблокированной кнопки
+  anchor-place: BLOCK_BEACON_ACTIVATE
+  anchor-error: ENTITY_VILLAGER_NO
+  anchor-break: BLOCK_GLASS_BREAK
+  tax-paid: ENTITY_EXPERIENCE_ORB_PICKUP
+
+# 2026-11-24: события гемов, якоря и слияния играют звук и частицы из одного места (ClaimEffects).
+# Частицы видят только игроки в view-radius, а число частиц на событие ограничено: эффект слома
+# или слияния разовый, без повторяющихся задач, чтобы не нагружать клиентов рядом с приватом.
+effects-settings:
+  view-radius: 32            # Дальше этого расстояния частицы не отправляются
+  max-particles-per-event: 60 # Потолок частиц на одно событие
+
+effects:
+  gem-insert:
+    sound: BLOCK_AMETHYST_BLOCK_CHIME
+    volume: 1.0
+    pitch: 1.2
+    particle: ENCHANT
+    count: 30
+    spread: 0.6
+  gem-extract:
+    sound: BLOCK_AMETHYST_BLOCK_BREAK
+    volume: 0.8
+    pitch: 0.9
+    particle: SMOKE
+    count: 12
+    spread: 0.4
+  gem-overload-warning:
+    sound: BLOCK_BEACON_DEACTIVATE
+    volume: 0.8
+    pitch: 1.0
+    particle: ELECTRIC_SPARK
+    count: 20
+    spread: 0.5
+  gem-fuse:
+    sound: BLOCK_BEACON_ACTIVATE
+    volume: 1.0
+    pitch: 1.4
+    particle: ENCHANT
+    count: 50
+    spread: 0.8
+  anchor-break:
+    sound: BLOCK_GLASS_BREAK
+    volume: 1.0
+    pitch: 0.7
+    particle: EXPLOSION
+    count: 3
+    spread: 0.5
+  core-replace:
+    sound: BLOCK_ANVIL_USE
+    volume: 0.7
+    pitch: 1.1
+    particle: WAX_ON
+    count: 25
+    spread: 0.6
+  anchor-upgrade:
+    sound: BLOCK_BEACON_POWER_SELECT
+    volume: 1.0
+    pitch: 1.0
+    particle: END_ROD
+    count: 40
+    spread: 0.7
+  claim-merge:
+    sound: BLOCK_END_PORTAL_SPAWN
+    volume: 0.4
+    pitch: 1.5
+    particle: PORTAL
+    count: 60
+    spread: 1.0
+  claim-merge-denied:
+    sound: ENTITY_VILLAGER_NO
+    volume: 1.0
+    pitch: 1.0
+    particle: NONE
+    count: 0
+  craft-core:
+    sound: BLOCK_SMITHING_TABLE_USE
+    volume: 0.8
+    pitch: 1.0
+    particle: NONE
+    count: 0
+  craft-anchor:
+    sound: BLOCK_SMITHING_TABLE_USE
+    volume: 0.8
+    pitch: 0.8
+    particle: NONE
+    count: 0
+
+# ====================================================== #
+#        ПЕРЕГРУЗ ЯКОРЯ СИЛЬНЫМИ ГЕМАМИ (2026-11-24)     #
+# ====================================================== #
+# Любой гем можно вставить в любой якорь, но гем сильнее тира якоря работает вполсилы,
+# а набор слишком сильных гемов может сломать ядро якоря.
+# «Разрыв» гема = (минимальный тир гема) - (тир якоря), не меньше 0:
+# базовый гем = 1, модифицированный = 2, легендарный = 3.
+gems:
+  overload:
+    # Во сколько раз режутся положительные баффы за каждый уровень разрыва. 0.5: легендарный гем
+    # в якоре 1 тира (разрыв 2) даёт четверть силы. Минусы (дебафф-гемы) не режутся.
+    buff-multiplier-per-gap: 0.5
+    # Суммарный разрыв всех гемов, с которого вставка может сломать якорь. 3, потому что ломаться
+    # должен именно набор сильных гемов: один легендарный в якоре 1 тира (разрыв 2) только работает
+    # на четверть силы, а вторая сильная вставка уже переводит якорь в зону риска.
+    explode-threshold: 3
+    break-chance:
+      at-threshold: 0.15        # суммарный разрыв == порогу
+      at-threshold-plus-1: 0.40 # на 1 выше порога
+      at-threshold-plus-2: 0.75 # на 2 и выше: ломается почти всегда
+  # 2026-11-24: вшивание гема в якорь навсегда (раз за всё время у привата). Легендарный гем нельзя вшить
+  # в якорь тира 1: он слишком силён для него. У якоря тира 3 вшивание требует дорогих ингредиентов,
+  # потому что вшитый гем не режется перегрузом и не снимается, то есть это самое выгодное улучшение.
+  fuse:
+    tier-3-cost: "1d"            # Монеты за вшивание в якорь тира 3
+    tier-3-ingredients:          # Предметы за вшивание в якорь тира 3
+      NETHERITE_INGOT: 2
+      DIAMOND_BLOCK: 4
+
+# ====================================================== #
+#              СЛИЯНИЕ ПРИВАТОВ (2026-11-24)             #
+# ====================================================== #
+# Два привата объединяются, если касаются друг друга или между ними не больше max-gap блоков.
+# 3 блока: хватает, чтобы соединить соседей через дорогу или стену, но общая область не захватывает
+# заметный кусок чужой земли (объединённая область - прямоугольник, охватывающий оба привата).
+merge:
+  max-gap: 3
+
 # ===== ПРОЧЕЕ =====
 messages:
   prefix: "<gradient:#55FF55:#00AA00>Территория</gradient> <white>»</white> "

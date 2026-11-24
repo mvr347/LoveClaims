@@ -45,6 +45,24 @@ public abstract class AbstractGUI implements InventoryHolder {
         };
     }
 
+    /**
+     * gui_gen v2.1 RULE 4: slots of menu-control buttons (Vk) inside the Header range 2-7.
+     * 1 -> 4; 2 -> 3,5; 3 -> 2,4,6; 4 -> 2,3,5,6; 5 -> 2,3,4,6,7; 6 -> 2..7. Render and click code
+     * must both take their slot numbers from here. Free slots of the range are filled with glass
+     * by {@link #fillFrameGlass()}.
+     */
+    protected static int[] headerControlSlots(int count) {
+        return switch (Math.max(0, Math.min(count, 6))) {
+            case 0 -> new int[0];
+            case 1 -> new int[]{4};
+            case 2 -> new int[]{3, 5};
+            case 3 -> new int[]{2, 4, 6};
+            case 4 -> new int[]{2, 3, 5, 6};
+            case 5 -> new int[]{2, 3, 4, 6, 7};
+            default -> new int[]{2, 3, 4, 5, 6, 7};
+        };
+    }
+
     public AbstractGUI(int size, Component title) {
         this.inventory = Bukkit.createInventory(this, size, title);
     }

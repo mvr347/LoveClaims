@@ -37,16 +37,19 @@ public class SQLiteStorage {
     private Connection rentalsConnection;
     private final ExecutorService dbExecutor;
 
+    /** claim_gems row index that holds the gem fused into the anchor (regular gems use 0, 1, 2...). */
+    private static final int PERMANENT_GEM_SLOT = -1;
+
     private static final String CLAIMS_UPSERT =
-            "INSERT INTO claims (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, claim_type, is_clan_territory, is_under_siege, owner_display_name, default_permissions, anchor_tier_id, behavior_bonus_radius, admin_expand_bonus, applied_radius_bonus, extra_expansion_unlocked) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO claims (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, claim_type, is_clan_territory, is_under_siege, owner_display_name, default_permissions, anchor_tier_id, behavior_bonus_radius, admin_expand_bonus, applied_radius_bonus, extra_expansion_unlocked, anchor_broken) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                     "ON CONFLICT(id) DO UPDATE SET " +
                     "world=excluded.world, min_x=excluded.min_x, min_y=excluded.min_y, min_z=excluded.min_z, " +
                     "max_x=excluded.max_x, max_y=excluded.max_y, max_z=excluded.max_z, " +
                     "owner_uuid=excluded.owner_uuid, name=excluded.name, description=excluded.description, " +
                     "anchor_x=excluded.anchor_x, anchor_y=excluded.anchor_y, anchor_z=excluded.anchor_z, " +
                     "last_active=excluded.last_active, home_x=excluded.home_x, home_y=excluded.home_y, home_z=excluded.home_z, claim_type=excluded.claim_type, is_clan_territory=excluded.is_clan_territory, is_under_siege=excluded.is_under_siege, owner_display_name=excluded.owner_display_name, default_permissions=excluded.default_permissions, " +
-                    "anchor_tier_id=excluded.anchor_tier_id, behavior_bonus_radius=excluded.behavior_bonus_radius, admin_expand_bonus=excluded.admin_expand_bonus, applied_radius_bonus=excluded.applied_radius_bonus, extra_expansion_unlocked=excluded.extra_expansion_unlocked";
+                    "anchor_tier_id=excluded.anchor_tier_id, behavior_bonus_radius=excluded.behavior_bonus_radius, admin_expand_bonus=excluded.admin_expand_bonus, applied_radius_bonus=excluded.applied_radius_bonus, extra_expansion_unlocked=excluded.extra_expansion_unlocked, anchor_broken=excluded.anchor_broken";
 
     private static final String RENTALS_UPSERT =
             "INSERT INTO rentals (id, world, min_x, min_y, min_z, max_x, max_y, max_z, owner_uuid, name, description, anchor_x, anchor_y, anchor_z, created_at, last_active, home_x, home_y, home_z, rental_price, rental_end_time, parent_claim_id, indicator_type, hologram_id, last_tax_time, default_permissions, plot_type) " +
@@ -175,7 +178,7 @@ public class SQLiteStorage {
 
     private void initClaimsTables(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS claims (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, claim_type VARCHAR(32) DEFAULT 'PLAYER', is_clan_territory BOOLEAN DEFAULT FALSE, is_under_siege BOOLEAN DEFAULT FALSE, owner_display_name VARCHAR(64), default_permissions VARCHAR(128) DEFAULT '', anchor_tier_id VARCHAR(64), behavior_bonus_radius INT DEFAULT 0, admin_expand_bonus INT DEFAULT 0, applied_radius_bonus INT DEFAULT 0, extra_expansion_unlocked BOOLEAN DEFAULT FALSE);");
+            stmt.execute("CREATE TABLE IF NOT EXISTS claims (id VARCHAR(36) PRIMARY KEY, world VARCHAR(64), min_x INT, min_y INT, min_z INT, max_x INT, max_y INT, max_z INT, owner_uuid VARCHAR(36), name VARCHAR(128), description TEXT, anchor_x INT, anchor_y INT, anchor_z INT, created_at BIGINT, last_active BIGINT, home_x INT, home_y INT, home_z INT, claim_type VARCHAR(32) DEFAULT 'PLAYER', is_clan_territory BOOLEAN DEFAULT FALSE, is_under_siege BOOLEAN DEFAULT FALSE, owner_display_name VARCHAR(64), default_permissions VARCHAR(128) DEFAULT '', anchor_tier_id VARCHAR(64), behavior_bonus_radius INT DEFAULT 0, admin_expand_bonus INT DEFAULT 0, applied_radius_bonus INT DEFAULT 0, extra_expansion_unlocked BOOLEAN DEFAULT FALSE, anchor_broken BOOLEAN DEFAULT FALSE);");
             stmt.execute("CREATE TABLE IF NOT EXISTS claim_members (claim_id VARCHAR(36), player_uuid VARCHAR(36), trust_level VARCHAR(64), PRIMARY KEY (claim_id, player_uuid), FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE);");
             stmt.execute("CREATE TABLE IF NOT EXISTS claim_flags (claim_id VARCHAR(36), flag_name VARCHAR(64), state BOOLEAN, PRIMARY KEY (claim_id, flag_name), FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE);");
             stmt.execute("CREATE TABLE IF NOT EXISTS claim_gems (claim_id VARCHAR(36), slot_index INT, gem_data TEXT, PRIMARY KEY (claim_id, slot_index), FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE);");
@@ -191,6 +194,7 @@ public class SQLiteStorage {
             try { stmt.execute("ALTER TABLE claims ADD COLUMN admin_expand_bonus INT DEFAULT 0;"); } catch (SQLException ignored) {}
             try { stmt.execute("ALTER TABLE claims ADD COLUMN applied_radius_bonus INT DEFAULT 0;"); } catch (SQLException ignored) {}
             try { stmt.execute("ALTER TABLE claims ADD COLUMN extra_expansion_unlocked BOOLEAN DEFAULT FALSE;"); } catch (SQLException ignored) {}
+            try { stmt.execute("ALTER TABLE claims ADD COLUMN anchor_broken BOOLEAN DEFAULT FALSE;"); } catch (SQLException ignored) {}
 
             stmt.execute("CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36) PRIMARY KEY, bonus_members INT, bonus_slots INT, show_proximity_border BOOLEAN DEFAULT TRUE);");
             try { stmt.execute("ALTER TABLE users ADD COLUMN show_proximity_border BOOLEAN DEFAULT TRUE;"); } catch (SQLException ignored) {}
@@ -263,6 +267,7 @@ public class SQLiteStorage {
                         claim.setAdminExpandBonus(rs.getInt("admin_expand_bonus"));
                         claim.setAppliedRadiusBonus(rs.getInt("applied_radius_bonus"));
                         claim.setExtraExpansionUnlocked(rs.getBoolean("extra_expansion_unlocked"));
+                        claim.setAnchorBroken(rs.getBoolean("anchor_broken"));
                     } catch (SQLException ignored) {}
                 }
 
@@ -312,12 +317,17 @@ public class SQLiteStorage {
 
             if (plugin.getGemFactory() != null) {
                 Map<UUID, List<GemStats>> gemsByClaim = new HashMap<>();
+                Map<UUID, GemStats> permanentByClaim = new HashMap<>();
                 try (Statement stmt = conn.createStatement();
-                     ResultSet rs = stmt.executeQuery("SELECT claim_id, gem_data FROM claim_gems ORDER BY claim_id, slot_index ASC")) {
+                     ResultSet rs = stmt.executeQuery("SELECT claim_id, slot_index, gem_data FROM claim_gems ORDER BY claim_id, slot_index ASC")) {
                     while (rs.next()) {
                         UUID cid = UUID.fromString(rs.getString("claim_id"));
+                        boolean permanent = rs.getInt("slot_index") == PERMANENT_GEM_SLOT;
                         plugin.getGemFactory().deserializeStatsFromDb(rs.getString("gem_data"))
-                                .ifPresent(gs -> gemsByClaim.computeIfAbsent(cid, k -> new ArrayList<>()).add(gs));
+                                .ifPresent(gs -> {
+                                    if (permanent) permanentByClaim.put(cid, gs);
+                                    else gemsByClaim.computeIfAbsent(cid, k -> new ArrayList<>()).add(gs);
+                                });
                     }
                 } catch (SQLException e) {
                     plugin.getLogger().severe("Error loading claim gems: " + e.getMessage());
@@ -325,6 +335,10 @@ public class SQLiteStorage {
                 gemsByClaim.forEach((cid, list) -> {
                     Claim c = claimsMap.get(cid);
                     if (c != null) c.loadInstalledGems(list);
+                });
+                permanentByClaim.forEach((cid, gem) -> {
+                    Claim c = claimsMap.get(cid);
+                    if (c != null) c.setPermanentGem(gem);
                 });
             }
         }
@@ -385,6 +399,7 @@ public class SQLiteStorage {
                             claim.setAdminExpandBonus(rs.getInt("admin_expand_bonus"));
                             claim.setAppliedRadiusBonus(rs.getInt("applied_radius_bonus"));
                             claim.setExtraExpansionUnlocked(rs.getBoolean("extra_expansion_unlocked"));
+                            claim.setAnchorBroken(rs.getBoolean("anchor_broken"));
                         } catch (SQLException ignored) {}
                     }
 
@@ -429,17 +444,21 @@ public class SQLiteStorage {
 
             if (plugin.getGemFactory() != null) {
                 List<GemStats> gems = new ArrayList<>();
-                try (PreparedStatement ps = conn.prepareStatement("SELECT gem_data FROM claim_gems WHERE claim_id = ? ORDER BY slot_index ASC")) {
+                GemStats[] permanentHolder = new GemStats[1];
+                try (PreparedStatement ps = conn.prepareStatement("SELECT slot_index, gem_data FROM claim_gems WHERE claim_id = ? ORDER BY slot_index ASC")) {
                     ps.setString(1, claimId.toString());
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            plugin.getGemFactory().deserializeStatsFromDb(rs.getString("gem_data")).ifPresent(gems::add);
+                            boolean permanent = rs.getInt("slot_index") == PERMANENT_GEM_SLOT;
+                            plugin.getGemFactory().deserializeStatsFromDb(rs.getString("gem_data"))
+                                    .ifPresent(g -> { if (permanent) permanentHolder[0] = g; else gems.add(g); });
                         }
                     }
                 } catch (SQLException e) {
                     plugin.getLogger().severe("Error loading gems for claim " + claimId + ": " + e.getMessage());
                 }
                 claim.loadInstalledGems(gems);
+                if (permanentHolder[0] != null) claim.setPermanentGem(permanentHolder[0]);
             }
         }
 
@@ -625,6 +644,7 @@ public class SQLiteStorage {
             ps.setInt(27, claim.getAdminExpandBonus());
             ps.setInt(28, claim.getAppliedRadiusBonus());
             ps.setBoolean(29, claim.isExtraExpansionUnlocked());
+            ps.setBoolean(30, claim.isAnchorBroken());
         }
     }
 
@@ -635,8 +655,15 @@ public class SQLiteStorage {
             del.executeUpdate();
         }
         List<GemStats> gems = claim.getInstalledGems();
-        if (gems.isEmpty()) return;
+        GemStats permanent = claim.getPermanentGem();
+        if (gems.isEmpty() && permanent == null) return;
         try (PreparedStatement ins = conn.prepareStatement("INSERT INTO claim_gems (claim_id, slot_index, gem_data) VALUES (?, ?, ?)")) {
+            if (permanent != null) {
+                ins.setString(1, claim.getId().toString());
+                ins.setInt(2, PERMANENT_GEM_SLOT);
+                ins.setString(3, plugin.getGemFactory().serializeStatsForDb(permanent));
+                ins.addBatch();
+            }
             for (int i = 0; i < gems.size(); i++) {
                 ins.setString(1, claim.getId().toString());
                 ins.setInt(2, i);

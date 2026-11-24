@@ -175,27 +175,48 @@ tiers:
     place-sound: "UI_TOAST_CHALLENGE_COMPLETE"
     break-sound: "BLOCK_END_PORTAL_SPAWN"
 
-# Рецепты перехода уровней на верстаке (I -> II -> III)
+# Рецепты якорей на верстаке (2026-11-24).
+# Ингредиент: материал, список материалов (подойдёт любой из списка) или core:N (ядро якоря тира N, см. gems/AnchorCores).
+# Ядро нужно в каждом рецепте, а ядро тира 2 и 3 само улучшается из предыдущего, поэтому цепочка тиров
+# дорожает с каждым шагом: тир 1 доступен почти сразу, тир 2 требует золота и ядра второго тира,
+# тир 3 требует алмазных блоков, незерита и ядра третьего тира.
+# requires-anchor-level: 0 = рецепт без старого якоря (создание якоря тира 1).
 recipes:
+  tier-1:
+    enabled: true
+    requires-anchor-level: 0
+    shape:
+      - "SCS"
+      - "LLL"
+      - "LLL"
+    ingredients:
+      S: STICK
+      C: "core:1"
+      # Любое бревно: дёшево и доступно в первый час игры
+      L: [OAK_LOG, SPRUCE_LOG, BIRCH_LOG, JUNGLE_LOG, ACACIA_LOG, DARK_OAK_LOG, CHERRY_LOG, MANGROVE_LOG]
   tier-2:
     enabled: true
     requires-anchor-level: 1
     shape:
       - "GIG"
       - "IAI"
-      - "GIG"
+      - "GCG"
     anchor-char: 'A'
     ingredients:
-      G: GOLD_INGOT
-      I: IRON_BLOCK
+      G: GOLD_BLOCK
+      # Железо или медь: игрок без железной шахты не застрянет
+      I: [IRON_BLOCK, COPPER_BLOCK]
+      C: "core:2"
   tier-3:
     enabled: true
     requires-anchor-level: 2
     shape:
       - "DND"
       - "NAN"
-      - "DND"
+      - "DCD"
     anchor-char: 'A'
     ingredients:
       D: DIAMOND_BLOCK
-      N: CRYING_OBSIDIAN
+      # Плачущий обсидиан или незеритовый лом на выбор
+      N: [CRYING_OBSIDIAN, NETHERITE_SCRAP]
+      C: "core:3"

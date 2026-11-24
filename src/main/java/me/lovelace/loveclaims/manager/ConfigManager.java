@@ -39,6 +39,7 @@ public class ConfigManager {
         plugin.saveDefaultConfig();
         plugin.reloadConfig();
         config = plugin.getConfig();
+        me.lovelace.loveclaims.gems.GemOverload.load(config);
 
         this.debugMode = config.getBoolean("misc.debug", false);
         this.language = config.getString("misc.language", "ru");
@@ -140,11 +141,13 @@ public class ConfigManager {
     }
 
     private Optional<Sound> getSound(String soundKey) {
-        String soundName = config.getString("sounds." + soundKey, "NONE");
-        if (soundName.equalsIgnoreCase("NONE") || soundName.trim().isEmpty()) {
+        // Single-argument getter on purpose: it falls back to the jar defaults, an explicit default would hide them
+        // on servers whose config.yml predates the sounds section.
+        String soundName = config.getString("sounds." + soundKey);
+        if (soundName == null || soundName.equalsIgnoreCase("NONE") || soundName.trim().isEmpty()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(Registry.SOUNDS.get(NamespacedKey.minecraft(soundName.toLowerCase())));
+        return Optional.ofNullable(me.lovelace.loveclaims.effects.ClaimEffects.resolveSound(soundName));
     }
 
     public void playSound(Player player, String soundKey) {
@@ -164,8 +167,8 @@ public class ConfigManager {
     }
 
     public boolean isSoundEnabled(String soundKey) {
-        String soundName = config.getString("sounds." + soundKey, "NONE");
-        return !soundName.equalsIgnoreCase("NONE") && !soundName.trim().isEmpty();
+        String soundName = config.getString("sounds." + soundKey);
+        return soundName != null && !soundName.equalsIgnoreCase("NONE") && !soundName.trim().isEmpty();
     }
 
     private String convertLegacyToMiniMessage(String text) {
