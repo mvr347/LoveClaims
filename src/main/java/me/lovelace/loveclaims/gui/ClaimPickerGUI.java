@@ -38,8 +38,8 @@ public class ClaimPickerGUI extends AbstractGUI {
         // Owned claims first, then by creation order of the anchor position for a stable layout.
         this.claims.sort(Comparator
                 .comparing((Claim c) -> !c.isOwner(viewer.getUniqueId()))
-                .thenComparingInt(c -> c.getAnchorLocation().getBlockX())
-                .thenComparingInt(c -> c.getAnchorLocation().getBlockZ()));
+                .thenComparingInt(c -> c.getAnchorLocation() != null ? c.getAnchorLocation().getBlockX() : 0)
+                .thenComparingInt(c -> c.getAnchorLocation() != null ? c.getAnchorLocation().getBlockZ() : 0));
         setMenuItems();
     }
 
@@ -126,7 +126,7 @@ public class ClaimPickerGUI extends AbstractGUI {
     private ItemStack claimItem(Claim claim, int number) {
         boolean owner = claim.isOwner(viewer.getUniqueId());
         String name = claim.getName() != null && !claim.getName().isBlank() ? claim.getName() : "Приват " + number;
-        var anchor = claim.getAnchorLocation();
+        var anchor = claim.getAnchorLocation() != null ? claim.getAnchorLocation() : claim.getBoundingBox().getCenter().toLocation(claim.getWorld());
         var tier = plugin.getAnchorManager().resolveClaimTier(claim);
         int used = claim.getModifiers().usedSlots();
         int max = tier != null ? tier.gemSlots() : 0;

@@ -226,6 +226,15 @@ public final class ClaimMerger {
         BoundingBox oldBox = survivor.getBoundingBox().clone();
         survivor.setBoundingBox(fresh.merged());
         claims.resizeClaimInCache(survivor, oldBox);
+        // A fused gem taken over from the absorbed claim may add radius that would reach a neighbour of the
+        // merged area: then the survivor keeps its own state and the gem comes back as an ordinary item.
+        GemStats own = survivor.getPermanentGem();
+        if (chosen != own && !claims.canApplyCandidateGems(survivor, new java.util.ArrayList<>(survivor.getInstalledGems()), chosen)) {
+            var registry = plugin.getGemRegistry();
+            ItemStack back = registry != null ? registry.createItemFromStats(chosen) : null;
+            if (back != null) giveItem(absorbed, back);
+            chosen = own;
+        }
         survivor.setPermanentGem(chosen);
         claims.recalculateClaimModifiers(survivor);
         plugin.getStorage().saveClaimAsync(survivor);
@@ -240,8 +249,6 @@ public final class ClaimMerger {
     private void giveBack(Claim absorbed) {
         var tier = plugin.getAnchorManager().resolveClaimTier(absorbed);
         ItemStack anchorItem = plugin.getAnchorManager().createAnchorItem(tier != null ? tier.id() : "tier-1");
-        Player owner = absorbed.getOwnerUuid() != null ? plugin.getServer().getPlayer(absorbed.getOwnerUuid()) : null;
-        Location at = absorbed.getAnchorLocation();
         java.util.List<ItemStack> items = new java.util.ArrayList<>();
         if (anchorItem != null) items.add(anchorItem);
         var registry = plugin.getGemRegistry();
@@ -251,13 +258,18 @@ public final class ClaimMerger {
                 if (gi != null) items.add(gi);
             }
         }
-        for (ItemStack item : items) {
-            if (owner != null) {
-                owner.getInventory().addItem(item).values()
-                        .forEach(left -> owner.getWorld().dropItemNaturally(owner.getLocation(), left));
-            } else if (at != null && at.getWorld() != null) {
-                at.getWorld().dropItemNaturally(at, item);
-            }
+        for (ItemStack item : items) giveItem(absorbed, item);
+    }
+
+    /** Puts the item into the absorbed claim's owner inventory, or drops it at the old anchor when they are offline. */
+    private void giveItem(Claim absorbed, ItemStack item) {
+        Player owner = absorbed.getOwnerUuid() != null ? plugin.getServer().getPlayer(absorbed.getOwnerUuid()) : null;
+        Location at = absorbed.getAnchorLocation();
+        if (owner != null) {
+            owner.getInventory().addItem(item).values()
+                    .forEach(left -> owner.getWorld().dropItemNaturally(owner.getLocation(), left));
+        } else if (at != null && at.getWorld() != null) {
+            at.getWorld().dropItemNaturally(at, item);
         }
     }
 }
