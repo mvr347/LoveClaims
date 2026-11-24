@@ -77,6 +77,17 @@ class ClaimMergerTest {
     }
 
     @Test
+    void blockedByAStandaloneRentalPlotInTheGap() {
+        Claim a = claim(owner, 0, 10);
+        Claim b = claim(owner, 13, 23);
+        Claim rental = new Claim(UUID.randomUUID(), world, new BoundingBox(10.5, 0, 0, 12.5, 100, 10), other.getUniqueId(),
+                new Location(world, 11, 64, 5));
+        rental.setParentClaimId(UUID.randomUUID()); // standalone rental: sentinel parent, not one of the two claims
+        plugin.getClaimManager().addClaimToCache(rental);
+        assertEquals(BLOCKED_BY_OTHER_CLAIM, plugin.getClaimMerger().check(a, b));
+    }
+
+    @Test
     void sameOwnerMergeKeepsSurvivorAndReturnsAbsorbedAnchor() {
         Claim a = claim(owner, 0, 10);
         Claim b = claim(owner, 12, 22);

@@ -332,7 +332,7 @@ public class AnchorGemsGUI extends AbstractGUI {
                     event.getSlot(), clicked).getInventory());
             return;
         }
-        insertConfirmed(event.getSlot(), clicked, stats);
+        insertConfirmed(event.getSlot(), clicked, stats, null);
     }
 
     private void handleCoreClick(InventoryClickEvent event, ItemStack core, int coreTier) {
@@ -366,7 +366,7 @@ public class AnchorGemsGUI extends AbstractGUI {
      * Inserts the gem after all checks and confirmations passed: takes one item from the viewer's inventory slot,
      * applies the gem and rolls the anchor break if the claim is overloaded.
      */
-    void insertConfirmed(int inventorySlot, ItemStack source, GemStats stats) {
+    void insertConfirmed(int inventorySlot, ItemStack source, GemStats stats, Double expectedChance) {
         if (!validateClaimAccess() || claim.isAnchorBroken()) return;
         ItemStack current = viewer.getInventory().getItem(inventorySlot);
         if (current == null || !current.isSimilar(source)) {
@@ -389,6 +389,19 @@ public class AnchorGemsGUI extends AbstractGUI {
             plugin.getConfigManager().playSound(viewer, "gui-error");
             viewer.sendMessage(plugin.getConfigManager().getMessage("claim-overlap"));
             return;
+        }
+
+        // The risk the player confirmed must be the risk they get: if another manager changed the gem set while
+        // the window was open, show the new consequences and ask again.
+        if (expectedChance != null) {
+            double actual = me.lovelace.loveclaims.gems.GemOverload.breakChance(
+                    me.lovelace.loveclaims.gems.GemOverload.totalOverload(candidate, claim.getAnchorLevel()));
+            if (Math.abs(actual - expectedChance) > 1e-9) {
+                plugin.getConfigManager().playSound(viewer, "gui-error");
+                viewer.sendMessage(noItalic(MM.deserialize("<red>Условия изменились, подтвердите вставку заново.</red>")));
+                viewer.openInventory(new GemOverloadConfirmGUI(plugin, viewer, claim, stats, inventorySlot, source).getInventory());
+                return;
+            }
         }
 
         claim.addInstalledGem(stats);

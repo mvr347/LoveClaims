@@ -31,6 +31,8 @@ public class GemOverloadConfirmGUI extends AbstractGUI {
     private final GemStats gem;
     private final int inventorySlot;
     private final ItemStack gemItemSnapshot;
+    /** Break chance shown in the window: the insertion is refused if it no longer holds at confirm time. */
+    private double shownChance;
 
     public GemOverloadConfirmGUI(LoveClaims plugin, Player viewer, Claim claim, GemStats gem,
                                  int inventorySlot, ItemStack gemItemSnapshot) {
@@ -53,6 +55,7 @@ public class GemOverloadConfirmGUI extends AbstractGUI {
         after.add(gem);
         int overload = GemOverload.totalOverload(after, level);
         double chance = GemOverload.breakChance(overload);
+        shownChance = chance;
         int percent = (int) Math.round(GemOverload.factor(gap) * 100);
 
         List<Component> lore = new ArrayList<>();
@@ -95,7 +98,7 @@ public class GemOverloadConfirmGUI extends AbstractGUI {
             }
             AnchorGemsGUI gems = new AnchorGemsGUI(plugin, viewer, claim);
             viewer.openInventory(gems.getInventory());
-            gems.insertConfirmed(inventorySlot, current, gem);
+            gems.insertConfirmed(inventorySlot, current, gem, shownChance);
         } else if (slot == CANCEL_SLOT) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new AnchorGemsGUI(plugin, viewer, claim).getInventory());

@@ -121,7 +121,8 @@ public final class ClaimMerger {
         }
         for (Claim other : plugin.getClaimManager().getAllClaims()) {
             if (other.getId().equals(survivor.getId()) || other.getId().equals(absorbed.getId())) continue;
-            if (other.isRentalPlot() || other.getWorld() == null || !other.getWorld().equals(survivor.getWorld())) continue;
+            // Rentals count too: a standalone rental plot (admin-created) in the gap must not be swallowed.
+            if (other.getWorld() == null || !other.getWorld().equals(survivor.getWorld())) continue;
             if (geo.merged().overlaps(other.getBoundingBox())) return Reason.BLOCKED_BY_OTHER_CLAIM;
         }
         if (mergedMemberCount(survivor, absorbed) > plugin.getClaimManager().getMemberLimit(survivor)) {
