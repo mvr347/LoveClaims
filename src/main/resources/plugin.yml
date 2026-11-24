@@ -8,8 +8,8 @@ authors: [lovelace]
 description: Advanced anchor-based claiming system.
 commands:
   ac:
-    description: Основная команда приватов
-    aliases: [ claim, claims, loveclaims, приват ]
+    description: Основная команда клеймов
+    aliases: [ claim, claims, loveclaims, клейм ]
   rental:
     description: Управление арендой
     aliases: [ rent ]
@@ -27,10 +27,10 @@ permissions:
     description: Управление гемами (/loveclaims gem)
     default: op
   loveclaims.bypass:
-    description: Игнорирование защиты ВСЕХ приватов (выдаётся явно, включая операторов)
+    description: Игнорирование защиты ВСЕХ клеймов (выдаётся явно, включая операторов)
     default: false
   loveclaims.moderator:
-    description: Доступ к управлению любыми приватами (модерация)
+    description: Доступ к управлению любыми клеймами (модерация)
     default: op
   loveclaims.rental:
     description: Базовый доступ к аренде (команда /rental)

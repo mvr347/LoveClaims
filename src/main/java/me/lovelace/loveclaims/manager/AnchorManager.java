@@ -14,7 +14,7 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.*;
 
 /**
- * Менеджер якорей приватов.
+ * Менеджер якорей клеймов.
  * Управляет уровнями якорей, созданием предметов и проверкой прав.
  */
 public class AnchorManager {
@@ -73,7 +73,9 @@ public class AnchorManager {
 
                 int anchorLevel = section.getInt(key + ".anchor-level", ClaimTier.inferLevelFromId(key));
                 boolean modified = section.getBoolean(key + ".modified", key.contains("mod"));
-                int gemSlots = section.getInt(key + ".gem-slots", ClaimTier.defaultSlotsFor(anchorLevel, modified));
+                // gems.bonus-slots is added in code, so servers with an old anchors.yml get the extra slot too
+                int gemSlots = section.getInt(key + ".gem-slots", ClaimTier.defaultSlotsFor(anchorLevel, modified))
+                        + Math.max(0, plugin.getConfig().getInt("gems.bonus-slots"));
                 String upgradeTarget = section.getString(key + ".upgrade-target", null);
                 long upgradeCost = readCost(section, key + ".upgrade-cost");
 
@@ -150,6 +152,8 @@ public class AnchorManager {
         // Установка описания
         List<Component> componentLore = new ArrayList<>();
         for (String line : tier.lore()) {
+            // The slot count shown on the item is the real one (anchors.yml may hold the number without the bonus)
+            line = line.replaceAll("(Слоты гемов: <aqua>)\\d+(</aqua>)", "$1" + tier.gemSlots() + "$2");
             componentLore.add(miniMessage.deserialize(line));
         }
         meta.lore(componentLore);
@@ -253,8 +257,8 @@ public class AnchorManager {
     }
 
     /**
-     * Получить тир по размеру привата.
-     * @param size Размер привата
+     * Получить тир по размеру клейма.
+     * @param size Размер клейма
      * @return Подходящий тир или null
      */
     public ClaimTier getTierBySize(int size) {
@@ -386,7 +390,7 @@ public class AnchorManager {
     }
 
     /**
-     * Получить тир якоря для существующего привата (по сохранённому ID или фолбек по размеру).
+     * Получить тир якоря для существующего клейма (по сохранённому ID или фолбек по размеру).
      */
     public ClaimTier resolveClaimTier(me.lovelace.loveclaims.model.Claim claim) {
         if (claim == null) return getLowestTier();
@@ -401,7 +405,7 @@ public class AnchorManager {
     }
 
     /**
-     * Апгрейд установленного якоря привата (Обычный -> Модифицированный) через NPC.
+     * Апгрейд установленного якоря клейма (Обычный -> Модифицированный) через NPC.
      *
      * @return результат операции
      */
@@ -433,7 +437,7 @@ public class AnchorManager {
     }
 
     /**
-     * Выдать игроку якорь и все вставленные в него гемы (при удалении или переносе привата).
+     * Выдать игроку якорь и все вставленные в него гемы (при удалении или переносе клейма).
      */
     public void giveClaimAnchorAndGems(me.lovelace.loveclaims.model.Claim claim, org.bukkit.entity.Player receiver) {
         if (claim == null || receiver == null) return;

@@ -20,8 +20,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Задача для отображения границ привата.
- * Использует ItemDisplay entities (голова зеленого стекла, точно как при создании привата в BlockPreviewTask),
+ * Задача для отображения границ клейма.
+ * Использует ItemDisplay entities (голова зеленого стекла, точно как при создании клейма в BlockPreviewTask),
  * либо sendMultiBlockChange как запасной вариант при выключенном use-entity-blocks.
  */
 public class BorderDisplayTask {

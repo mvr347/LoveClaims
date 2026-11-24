@@ -25,15 +25,15 @@ public class ClaimManager {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     // ===== ПОСТОЯННЫЕ КЭШИ (ConcurrentHashMap + CopyOnWriteArrayList) =====
-    // Кэш: UUID владельца → Список его приватов
+    // Кэш: UUID владельца → Список его клеймов
     private final Map<UUID, List<Claim>> claimsByOwner = new ConcurrentHashMap<>();
-    // Кэш: UUID игрока → Список приватов где есть доступ
+    // Кэш: UUID игрока → Список клеймов где есть доступ
     private final Map<UUID, List<Claim>> claimsByPlayer = new ConcurrentHashMap<>();
-    // Кэш арендных приватов
+    // Кэш арендных клеймов
     private final List<Claim> rentalPlotsCache = new CopyOnWriteArrayList<>();
-    // Кэш клановых приватов: UUID клана → Claim
+    // Кэш клановых клеймов: UUID клана → Claim
     private final Map<UUID, Claim> clanClaimsCache = new ConcurrentHashMap<>();
-    // Кэш всех клановых приватов (для getAllClanClaims)
+    // Кэш всех клановых клеймов (для getAllClanClaims)
     private final List<Claim> allClanClaimsCache = new CopyOnWriteArrayList<>();
 
     // ===== ВРЕМЕННЫЕ КЭШИ (Caffeine) =====
@@ -83,7 +83,7 @@ public class ClaimManager {
                 addClaimToCacheInternal(claim);
             }
 
-            // При загрузке всех приватов, кэши claimsByOwner и claimsByPlayer будут заполнены
+            // При загрузке всех клеймов, кэши claimsByOwner и claimsByPlayer будут заполнены
             // через addClaimToCacheInternal.
             // Однако, для обеспечения полной консистентности, особенно если логика добавления
             // в claimsByPlayer сложнее, чем просто владелец + члены, можно оставить rebuildPlayerClaimsCache()
@@ -160,7 +160,7 @@ public class ClaimManager {
             // Обновляем кэш кланов
             if (claim.getClaimType() == Claim.ClaimType.CLAN) {
                 clanClaimsCache.put(claim.getOwnerUuid(), claim);
-                allClanClaimsCache.add(claim); // Добавляем в кэш всех клановых приватов
+                allClanClaimsCache.add(claim); // Добавляем в кэш всех клановых клеймов
             }
         }
 
@@ -169,7 +169,7 @@ public class ClaimManager {
             claimsByPlayer.computeIfAbsent(memberId, k -> new CopyOnWriteArrayList<>()).add(claim);
         }
 
-        // Обновляем кэш арендных приватов
+        // Обновляем кэш арендных клеймов
         if (claim.isRentalPlot()) {
             rentalPlotsCache.add(claim);
         }
@@ -254,7 +254,7 @@ public class ClaimManager {
                 // Удаляем из кэша кланов
                 if (claim.getClaimType() == Claim.ClaimType.CLAN) {
                     clanClaimsCache.remove(claim.getOwnerUuid());
-                    allClanClaimsCache.remove(claim); // Удаляем из кэша всех клановых приватов
+                    allClanClaimsCache.remove(claim); // Удаляем из кэша всех клановых клеймов
                 }
             }
 
@@ -278,7 +278,7 @@ public class ClaimManager {
                 }
             }
 
-            // Удаляем из кэша арендных приватов
+            // Удаляем из кэша арендных клеймов
             if (claim.isRentalPlot()) {
                 rentalPlotsCache.remove(claim);
             }
@@ -312,17 +312,17 @@ public class ClaimManager {
 
     /**
      * Обновить чанковый кэш (worldCaches) после изменения границ уже зарегистрированного
-     * привата (например, расширение через SettingsGUI или /loveclaimsadmin expand).
+     * клейма (например, расширение через SettingsGUI или /loveclaimsadmin expand).
      * claim.getBoundingBox() должен уже содержать НОВЫЕ границы на момент вызова, а oldBox -
      * границы, которые были до изменения.
      * <p>
-     * Без этого вызова блоки в чанках, вошедших в приват после расширения, не защищаются
+     * Без этого вызова блоки в чанках, вошедших в клейм после расширения, не защищаются
      * (getClaimAt их не находит), а checkOverlap не видит расширенную зону в этих чанках,
-     * позволяя другому игроку создать новый приват поверх уже занятой территории - оба этих
+     * позволяя другому игроку создать новый клейм поверх уже занятой территории - оба этих
      * метода читают тот же самый worldCaches, который addClaimToCacheInternal/removeClaimFromCache
-     * поддерживают только при создании/удалении привата целиком.
-     * @param claim Приват с уже применёнными новыми границами
-     * @param oldBox Границы привата до изменения
+     * поддерживают только при создании/удалении клейма целиком.
+     * @param claim Клейм с уже применёнными новыми границами
+     * @param oldBox Границы клейма до изменения
      */
     public void resizeClaimInCache(Claim claim, BoundingBox oldBox) {
         if (claim == null || claim.getWorld() == null || oldBox == null) return;
@@ -333,7 +333,7 @@ public class ClaimManager {
                     k -> new Long2ObjectOpenHashMap<>()
             );
 
-            // Убираем приват из всех чанков, которые покрывались старыми границами.
+            // Убираем клейм из всех чанков, которые покрывались старыми границами.
             int oldMinCX = (int) Math.floor(oldBox.getMinX());
             int oldMaxCX = (int) Math.floor(oldBox.getMaxX());
             int oldMinCZ = (int) Math.floor(oldBox.getMinZ());
@@ -351,7 +351,7 @@ public class ClaimManager {
                 }
             }
 
-            // Добавляем приват во все чанки новых границ (некоторые могли совпадать со старыми -
+            // Добавляем клейм во все чанки новых границ (некоторые могли совпадать со старыми -
             // такие чанки только что были удалены выше и теперь корректно добавляются заново).
             BoundingBox newBox = claim.getBoundingBox();
             int newMinCX = (int) Math.floor(newBox.getMinX());
@@ -596,9 +596,9 @@ public class ClaimManager {
     }
 
     /**
-     * Получить все приваты владельца.
+     * Получить все клеймы владельца.
      * @param ownerUuid UUID владельца
-     * @return Список приватов (пустой если нет)
+     * @return Список клеймов (пустой если нет)
      */
     public List<Claim> getClaimsByOwner(UUID ownerUuid) {
         if (ownerUuid == null) return Collections.emptyList();
@@ -611,9 +611,9 @@ public class ClaimManager {
     }
 
     /**
-     * Получить все приваты где игрок имеет доступ.
+     * Получить все клеймы где игрок имеет доступ.
      * @param playerUuid UUID игрока
-     * @return Список приватов (пустой если нет)
+     * @return Список клеймов (пустой если нет)
      */
     public List<Claim> getClaimsByPlayer(UUID playerUuid) {
         if (playerUuid == null) return Collections.emptyList();
@@ -627,10 +627,10 @@ public class ClaimManager {
 
     /**
      * Синхронизировать кэш claimsByPlayer при выдаче доверия игроку (приглашение принято,
-     * повышение роли и т.д.). Должен вызываться каждый раз, когда members-карта привата
+     * повышение роли и т.д.). Должен вызываться каждый раз, когда members-карта клейма
      * получает нового игрока через Claim#setTrust, чтобы getClaimsByPlayer оставался
      * консистентным без полной перезагрузки.
-     * @param claim Приват, в который добавляется игрок
+     * @param claim Клейм, в который добавляется игрок
      * @param playerUuid UUID игрока, получившего доверие
      */
     public void syncTrustGranted(Claim claim, UUID playerUuid) {
@@ -648,9 +648,9 @@ public class ClaimManager {
 
     /**
      * Синхронизировать кэш claimsByPlayer при отзыве доверия у игрока (кик, выход из
-     * привата, понижение до NONE и т.д.). Должен вызываться каждый раз, когда игрок
-     * удаляется из members-карты привата через Claim#removePlayer или members.remove(...).
-     * @param claim Приват, из которого удаляется игрок
+     * клейма, понижение до NONE и т.д.). Должен вызываться каждый раз, когда игрок
+     * удаляется из members-карты клейма через Claim#removePlayer или members.remove(...).
+     * @param claim Клейм, из которого удаляется игрок
      * @param playerUuid UUID игрока, у которого отозвано доверие
      */
     public void syncTrustRevoked(Claim claim, UUID playerUuid) {
@@ -671,7 +671,7 @@ public class ClaimManager {
 
     /**
      * Получить все арендные плоты.
-     * @return Список арендных приватов
+     * @return Список арендных клеймов
      */
     public List<Claim> getAllRentalPlots() {
         lock.readLock().lock();
@@ -683,9 +683,9 @@ public class ClaimManager {
     }
 
     /**
-     * Получить клановый приват по ID клана (O(1)).
+     * Получить клановый клейм по ID клана (O(1)).
      * @param clanId ID клана
-     * @return Optional с приватом
+     * @return Optional с клеймом
      */
     public Optional<Claim> getClanClaimByClanId(UUID clanId) {
         if (clanId == null) return Optional.empty();
@@ -693,8 +693,8 @@ public class ClaimManager {
     }
 
     /**
-     * Получить все клановые приваты (O(1)).
-     * @return Список всех клановых приватов
+     * Получить все клановые клеймы (O(1)).
+     * @return Список всех клановых клеймов
      */
     public List<Claim> getAllClanClaims() {
         lock.readLock().lock();
@@ -773,7 +773,7 @@ public class ClaimManager {
     /**
      * Получить данные для отката из кэша.
      * @param uuid UUID игрока
-     * @return Список приватов для отката
+     * @return Список клеймов для отката
      */
     public List<Claim> getRollbackData(UUID uuid) {
         return rollbackCache.getIfPresent(uuid);
@@ -782,7 +782,7 @@ public class ClaimManager {
     /**
      * Установить данные для отката.
      * @param uuid UUID игрока
-     * @param claims Список приватов
+     * @param claims Список клеймов
      */
     public void setRollbackData(UUID uuid, List<Claim> claims) {
         if (claims != null && !claims.isEmpty()) {

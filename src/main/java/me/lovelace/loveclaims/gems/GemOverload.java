@@ -11,7 +11,7 @@ import org.bukkit.configuration.file.FileConfiguration;
  */
 public final class GemOverload {
     private static volatile double multiplierPerGap = 0.5;
-    private static volatile int explodeThreshold = 3;
+    private static volatile int explodeThreshold = 2;
     private static volatile double chanceLow = 0.15;
     private static volatile double chanceMid = 0.40;
     private static volatile double chanceHigh = 0.75;
@@ -26,7 +26,7 @@ public final class GemOverload {
         double m = cfg.getDouble("gems.overload.buff-multiplier-per-gap");
         multiplierPerGap = m >= 0 && m <= 1 ? m : 0.5;
         int t = cfg.getInt("gems.overload.explode-threshold");
-        explodeThreshold = t > 0 ? t : 3;
+        explodeThreshold = t > 0 ? t : 2;
         chanceLow = probability(cfg.getDouble("gems.overload.break-chance.at-threshold"), 0.15);
         chanceMid = probability(cfg.getDouble("gems.overload.break-chance.at-threshold-plus-1"), 0.40);
         chanceHigh = probability(cfg.getDouble("gems.overload.break-chance.at-threshold-plus-2"), 0.75);

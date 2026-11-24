@@ -58,7 +58,7 @@ public class PlayerMoveListener implements Listener {
         UUID currentClaimId = claimOpt.map(Claim::getId).orElse(null);
         UUID previousClaimId = lastClaim.get(playerId);
 
-        // Игрок зашел в новый приват
+        // Игрок зашел в новый клейм
         if (currentClaimId != null && !currentClaimId.equals(previousClaimId)) {
             Claim claim = claimOpt.get();
 
@@ -114,7 +114,7 @@ public class PlayerMoveListener implements Listener {
                     ? realOwnerName
                     : plugin.getConfigManager().getString("misc.clan-owner-display-name", "Клан");
         } else {
-            // Логика для обычных приватов
+            // Логика для обычных клеймов
             ownerName = "Сервер";
             if (claim.getOwnerUuid() != null) {
                 String fetchedName = Bukkit.getOfflinePlayer(claim.getOwnerUuid()).getName();

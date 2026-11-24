@@ -35,7 +35,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
         if (args.length == 0) {
             List<Claim> accessibleClaims = plugin.getClaimManager().getAllClaims().stream()
                     .filter(c -> !c.isRentalPlot())
-                    .filter(c -> !c.isClanTerritory()) // Игнорируем клановые приваты для стандартных команд
+                    .filter(c -> !c.isClanTerritory()) // Игнорируем клановые клеймы для стандартных команд
                     .filter(c -> c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))
                     .toList();
 
@@ -67,63 +67,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                 return true;
             }
             case "home" -> {
-                Claim targetClaim = null;
-                if (args.length >= 2) {
-                    String query = args[1];
-                    for (Claim c : plugin.getClaimManager().getAllClaims()) {
-                        if (!c.isRentalPlot() && !c.isClanTerritory()
-                                && (c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))
-                                && c.getName() != null && c.getName().equalsIgnoreCase(query)) {
-                            targetClaim = c;
-                            break;
-                        }
-                    }
-                }
-                // Если игрок стоит внутри доступного привата, телепортируем на его точку дома
-                if (targetClaim == null) {
-                    Optional<Claim> here = plugin.getClaimManager().getClaimAt(player.getLocation());
-                    if (here.isPresent()) {
-                        Claim c = here.get();
-                        if (!c.isRentalPlot() && !c.isClanTerritory()
-                                && (c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))) {
-                            targetClaim = c;
-                        }
-                    }
-                }
-                // Ищем свой приват
-                if (targetClaim == null) {
-                    for (Claim c : plugin.getClaimManager().getAllClaims()) {
-                        if (!c.isRentalPlot() && !c.isClanTerritory() && c.getOwnerUuid() != null && c.getOwnerUuid().equals(player.getUniqueId())) {
-                            targetClaim = c;
-                            break;
-                        }
-                    }
-                }
-                // Если нет своего, ищем приват, где есть доступ
-                if (targetClaim == null) {
-                    for (Claim c : plugin.getClaimManager().getAllClaims()) {
-                        if (!c.isRentalPlot() && !c.isClanTerritory() && (c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))) {
-                            targetClaim = c;
-                            break;
-                        }
-                    }
-                }
-
-                if (targetClaim != null) {
-                    org.bukkit.Location home = targetClaim.getHomeLocation();
-                    if (home != null && targetClaim.getAnchorLocation() != null
-                            && home.getBlockX() == targetClaim.getAnchorLocation().getBlockX()
-                            && home.getBlockY() == targetClaim.getAnchorLocation().getBlockY()
-                            && home.getBlockZ() == targetClaim.getAnchorLocation().getBlockZ()) {
-                        home = home.clone().add(0.5, 1.0, 0.5);
-                    }
-                    player.teleportAsync(home);
-                    player.sendMessage(plugin.getConfigManager().getMessage("teleport-home"));
-                    plugin.getConfigManager().playSound(player, "anchor-place");
-                } else {
-                    player.sendMessage(plugin.getConfigManager().getMessage("not-in-claim"));
-                    plugin.getConfigManager().playSound(player, "anchor-error");
-                }
+                handleHome(player, args);
                 return true;
             }
 
@@ -134,7 +78,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                         if (args.length == 2 && args[1].equalsIgnoreCase("confirm")) {
                             java.util.UUID inviteClaimId = plugin.getClaimManager().getInvite(player.getUniqueId());
                             if (inviteClaimId == null) {
-                                player.sendMessage(net.kyori.adventure.text.Component.text("§cУ вас нет активных приглашений."));
+                                player.sendMessage(plugin.getConfigManager().getMessage("invite.none"));
                                 return true;
                             }
                             java.util.Optional<me.lovelace.loveclaims.model.Claim> claimOpt = plugin.getClaimManager().getClaimById(inviteClaimId);
@@ -153,7 +97,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                 }
                                 if (claim.isClanTerritory()) {
                                     player.sendMessage(plugin.getConfigManager().getMessage("clan-claim-restricted"));
-                                    plugin.getClaimManager().removeInvite(player.getUniqueId()); // Удаляем инвайт, если это клановый приват
+                                    plugin.getClaimManager().removeInvite(player.getUniqueId()); // Удаляем инвайт, если это клановый клейм
                                     return true;
                                 }
 
@@ -165,7 +109,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                 }
 
                                 if (memberCount >= 5) {
-                                    player.sendMessage(net.kyori.adventure.text.Component.text("§cВы уже состоите в максимальном количестве " + (claim.isRentalPlot() ? "плотов!" : "приватов!")));
+                                    player.sendMessage(plugin.getConfigManager().getMessage("invite.max-member", "kind", plugin.getConfigManager().getString(claim.isRentalPlot() ? "invite.kind-plots" : "invite.kind-claims")));
                                     plugin.getClaimManager().removeInvite(player.getUniqueId());
                                     return true;
                                 }
@@ -173,11 +117,10 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                                 claim.setTrust(player.getUniqueId(), me.lovelace.loveclaims.model.TrustLevel.ACCESS);
                                 plugin.getClaimManager().syncTrustGranted(claim, player.getUniqueId());
                                 plugin.getStorage().saveMemberAsync(claim.getId(), player.getUniqueId(), me.lovelace.loveclaims.model.TrustLevel.ACCESS);
-                                player.sendMessage(net.kyori.adventure.text.Component.text("§aВы успешно присоединились к привату!"));
+                                player.sendMessage(plugin.getConfigManager().getMessage("invite.joined"));
                                 plugin.getClaimManager().removeInvite(player.getUniqueId());
-                                player.openInventory(new me.lovelace.loveclaims.gui.MembersGUI(plugin, player, claim).getInventory());
                             } else {
-                                player.sendMessage(net.kyori.adventure.text.Component.text("§cЭтот приват больше не существует."));
+                                player.sendMessage(plugin.getConfigManager().getMessage("invite.gone"));
                                 plugin.getClaimManager().removeInvite(player.getUniqueId());
                             }
                             return true;
@@ -192,7 +135,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                             }
 
                             me.lovelace.loveclaims.model.Claim claim = currentOpt.get();
-                            if (claim.isClanTerritory()) { // Проверка на клановый приват
+                            if (claim.isClanTerritory()) { // Проверка на клановый клейм
                                 player.sendMessage(plugin.getConfigManager().getMessage("clan-claim-restricted"));
                                 return true;
                             }
@@ -209,19 +152,23 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                             }
 
                             if (claim.isOwner(target.getUniqueId()) || claim.getMembers().containsKey(target.getUniqueId())) {
-                                player.sendMessage(net.kyori.adventure.text.Component.text("§cИгрок уже является участником привата!"));
+                                player.sendMessage(plugin.getConfigManager().getMessage("invite.already-member"));
                                 return true;
                             }
 
+                            if (!me.lovelace.loveclaims.util.AuthGate.canReceive(target)) {
+                                player.sendMessage(plugin.getConfigManager().getMessage("invite.target-unauthorized"));
+                                return true;
+                            }
                             plugin.getClaimManager().addInvite(target.getUniqueId(), claim.getId(), player.getUniqueId());
                             player.sendMessage(plugin.getConfigManager().getMessage("invite-sent", "player", target.getName()));
                             plugin.getConfigManager().playSound(player, "gui-click");
 
                             if (target.isOnline() && target.getPlayer() != null) {
                                 net.kyori.adventure.text.Component msg = plugin.getConfigManager().getMessage("invite-received", "player", player.getName())
-                                        .append(plugin.getConfigManager().getMessage("invite-accept-btn")
+                                        .append(plugin.getConfigManager().getComponent("invite-accept-btn")
                                                 .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/ac invite confirm"))
-                                                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(plugin.getConfigManager().getMessage("invite-accept-hover"))));
+                                                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(plugin.getConfigManager().getComponent("invite-accept-hover"))));
                                 target.getPlayer().sendMessage(msg);
                                 plugin.getConfigManager().playSound(target.getPlayer(), "anchor-place");
                             }
@@ -245,14 +192,14 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                         player.sendMessage(plugin.getConfigManager().getMessage("anchor-cancel"));
                         return true;
                     }
-                    // При создании нового привата, он всегда будет PLAYER типом, поэтому проверка isClanTerritory() здесь не нужна.
+                    // При создании нового клейма, он всегда будет PLAYER типом, поэтому проверка isClanTerritory() здесь не нужна.
                     pending.previewTask().revert();
 
                     // Повторная проверка пересечения прямо перед созданием: превью висит открытым
                     // произвольное время (пока игрок держит якорь в руке), и за это время другой
-                    // игрок мог успеть создать и подтвердить свой приват поверх этой же зоны -
+                    // игрок мог успеть создать и подтвердить свой клейм поверх этой же зоны -
                     // исходная проверка в AnchorListener к моменту confirm уже устарела. Без
-                    // повторной проверки здесь оба привата регистрируются с пересекающимися
+                    // повторной проверки здесь оба клейма регистрируются с пересекающимися
                     // границами.
                     java.util.Optional<Claim> conflictOpt = plugin.getClaimManager().getFirstOverlappingClaim(pending.location().getWorld(), pending.previewTask().getBox(), null);
                     if (conflictOpt.isPresent()) {
@@ -308,8 +255,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                 boolean viaHub = player.getMetadata("craftsman_hub_until").stream()
                         .anyMatch(v -> v.asLong() > System.currentTimeMillis());
                 if (!viaHub && !player.hasPermission("loveclaims.admin")) {
-                    player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                            .deserialize("<red>Якоря улучшает ремесленник: подойдите к нему и выберите «Якоря и гемы».</red>"));
+                    player.sendMessage(plugin.getConfigManager().getMessage("master.hub-only"));
                     return true;
                 }
                 player.openInventory(new me.lovelace.loveclaims.gui.AnchorUpgradeGUI(plugin, player).getInventory());
@@ -317,20 +263,6 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
             }
             case "merge" -> {
                 handleMerge(player, args);
-                return true;
-            }
-            case "border", "proximity" -> {
-                me.lovelace.loveclaims.model.UserData data = plugin.getUserManager().getUserData(player.getUniqueId());
-                boolean newState = !data.isShowProximityBorder();
-                data.setShowProximityBorder(newState);
-                plugin.getStorage().saveUserDataAsync(data);
-                plugin.getConfigManager().playSound(player, "gui-click");
-
-                if (newState) {
-                    player.sendMessage(plugin.getConfigManager().getComponent("proximity-border.enabled-msg"));
-                } else {
-                    player.sendMessage(plugin.getConfigManager().getComponent("proximity-border.disabled-msg"));
-                }
                 return true;
             }
             case "show" -> {
@@ -345,7 +277,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     }
                     return true;
                 }
-                if (currentClaimOpt.get().isClanTerritory()) { // Проверка на клановый приват
+                if (currentClaimOpt.get().isClanTerritory()) { // Проверка на клановый клейм
                     player.sendMessage(plugin.getConfigManager().getMessage("clan-claim-restricted"));
                     return true;
                 }
@@ -360,7 +292,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     return true;
                 }
                 Claim claim = opt.get();
-                if (claim.isClanTerritory()) { // Проверка на клановый приват
+                if (claim.isClanTerritory()) { // Проверка на клановый клейм
                     player.sendMessage(plugin.getConfigManager().getMessage("clan-claim-restricted"));
                     return true;
                 }
@@ -394,7 +326,7 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                     String targetName = args[0];
                     plugin.getClaimManager().getAllClaims().stream()
                             .filter(c -> !c.isRentalPlot())
-                            .filter(c -> !c.isClanTerritory()) // Игнорируем клановые приваты
+                            .filter(c -> !c.isClanTerritory()) // Игнорируем клановые клеймы
                             .filter(c -> {
                                 org.bukkit.OfflinePlayer op = Bukkit.getOfflinePlayer(c.getOwnerUuid());
                                 return op.getName() != null && op.getName().equalsIgnoreCase(targetName);
@@ -411,56 +343,89 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
         return true;
     }
 
+    /** Claims the player may teleport to: own ones and those where they are a member (never rentals or clan land). */
+    private List<Claim> homeClaims(Player player) {
+        return plugin.getClaimManager().getAllClaims().stream()
+                .filter(c -> !c.isRentalPlot() && !c.isClanTerritory())
+                .filter(c -> c.isOwner(player.getUniqueId()) || c.getMembers().containsKey(player.getUniqueId()))
+                .sorted(java.util.Comparator.comparing((Claim c) -> !c.isOwner(player.getUniqueId())))
+                .toList();
+    }
+
+    /**
+     * /claim home [name]: a named claim goes straight there; with several claims (own or as a member) a small menu
+     * asks which one; with one claim it teleports (after the warm-up). Standing in the target claim refuses.
+     */
+    private void handleHome(Player player, String[] args) {
+        List<Claim> homes = homeClaims(player);
+        if (homes.isEmpty()) {
+            player.sendMessage(plugin.getConfigManager().getMessage("not-in-claim"));
+            plugin.getConfigManager().playSound(player, "anchor-error");
+            return;
+        }
+        if (args.length >= 2) {
+            for (Claim c : homes) {
+                if (c.getName() != null && c.getName().equalsIgnoreCase(args[1])) {
+                    plugin.getClaimTeleport().request(player, c);
+                    return;
+                }
+            }
+        }
+        if (homes.size() == 1) {
+            plugin.getClaimTeleport().request(player, homes.get(0));
+            return;
+        }
+        player.openInventory(new me.lovelace.loveclaims.gui.ClaimPickerGUI(plugin, player, homes, true).getInventory());
+    }
+
     /** /ac merge: open the merge menu for the claim you stand in; /ac merge accept|decline answers a request. */
     private void handleMerge(Player player, String[] args) {
         var merger = plugin.getClaimMerger();
         if (args.length >= 2 && (args[1].equalsIgnoreCase("accept") || args[1].equalsIgnoreCase("decline"))) {
             var request = merger.takeRequest(player.getUniqueId());
             if (request == null) {
-                player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                        .deserialize("<red>Нет активного запроса на слияние.</red>"));
+                player.sendMessage(plugin.getConfigManager().getMessage("merge.no-request"));
                 return;
             }
             Player requester = plugin.getServer().getPlayer(request.requester());
             var mini = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage();
             if (args[1].equalsIgnoreCase("decline")) {
-                player.sendMessage(mini.deserialize("<gray>Запрос на слияние отклонён.</gray>"));
-                if (requester != null) requester.sendMessage(mini.deserialize("<red>Владелец отклонил слияние.</red>"));
+                player.sendMessage(plugin.getConfigManager().getMessage("merge.declined-self"));
+                if (requester != null) requester.sendMessage(plugin.getConfigManager().getMessage("merge.declined-other"));
                 return;
             }
             Claim survivor = plugin.getClaimManager().getClaimById(request.survivorId()).orElse(null);
             Claim absorbed = plugin.getClaimManager().getClaimById(request.absorbedId()).orElse(null);
             if (requester == null || survivor == null || absorbed == null
                     || !survivor.isOwner(requester.getUniqueId()) || !absorbed.isOwner(player.getUniqueId())) {
-                player.sendMessage(mini.deserialize("<red>Запрос устарел: приваты или владельцы изменились.</red>"));
+                player.sendMessage(plugin.getConfigManager().getMessage("merge.stale"));
                 return;
             }
             var plan = merger.plan(survivor, absorbed);
             if (plan.isEmpty()) {
-                player.sendMessage(mini.deserialize("<red>Слияние уже невозможно.</red>"));
-                requester.sendMessage(mini.deserialize("<red>Слияние уже невозможно.</red>"));
+                player.sendMessage(plugin.getConfigManager().getMessage("merge.impossible"));
+                requester.sendMessage(plugin.getConfigManager().getMessage("merge.impossible"));
                 return;
             }
             if (!me.lovelace.loveclaims.util.MergeSeal.consume(plugin, requester)) {
-                player.sendMessage(mini.deserialize("<red>У автора запроса нет Печати слияния.</red>"));
-                requester.sendMessage(mini.deserialize("<red>Нужна Печать слияния.</red>"));
+                player.sendMessage(plugin.getConfigManager().getMessage("merge.no-seal-author"));
+                requester.sendMessage(plugin.getConfigManager().getMessage("merge.need-seal"));
                 return;
             }
             var result = merger.execute(plan.get());
             if (result != me.lovelace.loveclaims.manager.ClaimMerger.Reason.OK) {
                 // Give the seal back: nothing was merged.
                 requester.getInventory().addItem(me.lovelace.loveclaims.util.MergeSeal.create(plugin));
-                player.sendMessage(mini.deserialize("<red>Слияние не удалось.</red>"));
+                player.sendMessage(plugin.getConfigManager().getMessage("merge.failed"));
                 return;
             }
-            player.sendMessage(mini.deserialize("<green>Приваты объединены. Якорь и гемы вашего привата вернулись вам.</green>"));
-            requester.sendMessage(mini.deserialize("<green>Приваты объединены.</green>"));
+            player.sendMessage(plugin.getConfigManager().getMessage("merge.done-owner"));
+            requester.sendMessage(plugin.getConfigManager().getMessage("merge.done"));
             return;
         }
         Claim here = plugin.getClaimManager().getClaimAt(player.getLocation()).orElse(null);
         if (here == null || !here.isOwner(player.getUniqueId()) || here.isRentalPlot() || here.isClanTerritory()) {
-            player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                    .deserialize("<red>Встаньте в свой приват, который хотите объединить.</red>"));
+            player.sendMessage(plugin.getConfigManager().getMessage("merge.stand-inside"));
             return;
         }
         player.openInventory(new me.lovelace.loveclaims.gui.MergeGUI(plugin, player, here).getInventory());
@@ -473,14 +438,14 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
         }
         java.util.List<String> completions = new java.util.ArrayList<>();
         if (args.length == 1) {
-            completions.addAll(java.util.List.of("home", "show", "confirm", "invite", "move", "border", "help"));
+            completions.addAll(java.util.List.of("home", "show", "confirm", "invite", "move", "merge", "help"));
             if (sender.hasPermission(GemCommandHandler.PERMISSION)) {
                 completions.add("gem");
             }
             if (sender instanceof Player player) {
                 plugin.getClaimManager().getAllClaims().stream()
                         .filter(c -> !c.isRentalPlot())
-                        .filter(c -> !c.isClanTerritory()) // Игнорируем клановые приваты
+                        .filter(c -> !c.isClanTerritory()) // Игнорируем клановые клеймы
                         .filter(c -> c.getTrust(player.getUniqueId()) != me.lovelace.loveclaims.model.TrustLevel.NONE)
                         .forEach(c -> {
                             org.bukkit.OfflinePlayer op = Bukkit.getOfflinePlayer(c.getOwnerUuid());

@@ -1,146 +1,135 @@
 package me.lovelace.loveclaims.gui;
+
 import me.lovelace.loveclaims.LoveClaims;
-import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
-import net.kyori.adventure.text.Component;
+import me.lovelace.loveclaims.util.GuiText;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import java.util.ArrayList;
-import java.util.List;
+
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static me.lovelace.loveclaims.textures.HeadTextures.*;
+
+/**
+ * Root menu of a claim (27 slots): members, core (gems), settings. The merge button sits in the Header and appears
+ * only for the owner of a claim that has a neighbour to merge with. Root menu: no Back button.
+ */
 public class MainClaimGUI extends AbstractGUI {
-    private final LoveClaims plugin;
-    private final Player viewer;
-    private final Claim claim;
+    private static final int SLOT_MEMBERS = 11;
+    private static final int SLOT_CORE = 13;
+    private static final int SLOT_SETTINGS = 15;
 
     // cooldown для показа границ (оптимизация от лагов)
     private static final Map<UUID, Long> borderCooldown = new ConcurrentHashMap<>();
+
+    private final LoveClaims plugin;
+    private final Player viewer;
+    private final Claim claim;
+    private final boolean showMerge;
 
     public MainClaimGUI(LoveClaims plugin, Player viewer, Claim claim) {
         super(27, plugin.getConfigManager().getComponent("main.title"));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
+        this.showMerge = claim.isOwner(viewer.getUniqueId()) && !claim.isRentalPlot() && !claim.isClanTerritory()
+                && plugin.getClaimMerger() != null && MergeGUI.hasNeighbour(plugin, claim);
         setMenuItems();
     }
 
     @Override
     protected void setMenuItems() {
+        inventory.clear();
         int currentSize = (int) Math.round(claim.getBoundingBox().getMaxX() - claim.getBoundingBox().getMinX());
         String ownerName = Bukkit.getOfflinePlayer(claim.getOwnerUuid()).getName();
         if (ownerName == null) ownerName = "???";
 
-        // gui-gen-5 RULE 3: слот 0 — тематическая иконка/профиль меню (инфо привата, ЛКМ=телепорт, ПКМ=границы).
-        inventory.setItem(0, createHead(HEAD_INFO,
-                plugin.getConfigManager().getComponent("main.info-name"),
-                plugin.getConfigManager().getHelpMessage("main.info-lore", "owner", ownerName, "size", String.valueOf(currentSize))));
-
-        // Рабочая зона (9-17): 3 контентные кнопки, центрированы 11, 13, 15.
-        inventory.setItem(11, createHead(HEAD_SETTINGS,
-                plugin.getConfigManager().getComponent("main.settings-name"),
-                plugin.getConfigManager().getHelpMessage("main.settings-lore")));
+        // gui_gen RULE 3: slot 0 is the menu's own icon (claim info: LMB teleport, RMB borders)
+        inventory.setItem(0, createHead(HEAD_INFO, GuiText.name(plugin, "main.info-name"),
+                GuiText.lore(plugin, "main.info-lore", "owner", GuiText.esc(ownerName), "size", String.valueOf(currentSize),
+                        "delay", String.valueOf(plugin.getClaimTeleport().delaySeconds()))));
 
         var tier = plugin.getAnchorManager().resolveClaimTier(claim);
         int maxSlots = tier != null ? tier.gemSlots() : 3;
         int usedSlots = claim.getModifiers().usedSlots();
-        inventory.setItem(13, createHead(HEAD_INFO,
-                net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<aqua>Гемы якоря</aqua>")
-                        .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
-                List.of(
-                        net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                                .deserialize("<gray>Занято слотов: <aqua>" + usedSlots + "<gray>/<white>" + maxSlots)
-                                .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
-                        net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                                .deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")
-                                .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
-                        net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                                .deserialize("<green>ЛКМ <dark_gray>— <gray>управление гемами")
-                                .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
-                )));
+        int maxMembers = plugin.getClaimManager().getMemberLimit(claim);
 
-        inventory.setItem(15, createHead(HEAD_MEMBERS,
-                plugin.getConfigManager().getComponent("main.members-name"),
-                plugin.getConfigManager().getHelpMessage("main.members-lore")));
+        // Work zone: members, core, settings (centred 11, 13, 15)
+        inventory.setItem(SLOT_MEMBERS, createHead(HEAD_MEMBERS, GuiText.name(plugin, "main.members-name"),
+                GuiText.lore(plugin, "main.members-lore", "count", String.valueOf(claim.getMembers().size()),
+                        "max", String.valueOf(maxMembers))));
+        if (claim.canManageCore(viewer.getUniqueId())) {
+            inventory.setItem(SLOT_CORE, createHead(HEAD_INFO, GuiText.name(plugin, "main.gems-name"),
+                    GuiText.lore(plugin, "main.gems-lore", "used", String.valueOf(usedSlots), "max", String.valueOf(maxSlots))));
+        } else {
+            inventory.setItem(SLOT_CORE, createHead(HEAD_BARRIER, GuiText.name(plugin, "main.gems-blocked-name"),
+                    GuiText.lore(plugin, "main.gems-blocked-lore")));
+        }
+        inventory.setItem(SLOT_SETTINGS, createHead(HEAD_SETTINGS, GuiText.name(plugin, "main.settings-name"),
+                GuiText.lore(plugin, "main.settings-lore")));
 
-        // Header control button (gui_gen RULE 4: one button -> slot 4), owner only; otherwise glass
-        if (claim.isOwner(viewer.getUniqueId()) && !claim.isRentalPlot() && !claim.isClanTerritory()) {
-            inventory.setItem(headerControlSlots(1)[0], createHead(HEAD_PROMOTE,
-                    net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                            .deserialize("<gold>Слияние <dark_gray>|</dark_gray> <yellow>Приваты</yellow>")
-                            .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
-                    List.of(
-                            net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                                    .deserialize("<dark_gray>Объединить с соседним приватом")
-                                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
-                            net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                                    .deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")
-                                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
-                            net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
-                                    .deserialize("<green>ЛКМ <dark_gray>— <gray>выбрать соседа")
-                                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))));
+        // Header control button (gui_gen RULE 4: one button -> slot 4)
+        if (showMerge) {
+            inventory.setItem(headerControlSlots(1)[0], createHead(HEAD_PROMOTE, GuiText.name(plugin, "main.merge-name"),
+                    GuiText.lore(plugin, "main.merge-lore")));
         }
 
-        // Footer: standalone-меню (открывается напрямую с якоря) — Back неактивен, только Close.
+        // Footer: standalone menu (opened straight from the anchor) — no Back, only Close.
         setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
         fillFrameGlass();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        switch (event.getSlot()) {
-            case 0 -> {
-                if (event.isLeftClick()) {
+        int slot = event.getSlot();
+        if (slot == 0) {
+            if (event.isLeftClick()) {
+                plugin.getConfigManager().playSound(viewer, "gui-click");
+                viewer.closeInventory();
+                plugin.getClaimTeleport().request(viewer, claim);
+            } else if (event.isRightClick()) {
+                long lastTime = borderCooldown.getOrDefault(viewer.getUniqueId(), 0L);
+                if (System.currentTimeMillis() - lastTime > 15000L) {
                     plugin.getConfigManager().playSound(viewer, "gui-click");
                     viewer.closeInventory();
-                    org.bukkit.Location loc = claim.getAnchorLocation();
-                    if (loc == null) {
-                        double x = (claim.getBoundingBox().getMinX() + claim.getBoundingBox().getMaxX()) / 2.0;
-                        double z = (claim.getBoundingBox().getMinZ() + claim.getBoundingBox().getMaxZ()) / 2.0;
-                        double y = viewer.getWorld().getHighestBlockYAt((int)x, (int)z) + 1;
-                        loc = new org.bukkit.Location(viewer.getWorld(), x, y, z);
-                    } else {
-                        loc = loc.clone().add(0.5, 1, 0.5);
-                    }
-                    viewer.teleport(loc);
-                    viewer.sendMessage(plugin.getConfigManager().getMessage("teleport-home"));
-                } else if (event.isRightClick()) {
-                    long lastTime = borderCooldown.getOrDefault(viewer.getUniqueId(), 0L);
-                    if (System.currentTimeMillis() - lastTime > 15000L) {
-                        plugin.getConfigManager().playSound(viewer, "gui-click");
-                        viewer.closeInventory();
-                        me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, viewer, claim.getBoundingBox(), 200L, claim.getId());
-                        borderCooldown.put(viewer.getUniqueId(), System.currentTimeMillis());
-                    } else {
-                        plugin.getConfigManager().playSound(viewer, "gui-error");
-                    }
+                    me.lovelace.loveclaims.task.BorderDisplayTask.showBorder(plugin, viewer, claim.getBoundingBox(), 200L, claim.getId());
+                    borderCooldown.put(viewer.getUniqueId(), System.currentTimeMillis());
+                } else {
+                    plugin.getConfigManager().playSound(viewer, "gui-error");
                 }
             }
-            case 4 -> {
-                if (claim.isOwner(viewer.getUniqueId()) && !claim.isRentalPlot() && !claim.isClanTerritory()) {
-                    plugin.getConfigManager().playSound(viewer, "gui-click");
-                    viewer.openInventory(new MergeGUI(plugin, viewer, claim).getInventory());
-                }
-            }
-            case 11 -> {
+            return;
+        }
+        if (showMerge && slot == headerControlSlots(1)[0]) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.openInventory(new MergeGUI(plugin, viewer, claim).getInventory());
+            return;
+        }
+        switch (slot) {
+            case SLOT_MEMBERS -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
-                viewer.openInventory(new SettingsGUI(plugin, viewer, claim).getInventory());
+                viewer.openInventory(new MembersGUI(plugin, viewer, claim).getInventory());
             }
-            case 13 -> {
+            case SLOT_CORE -> {
+                if (!claim.canManageCore(viewer.getUniqueId())) {
+                    plugin.getConfigManager().playSound(viewer, "gui-error");
+                    return;
+                }
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 viewer.openInventory(new AnchorGemsGUI(plugin, viewer, claim).getInventory());
             }
-            case 15 -> {
+            case SLOT_SETTINGS -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
-                viewer.openInventory(new MembersGUI(plugin, viewer, claim).getInventory());
+                viewer.openInventory(new SettingsGUI(plugin, viewer, claim).getInventory());
             }
             case 26 -> {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 viewer.closeInventory();
+            }
+            default -> {
             }
         }
     }

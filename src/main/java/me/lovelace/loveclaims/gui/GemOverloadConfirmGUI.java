@@ -1,6 +1,7 @@
 package me.lovelace.loveclaims.gui;
 
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.util.GuiText;
 import me.lovelace.loveclaims.gems.GemOverload;
 import me.lovelace.loveclaims.gems.GemStats;
 import me.lovelace.loveclaims.model.Claim;
@@ -22,8 +23,6 @@ import static me.lovelace.loveclaims.textures.HeadTextures.*;
  */
 public class GemOverloadConfirmGUI extends AbstractGUI {
     private static final MiniMessage MM = MiniMessage.miniMessage();
-    private static final int CONFIRM_SLOT = 1;
-    private static final int CANCEL_SLOT = 7;
 
     private final LoveClaims plugin;
     private final Player viewer;
@@ -36,7 +35,7 @@ public class GemOverloadConfirmGUI extends AbstractGUI {
 
     public GemOverloadConfirmGUI(LoveClaims plugin, Player viewer, Claim claim, GemStats gem,
                                  int inventorySlot, ItemStack gemItemSnapshot) {
-        super(9, noItalic(MM.deserialize("<red>Гем сильнее якоря</red>")));
+        super(confirmSize(viewer), confirmTitle(viewer, GuiText.name(plugin, "gemOverloadConfirmGUI.t1")));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -59,47 +58,45 @@ public class GemOverloadConfirmGUI extends AbstractGUI {
         int percent = (int) Math.round(GemOverload.factor(gap) * 100);
 
         List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(MM.deserialize("<dark_gray>Подтверждение вставки")));
+        lore.add(GuiText.name(plugin, "gemOverloadConfirmGUI.t2"));
         lore.add(Component.empty());
-        lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Последствия:")));
+        lore.add(GuiText.name(plugin, "gemOverloadConfirmGUI.t3"));
         if (gap > 0) {
             lore.add(noItalic(MM.deserialize("  <red>✕ <gray>Баффы гема: <white>" + percent + "% <dark_gray>(<red>разрыв " + gap + " тира<dark_gray>)")));
         }
         lore.add(noItalic(MM.deserialize("  <gray>Перегруз якоря: <white>" + overload + " <dark_gray>/ <white>" + GemOverload.explodeThreshold())));
         if (chance > 0) {
             lore.add(noItalic(MM.deserialize("  <red>✕ <gray>Шанс слома ядра: <red>" + Math.round(chance * 100) + "%")));
-            lore.add(noItalic(MM.deserialize("  <gray>При сломе гем <red>пропадает<gray>, баффы выключаются")));
-            lore.add(noItalic(MM.deserialize("  <gray>до замены ядра якоря")));
+            lore.add(GuiText.name(plugin, "gemOverloadConfirmGUI.t4"));
+            lore.add(GuiText.name(plugin, "gemOverloadConfirmGUI.t5"));
         } else {
-            lore.add(noItalic(MM.deserialize("  <green>✓ <gray>Риск слома: <green>нет")));
+            lore.add(GuiText.name(plugin, "gemOverloadConfirmGUI.t6"));
         }
+        lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
-        lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>вставить гем")));
+        lore.add(GuiText.name(plugin, "gemOverloadConfirmGUI.t7"));
 
-        inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES,
-                noItalic(MM.deserialize("<green>Подтвердить")), lore));
-        inventory.setItem(CANCEL_SLOT, createHead(HEAD_DELETE_NO,
-                noItalic(MM.deserialize("<red>Отмена")),
-                List.of(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                        noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>вернуться к гемам")))));
-        setGlass(0, 2, 6, 8);
+        placeConfirm(GuiText.name(plugin, "gemOverloadConfirmGUI.t8"), lore,
+                GuiText.name(plugin, "gemOverloadConfirmGUI.t9"),
+                List.of(Component.empty(), noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
+                        GuiText.name(plugin, "gemOverloadConfirmGUI.t10")));
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
         int slot = event.getSlot();
-        if (slot == CONFIRM_SLOT) {
+        if (isConfirmSlot(slot)) {
             ItemStack current = viewer.getInventory().getItem(inventorySlot);
             if (current == null || !current.isSimilar(gemItemSnapshot) || current.getAmount() < 1) {
                 plugin.getConfigManager().playSound(viewer, "gui-error");
-                viewer.sendMessage(noItalic(MM.deserialize("<red>Гем в инвентаре изменился, повторите вставку.</red>")));
+                viewer.sendMessage(GuiText.name(plugin, "gemOverloadConfirmGUI.t11"));
                 viewer.openInventory(new AnchorGemsGUI(plugin, viewer, claim).getInventory());
                 return;
             }
             AnchorGemsGUI gems = new AnchorGemsGUI(plugin, viewer, claim);
             viewer.openInventory(gems.getInventory());
             gems.insertConfirmed(inventorySlot, current, gem, shownChance);
-        } else if (slot == CANCEL_SLOT) {
+        } else if (isCancelSlot(slot)) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new AnchorGemsGUI(plugin, viewer, claim).getInventory());
         }

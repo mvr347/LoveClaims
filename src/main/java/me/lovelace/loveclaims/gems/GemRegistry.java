@@ -509,6 +509,7 @@ public final class GemRegistry {
             lore.add(noItalic(MM.deserialize(line)));
         }
 
+        lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
         if (pendingCraftPreview) {
             lore.add(noItalic(MM.deserialize("<yellow>? Характеристики определятся при крафте</yellow>")));
@@ -529,7 +530,7 @@ public final class GemRegistry {
         }
 
         if (stats.radiusBonus() != 0) {
-            lore.add(noItalic(formatSignedInt("Радиус привата", stats.radiusBonus(), " бл.")));
+            lore.add(noItalic(formatSignedInt("Радиус клейма", stats.radiusBonus(), " бл.")));
         }
         if (stats.membersBonus() != 0) {
             lore.add(noItalic(formatSignedInt("Слоты участников", stats.membersBonus(), "")));

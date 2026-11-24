@@ -62,7 +62,7 @@ class EffectsConfigTest {
 
     @Test
     void overloadDefaultsComeFromTheJarConfig() {
-        assertEquals(3, GemOverload.explodeThreshold());
+        assertEquals(2, GemOverload.explodeThreshold());
         assertEquals(0.5, GemOverload.multiplierPerGap(), 1e-9);
     }
 }

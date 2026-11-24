@@ -103,6 +103,7 @@ public abstract class AbstractGUI implements InventoryHolder {
             case CONTAINERS -> HEAD_PERMISSION_CONTAINERS;
             case INTERACT -> HEAD_PERMISSION_INTERACT;
             case MANAGE -> HEAD_PERMISSION_MANAGE;
+            case CORE -> HEAD_PERMISSION_CORE;
         };
     }
 
@@ -170,5 +171,43 @@ public abstract class AbstractGUI implements InventoryHolder {
         if (extra != null) inventory.setItem(size - 3, extra);
         if (back != null) inventory.setItem(size - 2, back);
         inventory.setItem(size - 1, close != null ? close : glassPane());
+    }
+
+    // ===== Confirmation windows: the server's ItemsAdder confirm menu when available, else the 9-slot template =====
+
+    protected static int confirmSize(org.bukkit.entity.Player viewer) {
+        return ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.SIZE : 9;
+    }
+
+    protected static Component confirmTitle(org.bukkit.entity.Player viewer, Component fallback) {
+        return ConfirmMenuLayout.available(viewer) ? ConfirmMenuLayout.title(viewer) : fallback;
+    }
+
+    protected boolean largeConfirm() {
+        return inventory.getSize() == ConfirmMenuLayout.SIZE;
+    }
+
+    protected boolean isConfirmSlot(int slot) {
+        return largeConfirm() ? ConfirmMenuLayout.isConfirm(slot) : slot == 1;
+    }
+
+    protected boolean isCancelSlot(int slot) {
+        return largeConfirm() ? ConfirmMenuLayout.isCancel(slot) : slot == 7;
+    }
+
+    /** Places the two confirmation buttons in whichever layout this window has. */
+    protected void placeConfirm(Component yesName, java.util.List<Component> yesLore,
+                                Component noName, java.util.List<Component> noLore) {
+        if (largeConfirm()) {
+            ItemStack yes = ConfirmMenuLayout.button(yesName, yesLore);
+            ItemStack no = ConfirmMenuLayout.button(noName, noLore);
+            if (yes != null && no != null) {
+                ConfirmMenuLayout.fill(inventory, yes, no);
+                return;
+            }
+        }
+        inventory.setItem(1, createHead(HEAD_DELETE_YES, yesName, yesLore));
+        inventory.setItem(7, createHead(HEAD_DELETE_NO, noName, noLore));
+        setGlass(0, 2, 6, 8);
     }
 }

@@ -3,6 +3,7 @@ package me.lovelace.loveclaims.gui;
 import dev.lovelace.lovecore.api.LoveCore;
 import dev.lovelace.lovecore.api.economy.LoveEconomy;
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.util.GuiText;
 import me.lovelace.loveclaims.gems.GemFusion;
 import me.lovelace.loveclaims.gems.GemStats;
 import me.lovelace.loveclaims.model.Claim;
@@ -23,8 +24,6 @@ import static me.lovelace.loveclaims.textures.HeadTextures.*;
 /** Confirmation for fusing a gem into an anchor (gui_gen exception 1, 9 slots): the choice is final. */
 public class GemFuseConfirmGUI extends AbstractGUI {
     private static final MiniMessage MM = MiniMessage.miniMessage();
-    private static final int CONFIRM_SLOT = 1;
-    private static final int CANCEL_SLOT = 7;
 
     private final LoveClaims plugin;
     private final Player viewer;
@@ -35,7 +34,7 @@ public class GemFuseConfirmGUI extends AbstractGUI {
 
     public GemFuseConfirmGUI(LoveClaims plugin, Player viewer, Claim claim, GemStats gem,
                              int inventorySlot, ItemStack gemSnapshot) {
-        super(9, noItalic(MM.deserialize("<red>Вшить гем навсегда</red>")));
+        super(confirmSize(viewer), confirmTitle(viewer, GuiText.name(plugin, "gemFuseConfirmGUI.t1")));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -52,16 +51,16 @@ public class GemFuseConfirmGUI extends AbstractGUI {
     @Override
     protected void setMenuItems() {
         List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(MM.deserialize("<dark_gray>Подтверждение вшивания")));
+        lore.add(GuiText.name(plugin, "gemFuseConfirmGUI.t2"));
         lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Гем: <light_purple>" + MM.escapeTags(gem.gemId()))));
-        lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Последствия:")));
-        lore.add(noItalic(MM.deserialize("  <red>✕ <gray>Снять гем нельзя")));
-        lore.add(noItalic(MM.deserialize("  <red>✕ <gray>Повторно вшить в этот якорь нельзя")));
-        lore.add(noItalic(MM.deserialize("  <green>✓ <gray>Занимает <white>1</white> слот, баффы не режутся")));
+        lore.add(GuiText.name(plugin, "gemFuseConfirmGUI.t3"));
+        lore.add(GuiText.name(plugin, "gemFuseConfirmGUI.t4"));
+        lore.add(GuiText.name(plugin, "gemFuseConfirmGUI.t5"));
+        lore.add(GuiText.name(plugin, "gemFuseConfirmGUI.t6"));
         if (tier3()) {
             lore.add(Component.empty());
-            lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Требования:")));
+            lore.add(GuiText.name(plugin, "gemFuseConfirmGUI.t7"));
             long coins = GemFuseGUI.extraCoins(plugin);
             if (coins > 0) {
                 boolean ok = GemFuseGUI.hasCoins(viewer, coins);
@@ -75,13 +74,13 @@ public class GemFuseConfirmGUI extends AbstractGUI {
                         + ": " + (ok ? "<white>" : "<red>") + have + " <dark_gray>/ <white>" + e.getValue())));
             }
         }
+        lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
-        lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>вшить навсегда")));
-        inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES, noItalic(MM.deserialize("<green>Подтвердить")), lore));
-        inventory.setItem(CANCEL_SLOT, createHead(HEAD_DELETE_NO, noItalic(MM.deserialize("<red>Отмена")),
-                List.of(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                        noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>вернуться")))));
-        setGlass(0, 2, 6, 8);
+        lore.add(GuiText.name(plugin, "gemFuseConfirmGUI.t8"));
+        placeConfirm(GuiText.name(plugin, "gemFuseConfirmGUI.t9"), lore,
+                GuiText.name(plugin, "gemFuseConfirmGUI.t10"),
+                List.of(Component.empty(), noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
+                        GuiText.name(plugin, "gemFuseConfirmGUI.t11")));
     }
 
     private int count(Material m) {
@@ -94,10 +93,10 @@ public class GemFuseConfirmGUI extends AbstractGUI {
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        if (event.getSlot() == CANCEL_SLOT) {
+        if (isCancelSlot(event.getSlot())) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new GemFuseGUI(plugin, viewer).getInventory());
-        } else if (event.getSlot() == CONFIRM_SLOT) {
+        } else if (isConfirmSlot(event.getSlot())) {
             fuse();
         }
     }
@@ -107,7 +106,7 @@ public class GemFuseConfirmGUI extends AbstractGUI {
         // Re-validate everything: the menu may have been open for a while.
         if (plugin.getClaimManager().getClaimById(claim.getId()).orElse(null) != claim
                 || !claim.isOwner(viewer.getUniqueId()) || claim.isRentalPlot() || claim.isClanTerritory()) {
-            fail(back, "<red>Приват недоступен.</red>");
+            fail(back, "<red>Клейм недоступен.</red>");
             return;
         }
         GemFusion.Check check = back.check(claim, gem);
@@ -155,7 +154,7 @@ public class GemFuseConfirmGUI extends AbstractGUI {
         plugin.getClaimManager().recalculateClaimModifiers(claim);
         plugin.getStorage().saveClaimAsync(claim);
         plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "gem-fuse");
-        viewer.sendMessage(noItalic(MM.deserialize("<green>Гем вшит в якорь навсегда.</green>")));
+        viewer.sendMessage(GuiText.name(plugin, "gemFuseConfirmGUI.t12"));
         viewer.openInventory(new GemFuseGUI(plugin, viewer).getInventory());
     }
 

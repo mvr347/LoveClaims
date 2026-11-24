@@ -1,6 +1,7 @@
 package me.lovelace.loveclaims.gui;
 
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.util.GuiText;
 import me.lovelace.loveclaims.manager.ClaimMerger;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.util.MergeSeal;
@@ -32,7 +33,7 @@ public class MergeGUI extends AbstractGUI {
     private int[] slots = new int[0];
 
     public MergeGUI(LoveClaims plugin, Player viewer, Claim claim) {
-        super(neighbourCount(plugin, claim) > 7 ? 36 : 27, noItalic(MM.deserialize("<gold>Слияние приватов</gold>")));
+        super(neighbourCount(plugin, claim) > 7 ? 36 : 27, GuiText.name(plugin, "mergeGUI.t1"));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -53,6 +54,11 @@ public class MergeGUI extends AbstractGUI {
         return out;
     }
 
+    /** True when at least one claim could be merged with this one (decides whether the menu button is shown). */
+    public static boolean hasNeighbour(LoveClaims plugin, Claim claim) {
+        return !findNeighbours(plugin, claim).isEmpty();
+    }
+
     private static int neighbourCount(LoveClaims plugin, Claim claim) {
         return findNeighbours(plugin, claim).size();
     }
@@ -63,20 +69,20 @@ public class MergeGUI extends AbstractGUI {
         neighbours.clear();
         neighbours.addAll(findNeighbours(plugin, claim));
 
-        inventory.setItem(0, createHead(HEAD_INFO, noItalic(MM.deserialize("<gold>Слияние приватов</gold>")), List.of(
-                noItalic(MM.deserialize("<dark_gray>Объединить два привата в один")),
+        inventory.setItem(0, createHead(HEAD_INFO, GuiText.name(plugin, "mergeGUI.t1"), List.of(
+                GuiText.name(plugin, "mergeGUI.t2"),
                 Component.empty(),
-                noItalic(MM.deserialize("<dark_gray>▪ <gray>Условия:")),
-                noItalic(MM.deserialize("  <gray>Приваты касаются или рядом: до <white>" + (int) plugin.getClaimMerger().maxGap() + "</white> бл.")),
-                noItalic(MM.deserialize("  <gray>Общая область не задевает чужие приваты")),
-                noItalic(MM.deserialize("  <gray>Чужой приват: нужна <white>Печать слияния</white>")),
-                noItalic(MM.deserialize("  <gray>и согласие его владельца")))));
+                GuiText.name(plugin, "mergeGUI.t3"),
+                noItalic(MM.deserialize("  <gray>Клеймы касаются или рядом: до <white>" + (int) plugin.getClaimMerger().maxGap() + "</white> бл.")),
+                GuiText.name(plugin, "mergeGUI.t4"),
+                GuiText.name(plugin, "mergeGUI.t5"),
+                GuiText.name(plugin, "mergeGUI.t6"))));
 
         if (neighbours.isEmpty()) {
             slots = centeredRowSlots(1);
-            inventory.setItem(slots[0], createHead(HEAD_BARRIER, noItalic(MM.deserialize("<gray>Соседи <dark_gray>|</dark_gray> <red>Недоступно")),
-                    List.of(noItalic(MM.deserialize("<red>✕ Слияние недоступно")),
-                            noItalic(MM.deserialize("<red>Причина: <gray>рядом нет привата для слияния")))));
+            inventory.setItem(slots[0], createHead(HEAD_BARRIER, GuiText.name(plugin, "mergeGUI.t7"),
+                    List.of(GuiText.name(plugin, "mergeGUI.t8"),
+                            GuiText.name(plugin, "mergeGUI.t9"))));
         } else {
             int count = neighbours.size();
             int[] a = centeredRowSlots(Math.min(count, 7));
@@ -105,23 +111,22 @@ public class MergeGUI extends AbstractGUI {
         boolean ok = reason == ClaimMerger.Reason.OK;
 
         List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(MM.deserialize("<dark_gray>" + (own ? "Ваш приват" : "Чужой приват"))));
+        lore.add(noItalic(MM.deserialize("<dark_gray>" + (own ? "Ваш клейм" : "Чужой клейм"))));
         lore.add(Component.empty());
-        lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Приват:")));
+        lore.add(GuiText.name(plugin, "mergeGUI.t10"));
         lore.add(noItalic(MM.deserialize("  <gray>Владелец: <white>" + MM.escapeTags(ownerName))));
         lore.add(noItalic(MM.deserialize("  <gray>Якорь: <white>" + other.getAnchorLocation().getBlockX() + " "
                 + other.getAnchorLocation().getBlockY() + " " + other.getAnchorLocation().getBlockZ())));
-        if (!own) {
-            boolean seal = MergeSeal.has(plugin, viewer);
-            lore.add(noItalic(MM.deserialize((seal ? "  <green>✓ " : "  <red>✕ ") + "<gray>Печать слияния: " + (seal ? "<green>есть" : "<red>нет"))));
-        }
+        boolean seal = MergeSeal.has(plugin, viewer);
+        lore.add(noItalic(MM.deserialize((seal ? "  <green>✓ " : "  <red>✕ ") + "<gray>Печать слияния: " + (seal ? "<green>есть" : "<red>нет"))));
+        lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
         if (ok) {
-            lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>объединить")));
+            lore.add(GuiText.name(plugin, "mergeGUI.t11"));
         } else {
-            lore.add(noItalic(MM.deserialize("<red>✕ Слияние недоступно")));
+            lore.add(GuiText.name(plugin, "mergeGUI.t8"));
             lore.add(noItalic(MM.deserialize("<red>Причина: <gray>" + reasonText(reason))));
-            lore.add(noItalic(MM.deserialize("<dark_gray>ЛКМ — объединить (заблокировано)")));
+            lore.add(GuiText.name(plugin, "mergeGUI.t12"));
         }
         return createHead(ok ? HEAD_INFO : HEAD_BARRIER, noItalic(MM.deserialize("<gold>" + name + "</gold> <dark_gray>|</dark_gray> "
                 + (ok ? "<green>Можно объединить</green>" : "<red>Недоступно</red>"))), lore);
@@ -130,13 +135,13 @@ public class MergeGUI extends AbstractGUI {
     static String reasonText(ClaimMerger.Reason reason) {
         return switch (reason) {
             case OK -> "";
-            case SAME_CLAIM -> "это тот же приват";
-            case NOT_PLAYER_CLAIM -> "аренда и клановые приваты не объединяются";
-            case DIFFERENT_WORLD -> "приваты в разных мирах";
-            case NOT_NEIGHBOURS -> "приваты слишком далеко друг от друга";
-            case DIAGONAL -> "приваты соприкасаются только углом";
-            case HAS_RENTALS -> "в приватах есть арендные участки";
-            case BLOCKED_BY_OTHER_CLAIM -> "общая область заденет чужой приват";
+            case SAME_CLAIM -> "это тот же клейм";
+            case NOT_PLAYER_CLAIM -> "аренда и клановые клеймы не объединяются";
+            case DIFFERENT_WORLD -> "клеймы в разных мирах";
+            case NOT_NEIGHBOURS -> "клеймы слишком далеко друг от друга";
+            case DIAGONAL -> "клеймы соприкасаются только углом";
+            case HAS_RENTALS -> "в клеймах есть арендные участки";
+            case BLOCKED_BY_OTHER_CLAIM -> "общая область заденет чужой клейм";
             case MEMBER_LIMIT -> "слишком много участников после слияния";
             case NEEDS_SEAL -> "нужна Печать слияния";
         };

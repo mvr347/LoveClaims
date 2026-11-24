@@ -1,10 +1,12 @@
 package me.lovelace.loveclaims.gui;
 
 import me.lovelace.loveclaims.LoveClaims;
-import static me.lovelace.loveclaims.textures.HeadTextures.*;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.TrustLevel;
+import me.lovelace.loveclaims.util.GuiText;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -17,20 +19,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static me.lovelace.loveclaims.textures.HeadTextures.*;
+
+/**
+ * Members of a claim (54 slots, paginated). "Add player" is the Footer button before Back; without members the
+ * centre of the work zone shows a "no members" head. A plain member sees only the way to leave the claim.
+ */
 public class MembersGUI extends AbstractGUI {
     private static final int PAGE_SIZE = CONTENT_SLOTS_54.length;
-    // Псевдо-запись "Добавить участника" маркируется этим UUID в отрисованном списке (у настоящих
-    // участников claim.getMembers() UUID не бывает null).
-    private static final UUID ADD_MEMBER_MARKER = null;
+    /** Centre of the work zone: shown when the claim has no members. */
+    private static final int EMPTY_SLOT = 31;
 
     private final LoveClaims plugin;
     private final Player viewer;
     private final Claim claim;
     private int page = 0;
-
-    // Плоский список отрисованных записей текущей страницы: реальный UUID участника, либо
-    // ADD_MEMBER_MARKER (null) для кнопки добавления — используется для сопоставления клика со слотом.
-    private final List<UUID> renderedEntries = new ArrayList<>();
+    private final List<UUID> rendered = new ArrayList<>();
 
     public MembersGUI(LoveClaims plugin, Player viewer, Claim claim) {
         super(54, plugin.getConfigManager().getComponent("members.title"));
@@ -43,89 +47,66 @@ public class MembersGUI extends AbstractGUI {
     @Override
     protected void setMenuItems() {
         inventory.clear();
-        renderedEntries.clear();
-
+        rendered.clear();
         int maxMembers = plugin.getClaimManager().getMemberLimit(claim);
+        boolean manager = claim.isManager(viewer.getUniqueId());
 
-        boolean isManagerOrOwner = claim.isManager(viewer.getUniqueId());
+        inventory.setItem(0, createHead(HEAD_MEMBERS, plugin.getConfigManager().getComponent("members.title"),
+                List.of(GuiText.name(plugin, "members.profile-lore"))));
 
-        // gui-gen-5 RULE 3: слот 0 — тематическая иконка (список участников привата).
-        inventory.setItem(0, createHead(HEAD_MEMBERS, plugin.getConfigManager().getComponent("members.title"), null));
-
-        // "Добавить участника" / барьер-заглушка — псевдо-запись в начале списка, участвует
-        // в пагинации как любой другой К. Рендерится только если есть что показать: либо
-        // возможность добавить (менеджер/владелец при наличии места), либо информационный барьер
-        // для тех, у кого нет прав — как и в исходной версии, при заполненном лимите у
-        // менеджера/владельца никакой псевдо-записи не показывается вовсе.
-        boolean hasPseudoEntry = claim.getMembers().isEmpty();
-        if (hasPseudoEntry) {
-            renderedEntries.add(ADD_MEMBER_MARKER);
-        }
-        renderedEntries.addAll(claim.getMembers().keySet());
-
-        int totalPages = Math.max(1, (int) Math.ceil(renderedEntries.size() / (double) PAGE_SIZE));
-        if (page >= totalPages) page = totalPages - 1;
-        if (page < 0) page = 0;
-
+        rendered.addAll(claim.getMembers().keySet());
+        int totalPages = Math.max(1, (int) Math.ceil(rendered.size() / (double) PAGE_SIZE));
+        page = Math.max(0, Math.min(page, totalPages - 1));
         int start = page * PAGE_SIZE;
-        int end = Math.min(start + PAGE_SIZE, renderedEntries.size());
+        int end = Math.min(start + PAGE_SIZE, rendered.size());
 
+        if (rendered.isEmpty()) {
+            inventory.setItem(EMPTY_SLOT, createHead(HEAD_BARRIER, GuiText.name(plugin, "members.empty-name"),
+                    GuiText.lore(plugin, "members.empty-lore", "limit", String.valueOf(maxMembers))));
+        }
         for (int i = start; i < end; i++) {
-            int contentSlot = CONTENT_SLOTS_54[i - start];
-            UUID entryId = renderedEntries.get(i);
-
-            if (entryId == ADD_MEMBER_MARKER) {
-                if (isManagerOrOwner) {
-                    List<Component> lore = claim.getMembers().isEmpty()
-                            ? plugin.getConfigManager().getHelpMessage("members.empty-lore", "limit", String.valueOf(maxMembers))
-                            : plugin.getConfigManager().getHelpMessage("members.add-lore", "free", String.valueOf(maxMembers - claim.getMembers().size()));
-                    inventory.setItem(contentSlot, createHead(HEAD_ADD_MEMBER, plugin.getConfigManager().getComponent("members.add-name"), lore));
-                } else {
-                    List<Component> lore = plugin.getConfigManager().getHelpMessage("members.empty-lore", "limit", String.valueOf(maxMembers));
-                    inventory.setItem(contentSlot, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("members.no-perm-barrier"), lore));
-                }
-                continue;
-            }
-
-            OfflinePlayer target = Bukkit.getOfflinePlayer(entryId);
+            UUID id = rendered.get(i);
+            OfflinePlayer target = Bukkit.getOfflinePlayer(id);
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) head.getItemMeta();
             if (meta != null) {
                 me.lovelace.loveclaims.util.PlayerHeads.apply(meta, target);
-                String name = target.getName() != null ? target.getName() : "Неизвестный";
-                TrustLevel level = claim.getTrust(entryId);
-                String roleName = plugin.getConfigManager().getConfig().getString("claim.roles." + level.name(), level.name());
-
-                if (roleName.equals(level.name())) {
-                    roleName = getColoredRoleName(level);
-                }
-
-                meta.displayName(plugin.getConfigManager().getComponent("members.member-name", "player", name));
-                meta.lore(plugin.getConfigManager().getHelpMessage("members.member-lore", "role", roleName));
+                String name = target.getName() != null ? target.getName() : plugin.getConfigManager().getString("members.unknown");
+                meta.displayName(plugin.getConfigManager().getComponent("members.member-name", "player", GuiText.esc(name))
+                        .decoration(TextDecoration.ITALIC, false));
+                meta.lore(GuiText.lore(plugin, loreKey(id), "role", roleName(id)));
                 head.setItemMeta(meta);
             }
-            inventory.setItem(contentSlot, head);
+            inventory.setItem(CONTENT_SLOTS_54[i - start], head);
         }
 
-        // Пагинация (Исключение 2, только 54-слотовое): активна только если есть больше одной страницы.
         if (page > 0) {
-            inventory.setItem(PAGINATION_PREV_SLOT_54, createHead(HEAD_ARROW_LEFT, Component.text("§6← Назад"), null));
+            inventory.setItem(PAGINATION_PREV_SLOT_54, createHead(HEAD_ARROW_LEFT, GuiText.name(plugin, "members.page-prev"), null));
         }
-        if (end < renderedEntries.size()) {
-            inventory.setItem(PAGINATION_NEXT_SLOT_54, createHead(HEAD_ARROW_RIGHT, Component.text("§6Вперёд →"), null));
+        if (end < rendered.size()) {
+            inventory.setItem(PAGINATION_NEXT_SLOT_54, createHead(HEAD_ARROW_RIGHT, GuiText.name(plugin, "members.page-next"), null));
         }
 
-        setFooterButtons(
-                !claim.getMembers().isEmpty() && isManagerOrOwner && claim.getMembers().size() < maxMembers
-                        ? createHead(HEAD_ADD_MEMBER, plugin.getConfigManager().getComponent("members.add-name"),
-                            plugin.getConfigManager().getHelpMessage("members.add-lore", "free", String.valueOf(maxMembers - claim.getMembers().size()))) : null,
+        setFooterButtons(addButton(manager, maxMembers),
                 createHead(HEAD_BACK, plugin.getConfigManager().getComponent("common.back"), null),
-                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null)
-        );
+                createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
         fillFrameGlass();
     }
 
-    private String getColoredRoleName(TrustLevel level) {
+    /** What clicking this member's head does for the viewer decides its lore. */
+    private String loreKey(UUID id) {
+        if (id.equals(viewer.getUniqueId()) && !claim.isOwner(id)) return "members.member-lore-leave";
+        if (claim.isManager(viewer.getUniqueId()) && !id.equals(viewer.getUniqueId())) return "members.member-lore-manage";
+        return "members.member-lore-view";
+    }
+
+    private String roleName(UUID id) {
+        TrustLevel level = claim.getTrust(id);
+        String configured = plugin.getConfigManager().getConfig().getString("claim.roles." + level.name(), level.name());
+        return configured.equals(level.name()) ? coloredRole(level) : configured;
+    }
+
+    private String coloredRole(TrustLevel level) {
         return plugin.getConfigManager().getString(switch (level) {
             case OWNER -> "members.role-owner";
             case MANAGER -> "members.role-manager";
@@ -136,13 +117,21 @@ public class MembersGUI extends AbstractGUI {
         });
     }
 
+    /** Footer button before Back; unavailable states keep the slot and say why (RULE 10.4). */
+    private ItemStack addButton(boolean manager, int maxMembers) {
+        int free = maxMembers - claim.getMembers().size();
+        if (manager && free > 0) {
+            return createHead(HEAD_ADD_MEMBER, GuiText.name(plugin, "members.add-name"),
+                    GuiText.lore(plugin, "members.add-lore", "free", String.valueOf(free)));
+        }
+        String reason = plugin.getConfigManager().getString(manager ? "members.reason-full" : "members.reason-perm");
+        return createHead(HEAD_BARRIER, GuiText.name(plugin, "members.add-blocked-name"),
+                GuiText.lore(plugin, "members.add-blocked-lore", "reason", reason));
+    }
+
     @Override
     public void handleClick(InventoryClickEvent event) {
         int slot = event.getSlot();
-        if (slot == 51 && !claim.getMembers().isEmpty() && claim.isManager(viewer.getUniqueId())) {
-            MemberInviteDialog.open(plugin, viewer, claim);
-            return;
-        }
         int size = inventory.getSize();
 
         if (slot == size - 1) {
@@ -155,7 +144,16 @@ public class MembersGUI extends AbstractGUI {
             viewer.openInventory(new MainClaimGUI(plugin, viewer, claim).getInventory());
             return;
         }
-
+        if (slot == size - 3) {
+            int free = plugin.getClaimManager().getMemberLimit(claim) - claim.getMembers().size();
+            if (!claim.isManager(viewer.getUniqueId()) || free <= 0) {
+                plugin.getConfigManager().playSound(viewer, "gui-error");
+                return;
+            }
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            MemberInviteDialog.open(plugin, viewer, claim);
+            return;
+        }
         if (slot == PAGINATION_PREV_SLOT_54 && page > 0) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             page--;
@@ -163,7 +161,7 @@ public class MembersGUI extends AbstractGUI {
             return;
         }
         if (slot == PAGINATION_NEXT_SLOT_54) {
-            int totalPages = Math.max(1, (int) Math.ceil(renderedEntries.size() / (double) PAGE_SIZE));
+            int totalPages = Math.max(1, (int) Math.ceil(rendered.size() / (double) PAGE_SIZE));
             if (page < totalPages - 1) {
                 plugin.getConfigManager().playSound(viewer, "gui-click");
                 page++;
@@ -172,36 +170,19 @@ public class MembersGUI extends AbstractGUI {
             return;
         }
 
-        int slotIndex = indexOfContentSlot(slot);
-        if (slotIndex < 0) return;
-        int entryIndex = page * PAGE_SIZE + slotIndex;
-        if (entryIndex >= renderedEntries.size()) return;
+        int index = indexOfContentSlot(slot);
+        if (index < 0) return;
+        int entry = page * PAGE_SIZE + index;
+        if (entry >= rendered.size()) return;
+        UUID id = rendered.get(entry);
 
-        boolean isManagerOrOwner = claim.isManager(viewer.getUniqueId());
-
-        UUID entryId = renderedEntries.get(entryIndex);
-        if (entryId == ADD_MEMBER_MARKER) {
-            if (!isManagerOrOwner) {
-                plugin.getConfigManager().playSound(viewer, "gui-error");
-                viewer.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
-                return;
-            }
-            viewer.closeInventory();
+        // A member's own head leads to leaving the claim; a manager's click on another member leads to rights.
+        if (id.equals(viewer.getUniqueId()) && !claim.isOwner(id)) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
-
-            MemberInviteDialog.open(plugin, viewer, claim);
-            return;
-        }
-
-        if (entryId.equals(viewer.getUniqueId()) && !claim.isOwner(viewer.getUniqueId())) {
-            viewer.sendMessage(plugin.getConfigManager().getMessage("manager-role-error"));
-            plugin.getConfigManager().playSound(viewer, "gui-error");
-            return;
-        }
-
-        if (isManagerOrOwner) {
+            viewer.openInventory(new LeaveConfirmGUI(plugin, viewer, claim).getInventory());
+        } else if (claim.isManager(viewer.getUniqueId()) && !id.equals(viewer.getUniqueId())) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
-            viewer.openInventory(new MemberActionGUI(plugin, viewer, claim, entryId).getInventory());
+            viewer.openInventory(new MemberActionGUI(plugin, viewer, claim, id).getInventory());
         }
     }
 

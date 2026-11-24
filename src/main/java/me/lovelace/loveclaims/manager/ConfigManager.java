@@ -46,6 +46,7 @@ public class ConfigManager {
 
         File langFile = new File(plugin.getDataFolder(), "lang.yml");
         if (!langFile.exists()) plugin.saveResource("lang.yml", false);
+        refreshOutdatedLang(langFile);
         lang = YamlConfiguration.loadConfiguration(langFile);
         // Keys added in later versions must not show up as "Error: <key>" on servers that keep an
         // older lang.yml: the bundled file is the fallback for every key the server file lacks.
@@ -80,6 +81,27 @@ public class ConfigManager {
         plugin.getLogger().info("Language: " + language);
 
         scheduleSpawnWorldCheck();
+    }
+
+    /**
+     * 2026-11-24: menu texts were rewritten (claims instead of privates, new lore). A lang.yml that keeps old values
+     * would hide every change, because the bundled file is only a fallback for missing keys. When the server file
+     * carries a lower {@code lang-revision}, it is saved next to itself and replaced by the bundled one.
+     */
+    private void refreshOutdatedLang(File langFile) {
+        try (java.io.InputStream bundled = plugin.getResource("lang.yml")) {
+            if (bundled == null) return;
+            int bundledRevision = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(bundled,
+                    java.nio.charset.StandardCharsets.UTF_8)).getInt("lang-revision", 0);
+            int current = YamlConfiguration.loadConfiguration(langFile).getInt("lang-revision", 0);
+            if (current >= bundledRevision) return;
+            java.nio.file.Files.copy(langFile.toPath(), new File(plugin.getDataFolder(), "lang.yml.bak-" + current).toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            plugin.saveResource("lang.yml", true);
+            plugin.getLogger().info("lang.yml updated to revision " + bundledRevision + "; the old file is lang.yml.bak-" + current);
+        } catch (java.io.IOException e) {
+            plugin.getLogger().warning("Could not refresh lang.yml: " + e.getMessage());
+        }
     }
 
     /**

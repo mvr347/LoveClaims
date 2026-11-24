@@ -4,6 +4,7 @@ import dev.lovelace.lovecore.api.LoveCore;
 import dev.lovelace.lovecore.api.economy.LoveEconomy;
 import dev.lovelace.lovecore.api.economy.MoneyConfig;
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.util.GuiText;
 import me.lovelace.loveclaims.gems.GemFusion;
 import me.lovelace.loveclaims.gems.GemStats;
 import me.lovelace.loveclaims.model.Claim;
@@ -40,7 +41,7 @@ public class GemFuseGUI extends AbstractGUI {
     private Claim selected;
 
     public GemFuseGUI(LoveClaims plugin, Player viewer) {
-        super(27, noItalic(MM.deserialize("<gold>Вшить гем в якорь</gold>")));
+        super(27, GuiText.name(plugin, "gemFuseGUI.t1"));
         this.plugin = plugin;
         this.viewer = viewer;
         setMenuItems();
@@ -57,21 +58,21 @@ public class GemFuseGUI extends AbstractGUI {
         if (selected != null && !claims.contains(selected)) selected = null;
         if (selected == null && claims.size() == 1) selected = claims.get(0);
 
-        inventory.setItem(0, createHead(HEAD_NPC, noItalic(MM.deserialize("<gold>Вшивание гема</gold>")), List.of(
-                noItalic(MM.deserialize("<dark_gray>Постоянное улучшение якоря")),
+        inventory.setItem(0, createHead(HEAD_NPC, GuiText.name(plugin, "gemFuseGUI.t2"), List.of(
+                GuiText.name(plugin, "gemFuseGUI.t3"),
                 Component.empty(),
-                noItalic(MM.deserialize("<dark_gray>▪ <gray>Правила:")),
-                noItalic(MM.deserialize("  <gray>Только <white>один</white> гем за всё время")),
-                noItalic(MM.deserialize("  <gray>Занимает <white>1</white> слот, не режется")),
-                noItalic(MM.deserialize("  <gray>Снять нельзя, переживает перенос")),
-                noItalic(MM.deserialize("  <gray>Легендарный гем: якорь <white>тира 2+")),
-                noItalic(MM.deserialize("  <gray>Тир 3: <white>доп. ингредиенты")))));
+                GuiText.name(plugin, "gemFuseGUI.t4"),
+                GuiText.name(plugin, "gemFuseGUI.t5"),
+                GuiText.name(plugin, "gemFuseGUI.t6"),
+                GuiText.name(plugin, "gemFuseGUI.t7"),
+                GuiText.name(plugin, "gemFuseGUI.t8"),
+                GuiText.name(plugin, "gemFuseGUI.t9"))));
 
         if (claims.isEmpty()) {
             slots = centeredRowSlots(1);
-            inventory.setItem(slots[0], createHead(HEAD_BARRIER, noItalic(MM.deserialize("<gray>Приват <dark_gray>|</dark_gray> <red>Недоступно")),
-                    List.of(noItalic(MM.deserialize("<red>✕ Вшивание недоступно")),
-                            noItalic(MM.deserialize("<red>Причина: <gray>нет привата без вшитого гема")))));
+            inventory.setItem(slots[0], createHead(HEAD_BARRIER, GuiText.name(plugin, "gemFuseGUI.t10"),
+                    List.of(GuiText.name(plugin, "gemFuseGUI.t11"),
+                            GuiText.name(plugin, "gemFuseGUI.t12"))));
         } else {
             slots = centeredRowSlots(claims.size());
             for (int i = 0; i < claims.size() && i < slots.length; i++) {
@@ -92,19 +93,20 @@ public class GemFuseGUI extends AbstractGUI {
         String name = claim.getName() != null && !claim.getName().isBlank() ? MM.escapeTags(claim.getName())
                 : claim.getAnchorLocation().getBlockX() + ", " + claim.getAnchorLocation().getBlockZ();
         List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(MM.deserialize("<dark_gray>Ваш приват")));
+        lore.add(GuiText.name(plugin, "gemFuseGUI.t13"));
         lore.add(Component.empty());
-        lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Якорь:")));
+        lore.add(GuiText.name(plugin, "gemFuseGUI.t14"));
         lore.add(noItalic(MM.deserialize("  <gray>Тир: <white>" + level)));
         if (claim.isAnchorBroken()) {
-            lore.add(noItalic(MM.deserialize("  <red>✕ Ядро якоря треснуло")));
+            lore.add(GuiText.name(plugin, "gemFuseGUI.t15"));
         }
+        lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
         if (chosen) {
-            lore.add(noItalic(MM.deserialize("<green>✓ Выбран")));
-            lore.add(noItalic(MM.deserialize("<dark_gray>Кликните по гему в своём инвентаре")));
+            lore.add(GuiText.name(plugin, "gemFuseGUI.t16"));
+            lore.add(GuiText.name(plugin, "gemFuseGUI.t17"));
         } else {
-            lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>выбрать приват")));
+            lore.add(GuiText.name(plugin, "gemFuseGUI.t18"));
         }
         return createHead(chosen ? HEAD_DELETE_YES : HEAD_INFO,
                 noItalic(MM.deserialize("<gold>" + name + "</gold> <dark_gray>|</dark_gray> "
@@ -143,7 +145,7 @@ public class GemFuseGUI extends AbstractGUI {
         if (statsOpt.isEmpty()) return;
         if (selected == null) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize("<red>Сначала выберите приват.</red>")));
+            viewer.sendMessage(GuiText.name(plugin, "gemFuseGUI.t19"));
             return;
         }
         GemFusion.Check check = check(selected, statsOpt.get());

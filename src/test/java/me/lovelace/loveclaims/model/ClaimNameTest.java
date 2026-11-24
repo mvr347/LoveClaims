@@ -5,13 +5,13 @@ import org.junit.jupiter.api.Test;
 
 class ClaimNameTest {
     @Test void legacyNullNamesBecomeNull() {
-        assertNull(Claim.sanitizeName("Приват null"));
+        assertNull(Claim.sanitizeName("Клейм null"));
         assertNull(Claim.sanitizeName("null"));
         assertNull(Claim.sanitizeName("  "));
         assertNull(Claim.sanitizeName(null));
     }
     @Test void realNamesAreKept() {
-        assertEquals("Приват Steve", Claim.sanitizeName("Приват Steve"));
+        assertEquals("Клейм Steve", Claim.sanitizeName("Клейм Steve"));
         assertEquals("Nullhaven", Claim.sanitizeName("Nullhaven"));
     }
 }

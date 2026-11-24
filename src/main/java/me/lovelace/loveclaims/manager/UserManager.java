@@ -9,7 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Менеджер пользовательских данных (лимиты участников, слотов приватов).
+ * Менеджер пользовательских данных (лимиты участников, слотов клеймов).
  */
 public class UserManager {
     private final LoveClaims plugin;

@@ -12,10 +12,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Реализация {@link TerritoryOracle} поверх реестра приватов LoveClaims.
+ * Реализация {@link TerritoryOracle} поверх реестра клеймов LoveClaims.
  *
  * <p>Регистрируется в {@code ServicesManager} с приоритетом выше {@code Normal} и вытесняет
- * рефлексивную реализацию из {@code lovecore-plugin}: LoveClaims знает о своих приватах
+ * рефлексивную реализацию из {@code lovecore-plugin}: LoveClaims знает о своих клеймах
  * напрямую, рефлексии ядру для этого больше не нужно.</p>
  */
 public final class LoveClaimsTerritoryOracle implements TerritoryOracle {
@@ -36,7 +36,7 @@ public final class LoveClaimsTerritoryOracle implements TerritoryOracle {
             String displayName = claim.getOwnerDisplayName() != null ? claim.getOwnerDisplayName() : "Клан";
             return new Owner(OwnerKind.CLAN, claim.getOwnerUuid(), displayName);
         }
-        String displayName = claim.getName() != null ? claim.getName() : "Приват";
+        String displayName = claim.getName() != null ? claim.getName() : "Клейм";
         return new Owner(OwnerKind.PLAYER_CLAIM, claim.getOwnerUuid(), displayName);
     }
 
@@ -52,7 +52,7 @@ public final class LoveClaimsTerritoryOracle implements TerritoryOracle {
             return hostileClanTerritory(playerId, claim);
         }
 
-        // Приват без владельца (ещё не сданный в аренду участок) — ничейная земля, не враждебна.
+        // Клейм без владельца (ещё не сданный в аренду участок) — ничейная земля, не враждебна.
         if (claim.getOwnerUuid() == null || playerId.equals(claim.getOwnerUuid())) {
             return false;
         }

@@ -34,11 +34,11 @@ public class Claim {
     private final Map<UUID, Set<ClaimPermission>> members = new ConcurrentHashMap<>();
     private final Set<ClaimPermission> defaultPermissions = EnumSet.noneOf(ClaimPermission.class);
     private final Map<ClaimFlag, Boolean> flags = new EnumMap<>(ClaimFlag.class);
-    private ClaimType claimType = ClaimType.PLAYER; // По умолчанию - приват игрока
+    private ClaimType claimType = ClaimType.PLAYER; // По умолчанию - клейм игрока
     private boolean isClanTerritory = false; // Новое поле
     private boolean isUnderSiege = false; // Новое поле
     // Отображаемое имя владельца-клана (тег/название), передаётся из LoveClans при создании/переименовании.
-    // Null для приватов игроков и для старых клановых территорий, ещё не получивших это поле.
+    // Null для клеймов игроков и для старых клановых территорий, ещё не получивших это поле.
     private String ownerDisplayName = null;
 
     // Rental fields
@@ -80,7 +80,7 @@ public class Claim {
         this.lastActive = System.currentTimeMillis();
 
         // Name is deliberately left null here: deriving it from Bukkit.getOfflinePlayer(owner).getName()
-        // produced "Приват null" for owners that were never cached. Callers set a name explicitly or
+        // produced "Клейм null" for owners that were never cached. Callers set a name explicitly or
         // fall back to a display default when getName() is null.
 
         for (ClaimFlag flag : ClaimFlag.values()) {
@@ -109,7 +109,7 @@ public class Claim {
     public String getName() { return name; }
 
     /**
-     * Legacy rows persisted names such as "Приват null" (owner name was unresolved at creation).
+     * Legacy rows persisted names such as "Клейм null" (owner name was unresolved at creation).
      * Treat any name ending in " null" (or equal to "null") as absent.
      */
     public static String sanitizeName(String name) {
@@ -161,7 +161,15 @@ public class Claim {
         if (perms != null) {
             return perms.contains(permission);
         }
-        return permission != ClaimPermission.MANAGE && defaultPermissions.contains(permission);
+        return permission != ClaimPermission.MANAGE && permission != ClaimPermission.CORE
+                && defaultPermissions.contains(permission);
+    }
+
+    /** Gems of the core: the owner, managers and members granted the CORE permission. */
+    public boolean canManageCore(UUID playerUuid) {
+        if (isManager(playerUuid)) return true;
+        Set<ClaimPermission> permissions = playerUuid == null ? null : members.get(playerUuid);
+        return permissions != null && permissions.contains(ClaimPermission.CORE);
     }
 
     public boolean isOwner(UUID playerUuid) {
@@ -245,7 +253,7 @@ public class Claim {
     public Map<UUID, Set<ClaimPermission>> getMembers() { return members; }
 
     /**
-     * Удаляет игрока из списка участников привата и устанавливает флаг modified.
+     * Удаляет игрока из списка участников клейма и устанавливает флаг modified.
      * @param playerUuid UUID игрока, которого нужно удалить.
      */
     public void removePlayer(UUID playerUuid) {

@@ -46,6 +46,7 @@ public final class AnchorCores {
                     Component.empty(),
                     noItalic(MM.deserialize("<gray>Заменяет треснувшее ядро якоря")),
                     noItalic(MM.deserialize("<gray>того же или более низкого тира.")),
+                    Component.empty(),
                     noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
                     noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>по ядру в инвентаре при открытом меню гемов"))
             ));

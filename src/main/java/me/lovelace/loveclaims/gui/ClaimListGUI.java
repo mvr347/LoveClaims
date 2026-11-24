@@ -39,7 +39,7 @@ public class ClaimListGUI extends AbstractGUI {
     protected void setMenuItems() {
         inventory.clear();
 
-        // gui-gen-5 RULE 3: слот 0 — профиль напрямую (это список приватов самого игрока).
+        // gui-gen-5 RULE 3: слот 0 — профиль напрямую (это список клеймов самого игрока).
         ItemStack self = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta selfMeta = (SkullMeta) self.getItemMeta();
         if (selfMeta != null) {

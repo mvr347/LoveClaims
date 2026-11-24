@@ -97,27 +97,27 @@ class GemAndAnchorSystemTest {
         assertNotNull(t3);
         assertNotNull(t3m);
 
-        assertEquals(3, t1.gemSlots());
+        assertEquals(4, t1.gemSlots());
         assertEquals(12, t1.radiusX());
         assertEquals(25, t1.getSizeX());
 
-        assertEquals(4, t1m.gemSlots());
+        assertEquals(5, t1m.gemSlots());
         assertEquals(15, t1m.radiusX());
         assertEquals(31, t1m.getSizeX());
 
-        assertEquals(6, t2.gemSlots());
+        assertEquals(7, t2.gemSlots());
         assertEquals(24, t2.radiusX());
         assertEquals(49, t2.getSizeX());
 
-        assertEquals(7, t2m.gemSlots());
+        assertEquals(8, t2m.gemSlots());
         assertEquals(30, t2m.radiusX());
         assertEquals(61, t2m.getSizeX());
 
-        assertEquals(8, t3.gemSlots());
+        assertEquals(9, t3.gemSlots());
         assertEquals(42, t3.radiusX());
         assertEquals(85, t3.getSizeX());
 
-        assertEquals(9, t3m.gemSlots());
+        assertEquals(10, t3m.gemSlots());
         assertEquals(52, t3m.radiusX());
         assertEquals(105, t3m.getSizeX());
     }
@@ -229,7 +229,7 @@ class GemAndAnchorSystemTest {
         // Attempt to insert MODIFIED gem into Tier I anchor -> rejected
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, gui.getInventory().getSize(),
-                ClickType.LEFT, InventoryAction.PICKUP_ALL));
+                ClickType.RIGHT, InventoryAction.PICKUP_HALF));
         assertTrue(claim.getInstalledGems().isEmpty());
         assertNotNull(owner.getInventory().getItem(0));
 
@@ -237,17 +237,14 @@ class GemAndAnchorSystemTest {
         int bottomRawSlot = gui.getInventory().getSize() + 1;
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, bottomRawSlot,
-                ClickType.LEFT, InventoryAction.PICKUP_ALL));
+                ClickType.RIGHT, InventoryAction.PICKUP_HALF));
 
         assertEquals(1, claim.getInstalledGems().size());
         assertEquals(6, claim.getModifiers().radiusBonus());
         assertEquals(36, Math.round(claim.getBoundingBox().getWidthX())); // 24 + 12
         assertTrue(plugin.getClaimManager().getClaimAt(center.clone().add(17, 0, 0)).isPresent());
 
-        // Extraction needs extract mode: toggle button sits in header slot 4 (gui_gen RULE 4, one button)
-        Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
-                view, InventoryType.SlotType.CONTAINER, 4,
-                ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        // Left click on an installed gem extracts it (right click inserts)
         // Extract gem from top slot 10 (first work slot) -> shrinks back to 24 width
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, 10,
@@ -598,9 +595,6 @@ class GemAndAnchorSystemTest {
         // Attempting to remove the negative-radius debuff must be blocked due to neighbor overlap
         owner.getInventory().clear();
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
-                mockView(owner, top), InventoryType.SlotType.CONTAINER, 4,
-                ClickType.LEFT, InventoryAction.PICKUP_ALL));
-        Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 mockView(owner, top), InventoryType.SlotType.CONTAINER, 10,
                 ClickType.LEFT, InventoryAction.PICKUP_ALL));
         assertEquals(1, claim1.getInstalledGems().size(), "Debuff removal must be blocked on neighbor overlap");
@@ -630,12 +624,12 @@ class GemAndAnchorSystemTest {
         legacy.setAdminExpandBonus(6); // base = 12 (tier-1)
         assertEquals("tier-1", plugin.getAnchorManager().resolveClaimTier(legacy).id());
 
-        // SettingsGUI move returns anchor & gems, and clicking stale SettingsGUI does not dupe
+        // Releasing the claim returns anchor & gems, and clicking a stale confirm window does not dupe
         claim1.addInstalledGem(negHybrid);
-        SettingsGUI settingsGui = new SettingsGUI(plugin, owner, claim1);
+        DeleteConfirmGUI settingsGui = new DeleteConfirmGUI(plugin, owner, claim1);
         owner.getInventory().clear();
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
-                mockView(owner, settingsGui.getInventory()), InventoryType.SlotType.CONTAINER, 16,
+                mockView(owner, settingsGui.getInventory()), InventoryType.SlotType.CONTAINER, 1,
                 ClickType.LEFT, InventoryAction.PICKUP_ALL));
         assertTrue(plugin.getClaimManager().getClaimById(claim1.getId()).isEmpty());
         long returnedAnchors = Arrays.stream(owner.getInventory().getContents())
@@ -647,7 +641,7 @@ class GemAndAnchorSystemTest {
         // Stale click must NOT dupe
         owner.getInventory().clear();
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
-                mockView(owner, settingsGui.getInventory()), InventoryType.SlotType.CONTAINER, 16,
+                mockView(owner, settingsGui.getInventory()), InventoryType.SlotType.CONTAINER, 1,
                 ClickType.LEFT, InventoryAction.PICKUP_ALL));
         assertTrue(Arrays.stream(owner.getInventory().getContents()).allMatch(Objects::isNull),
                 "Clicking move on already-deleted claim must not dupe anchor or gems");

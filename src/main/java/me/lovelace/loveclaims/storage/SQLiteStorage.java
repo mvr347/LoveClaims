@@ -432,7 +432,7 @@ public class SQLiteStorage {
             }
         } catch (SQLException e) { plugin.getLogger().severe("Error loading members for claim " + claimId + ": " + e.getMessage()); }
 
-        if (!isRental) { // Флаги только для обычных приватов
+        if (!isRental) { // Флаги только для обычных клеймов
             try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM " + flagTable + " WHERE " + idColumn + " = ?")) {
                 ps.setString(1, claimId.toString());
                 try (ResultSet rs = ps.executeQuery()) {

@@ -7,6 +7,7 @@ import me.lovelace.loveclaims.gems.GemRegistry;
 import me.lovelace.loveclaims.gems.GemStats;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.ClaimTier;
+import me.lovelace.loveclaims.util.GuiText;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -35,11 +36,9 @@ public class AnchorGemsGUI extends AbstractGUI {
     private final Player viewer;
     private final Claim claim;
     private final List<Integer> slotToGemIndex = new ArrayList<>();
-    /** false = insert mode (click gems in own inventory), true = extract mode (click installed gems). */
-    private boolean extractMode = false;
 
     public AnchorGemsGUI(LoveClaims plugin, Player viewer, Claim claim) {
-        super(36, noItalic(MM.deserialize("<gold>Гемы якоря</gold>")));
+        super(36, GuiText.name(plugin, "gems.title"));
         this.plugin = plugin;
         this.viewer = viewer;
         this.claim = claim;
@@ -58,32 +57,26 @@ public class AnchorGemsGUI extends AbstractGUI {
         int usedSlots = mods.usedSlots();
         int freeSlots = Math.max(0, maxSlots - usedSlots);
 
-        List<Component> infoLore = new ArrayList<>();
-        infoLore.add(noItalic(MM.deserialize("<gray>Якорь: <white>Тир " + anchorLevel
-                + (tier != null && tier.modified() ? " <light_purple>[Мод.]</light_purple>" : ""))));
-        infoLore.add(noItalic(MM.deserialize("<gray>Слоты гемов: <aqua>" + usedSlots + "<gray>/<white>" + maxSlots)));
         int overload = me.lovelace.loveclaims.gems.GemOverload.totalOverload(claim.getInstalledGems(), anchorLevel);
-        infoLore.add(noItalic(MM.deserialize("<gray>Перегруз: <white>" + overload + " <dark_gray>/ <white>"
-                + me.lovelace.loveclaims.gems.GemOverload.explodeThreshold())));
+        List<Component> infoLore = new ArrayList<>(GuiText.lore(plugin, "gems.info-lore",
+                "level", String.valueOf(anchorLevel),
+                "mod", tier != null && tier.modified() ? plugin.getConfigManager().getString("gems.mod-tag") : "",
+                "used", String.valueOf(usedSlots), "max", String.valueOf(maxSlots),
+                "overload", String.valueOf(overload),
+                "threshold", String.valueOf(me.lovelace.loveclaims.gems.GemOverload.explodeThreshold())));
         if (claim.isAnchorBroken()) {
-            infoLore.add(noItalic(MM.deserialize("<red>✕ Ядро якоря треснуло")));
-            infoLore.add(noItalic(MM.deserialize("<red>Причина: <gray>перегруз сильными гемами")));
-            infoLore.add(noItalic(MM.deserialize("<dark_gray>Клик по ядру якоря в инвентаре — заменить")));
+            infoLore.addAll(GuiText.lore(plugin, "gems.info-broken"));
         }
-        infoLore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
-        infoLore.add(noItalic(MM.deserialize("<gray>Радиус от гемов: <white>" + signed(mods.radiusBonus()) + " бл.")));
-        infoLore.add(noItalic(MM.deserialize("<gray>Слоты участников: <white>" + signed(mods.membersBonus()))));
-        infoLore.add(noItalic(MM.deserialize("<gray>Рост ферм: <white>" + signedPct(mods.cropGrowthMultiplier()))));
-        infoLore.add(noItalic(MM.deserialize("<gray>Печи/зелья: <white>" + signedPct(mods.furnaceSpeedMultiplier()))));
+        infoLore.addAll(GuiText.lore(plugin, "gems.info-stats",
+                "radius", signed(mods.radiusBonus()), "members", signed(mods.membersBonus()),
+                "crops", signedPct(mods.cropGrowthMultiplier()), "furnace", signedPct(mods.furnaceSpeedMultiplier())));
         if (mods.doubleDropChance() > 1e-6) {
-            infoLore.add(noItalic(MM.deserialize("<gray>Шанс x2 урожая: <green>" + Math.round(mods.doubleDropChance() * 100) + "%")));
+            infoLore.addAll(GuiText.lore(plugin, "gems.info-double", "chance", String.valueOf(Math.round(mods.doubleDropChance() * 100))));
         }
-        if (!mods.potionEffects().isEmpty()) {
-            mods.potionEffects().forEach((type, amp) -> infoLore.add(noItalic(MM.deserialize(
-                    "<gray>• <aqua>" + GemRegistry.formatPotionName(type) + " " + GemRegistry.toRoman(amp + 1)))));
-        }
+        mods.potionEffects().forEach((type, amp) -> infoLore.addAll(GuiText.lore(plugin, "gems.info-potion",
+                "effect", GemRegistry.formatPotionName(type) + " " + GemRegistry.toRoman(amp + 1))));
 
-        inventory.setItem(0, createHead(HEAD_INFO, noItalic(MM.deserialize("<gold>Параметры якоря</gold>")), infoLore));
+        inventory.setItem(0, createHead(HEAD_INFO, GuiText.name(plugin, "gems.info-name"), infoLore));
 
         List<GemStats> installed = claim.getInstalledGems();
         GemRegistry registry = plugin.getGemRegistry();
@@ -95,11 +88,7 @@ public class AnchorGemsGUI extends AbstractGUI {
             if (fusedItem != null) {
                 fusedItem.editMeta(meta -> {
                     List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-                    lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
-                    lore.add(noItalic(MM.deserialize("<gold>★ Вшит в якорь навсегда")));
-                    lore.add(noItalic(MM.deserialize("<red>✕ Извлечение недоступно")));
-                    lore.add(noItalic(MM.deserialize("<red>Причина: <gray>гем вшит в якорь")));
-                    lore.add(noItalic(MM.deserialize("<dark_gray>ЛКМ — извлечь (заблокировано)")));
+                    lore.addAll(GuiText.lore(plugin, "gems.fused-add"));
                     meta.lore(lore);
                 });
                 inventory.setItem(WORK_SLOTS[idx], fusedItem);
@@ -113,14 +102,7 @@ public class AnchorGemsGUI extends AbstractGUI {
             if (item != null) {
                 item.editMeta(meta -> {
                     List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
-                    lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
-                    if (extractMode) {
-                        lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>извлечь гем <dark_gray>(" + gs.slotCost() + " сл.)")));
-                    } else {
-                        lore.add(noItalic(MM.deserialize("<red>✕ Извлечение недоступно")));
-                        lore.add(noItalic(MM.deserialize("<red>Причина: <gray>включён режим вставки")));
-                        lore.add(noItalic(MM.deserialize("<dark_gray>ЛКМ — извлечь (заблокировано)")));
-                    }
+                    lore.addAll(GuiText.lore(plugin, "gems.installed-add", "cost", String.valueOf(gs.slotCost())));
                     meta.lore(lore);
                 });
                 inventory.setItem(WORK_SLOTS[idx], item);
@@ -130,53 +112,20 @@ public class AnchorGemsGUI extends AbstractGUI {
         }
 
         for (int f = 0; f < freeSlots && idx < WORK_SLOTS.length; f++) {
-            ItemStack emptySlot = createHead(HEAD_ADD_MEMBER,
-                    noItalic(MM.deserialize("<green>Свободный слот гема</green>")),
-                    List.of(
-                            noItalic(MM.deserialize("<gray>Требуемый тир якоря: <white>до " + anchorLevel + " тира</white>")),
-                            noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                            noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>нажмите по гему в инвентаре"))
-                    ));
-            inventory.setItem(WORK_SLOTS[idx], emptySlot);
+            inventory.setItem(WORK_SLOTS[idx], createHead(HEAD_ADD_MEMBER, GuiText.name(plugin, "gems.free-name"),
+                    GuiText.lore(plugin, "gems.free-lore", "level", String.valueOf(anchorLevel))));
             slotToGemIndex.add(-1);
             idx++;
         }
 
-        // Header control button (gui_gen RULE 4: one button -> slot 4)
-        int[] ctl = headerControlSlots(1);
-        inventory.setItem(ctl[0], createHead(extractMode ? HEAD_DELETE_YES : HEAD_ADD_MEMBER,
-                noItalic(MM.deserialize("<gold>Режим <dark_gray>|</dark_gray> "
-                        + (extractMode ? "<yellow>Извлечение</yellow>" : "<green>Вставка</green>"))),
-                List.of(
-                        noItalic(MM.deserialize("<dark_gray>Управление гемами якоря")),
-                        Component.empty(),
-                        noItalic(MM.deserialize("<dark_gray>▪ <gray>Режимы:")),
-                        noItalic(MM.deserialize(extractMode ? "  <gray>Вставка" : "  <green>✓ <white>Вставка")),
-                        noItalic(MM.deserialize(extractMode ? "  <green>✓ <white>Извлечение" : "  <gray>Извлечение")),
-                        noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                        noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>сменить режим"))
-                )));
-
         ItemStack extraBtn = null;
         if (mods.allowLimitBypass()) {
-            int bonusRad = registry != null ? registry.getExtraExpansionRadius() : 10;
-            if (claim.isExtraExpansionUnlocked()) {
-                extraBtn = createHead(HEAD_DELETE_YES,
-                        noItalic(MM.deserialize("<gold>Империум Расширение</gold> <dark_gray>|</dark_gray> <green>Активно</green>")),
-                        List.of(
-                                noItalic(MM.deserialize("<gray>Бонус радиуса: <green>+" + bonusRad + " бл.</green>")),
-                                noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                                noItalic(MM.deserialize("<green>✔ Доп. расширение применено"))
-                        ));
-            } else {
-                extraBtn = createHead(HEAD_PROMOTE,
-                        noItalic(MM.deserialize("<gold>Империум Расширение</gold> <dark_gray>|</dark_gray> <yellow>Доступно</yellow>")),
-                        List.of(
-                                noItalic(MM.deserialize("<gray>Бонус радиуса: <green>+" + bonusRad + " бл.</green>")),
-                                noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                                noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>активировать расширение"))
-                        ));
-            }
+            String bonusRad = String.valueOf(registry != null ? registry.getExtraExpansionRadius() : 10);
+            extraBtn = claim.isExtraExpansionUnlocked()
+                    ? createHead(HEAD_DELETE_YES, GuiText.name(plugin, "gems.extra-active-name"),
+                            GuiText.lore(plugin, "gems.extra-active-lore", "radius", bonusRad))
+                    : createHead(HEAD_PROMOTE, GuiText.name(plugin, "gems.extra-available-name"),
+                            GuiText.lore(plugin, "gems.extra-available-lore", "radius", bonusRad));
         }
 
         setFooterButtons(
@@ -196,12 +145,6 @@ public class AnchorGemsGUI extends AbstractGUI {
             viewer.closeInventory();
             return;
         }
-        if (slot == headerControlSlots(1)[0]) {
-            extractMode = !extractMode;
-            plugin.getConfigManager().playSound(viewer, "gui-click");
-            setMenuItems();
-            return;
-        }
         if (slot == size - 2) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new MainClaimGUI(plugin, viewer, claim).getInventory());
@@ -218,7 +161,7 @@ public class AnchorGemsGUI extends AbstractGUI {
             }
             plugin.getStorage().saveClaimAsync(claim);
             plugin.getConfigManager().playSound(viewer, "anchor-place");
-            viewer.sendMessage(noItalic(MM.deserialize("<green>Дополнительное расширение Домейн Империум активировано!</green>")));
+            viewer.sendMessage(plugin.getConfigManager().getMessage("gems.extra-done"));
             setMenuItems();
             return;
         }
@@ -228,11 +171,8 @@ public class AnchorGemsGUI extends AbstractGUI {
         int gemIdx = slotToGemIndex.get(workIdx);
         if (gemIdx < 0) return;
 
-        if (!extractMode) {
-            plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize("<red>Включите режим извлечения кнопкой в шапке меню.</red>")));
-            return;
-        }
+        // Left click on an installed gem extracts it (right click inserts a gem from the inventory).
+        if (!event.isLeftClick()) return;
         if (!validateClaimAccess()) return;
         if (gemIdx >= claim.getInstalledGems().size()) {
             setMenuItems();
@@ -241,7 +181,7 @@ public class AnchorGemsGUI extends AbstractGUI {
 
         if (viewer.getInventory().firstEmpty() == -1) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize("<red>Освободите слот в инвентаре для извлечения гема!</red>")));
+            viewer.sendMessage(plugin.getConfigManager().getMessage("gems.inventory-full"));
             return;
         }
 
@@ -288,15 +228,16 @@ public class AnchorGemsGUI extends AbstractGUI {
         var statsOpt = factory.readStats(clicked);
         if (statsOpt.isEmpty()) return;
 
-        if (extractMode) {
+        // Right click inserts; a plain left click on a gem in the inventory only reminds how.
+        if (!event.isRightClick()) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize("<red>Включите режим вставки кнопкой в шапке меню.</red>")));
+            viewer.sendMessage(plugin.getConfigManager().getMessage("gems.hint-insert"));
             return;
         }
         if (!validateClaimAccess()) return;
         if (claim.isAnchorBroken()) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize("<red>Ядро якоря треснуло: сначала замените ядро.</red>")));
+            viewer.sendMessage(plugin.getConfigManager().getMessage("gems.core-cracked"));
             return;
         }
 
@@ -308,9 +249,8 @@ public class AnchorGemsGUI extends AbstractGUI {
         int usedSlots = claim.getModifiers().usedSlots();
         if (usedSlots + stats.slotCost() > maxSlots) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize(
-                    "<red>Недостаточно слотов в якоре! Нужно <white>" + stats.slotCost()
-                            + "</white>, свободно <white>" + Math.max(0, maxSlots - usedSlots) + "</white>.</red>")));
+            viewer.sendMessage(plugin.getConfigManager().getMessage("gems.no-slots", "need", String.valueOf(stats.slotCost()),
+                    "free", String.valueOf(Math.max(0, maxSlots - usedSlots))));
             return;
         }
 
@@ -340,13 +280,13 @@ public class AnchorGemsGUI extends AbstractGUI {
         plugin.getClaimManager().syncAnchorLevel(claim);
         if (!claim.isAnchorBroken()) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize("<red>Ядро якоря цело, замена не нужна.</red>")));
+            viewer.sendMessage(plugin.getConfigManager().getMessage("gems.core-intact"));
             return;
         }
         if (coreTier < claim.getAnchorLevel()) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize("<red>Нужно ядро тира <white>" + claim.getAnchorLevel()
-                    + "</white> или выше (у вас тир <white>" + coreTier + "</white>).</red>")));
+            viewer.sendMessage(plugin.getConfigManager().getMessage("gems.core-tier", "need", String.valueOf(claim.getAnchorLevel()),
+                    "have", String.valueOf(coreTier)));
             return;
         }
         if (core.getAmount() > 1) {
@@ -358,7 +298,7 @@ public class AnchorGemsGUI extends AbstractGUI {
         plugin.getClaimManager().recalculateClaimModifiers(claim);
         plugin.getStorage().saveClaimAsync(claim);
         plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "core-replace");
-        viewer.sendMessage(noItalic(MM.deserialize("<green>Ядро якоря заменено, баффы гемов снова работают.</green>")));
+        viewer.sendMessage(plugin.getConfigManager().getMessage("gems.core-replaced"));
         setMenuItems();
     }
 
@@ -379,7 +319,7 @@ public class AnchorGemsGUI extends AbstractGUI {
         int maxSlotsNow = tierNow != null ? tierNow.gemSlots() : 3;
         if (claim.getModifiers().usedSlots() + stats.slotCost() > maxSlotsNow) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize("<red>Недостаточно слотов в якоре: пока вы подтверждали, их заняли.</red>")));
+            viewer.sendMessage(plugin.getConfigManager().getMessage("gems.slots-taken"));
             setMenuItems();
             return;
         }
@@ -398,7 +338,7 @@ public class AnchorGemsGUI extends AbstractGUI {
                     me.lovelace.loveclaims.gems.GemOverload.totalOverload(candidate, claim.getAnchorLevel()));
             if (Math.abs(actual - expectedChance) > 1e-9) {
                 plugin.getConfigManager().playSound(viewer, "gui-error");
-                viewer.sendMessage(noItalic(MM.deserialize("<red>Условия изменились, подтвердите вставку заново.</red>")));
+                viewer.sendMessage(plugin.getConfigManager().getMessage("gems.conditions-changed"));
                 viewer.openInventory(new GemOverloadConfirmGUI(plugin, viewer, claim, stats, inventorySlot, source).getInventory());
                 return;
             }
@@ -441,14 +381,13 @@ public class AnchorGemsGUI extends AbstractGUI {
         claim.setAnchorBroken(true);
         plugin.getClaimManager().recalculateClaimModifiers(claim);
         plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "anchor-break");
-        viewer.sendMessage(noItalic(MM.deserialize(
-                "<red>Ядро якоря треснуло! Самый сильный гем пропал, баффы выключены до замены ядра.</red>")));
+        viewer.sendMessage(plugin.getConfigManager().getMessage("gems.anchor-broke"));
     }
 
     private boolean validateClaimAccess() {
         if (plugin.getClaimManager().getClaimById(claim.getId()).orElse(null) != claim
                 || claim.isRentalPlot() || claim.isClanTerritory()
-                || !claim.isManager(viewer.getUniqueId())) {
+                || !claim.canManageCore(viewer.getUniqueId())) {
             viewer.closeInventory();
             viewer.sendMessage(plugin.getConfigManager().getMessage("no-permission"));
             plugin.getConfigManager().playSound(viewer, "gui-error");

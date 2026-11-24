@@ -154,7 +154,7 @@ public class ChatListener implements Listener {
         return;
     }
 
-    // ПРОВЕРКА ЛИМИТОВ: Не более 5 чужих приватов и не более 5 чужих плотов
+    // ПРОВЕРКА ЛИМИТОВ: Не более 5 чужих клеймов и не более 5 чужих плотов
     int memberCount = 0;
     for (Claim c : plugin.getClaimManager().getAllClaims()) {
         if (c.isRentalPlot() == claim.isRentalPlot() && c.getMembers().containsKey(target.getUniqueId()) && (c.getOwnerUuid() == null || !c.getOwnerUuid().equals(target.getUniqueId()))) {
@@ -163,7 +163,7 @@ public class ChatListener implements Listener {
     }
 
     if (memberCount >= 5) {
-        player.sendMessage(Component.text("§cЭтот игрок уже состоит в максимальном количестве " + (claim.isRentalPlot() ? "чужих плотов (5)!" : "чужих приватов (5)!")));
+        player.sendMessage(plugin.getConfigManager().getMessage("invite.target-max", "kind", plugin.getConfigManager().getString(claim.isRentalPlot() ? "invite.kind-plots-other" : "invite.kind-claims-other")));
         return;
     }
 
@@ -174,15 +174,19 @@ public class ChatListener implements Listener {
         return;
     }
 
+    if (!me.lovelace.loveclaims.util.AuthGate.canReceive(target)) {
+        player.sendMessage(plugin.getConfigManager().getMessage("invite.target-unauthorized"));
+        return;
+    }
     plugin.getClaimManager().addInvite(target.getUniqueId(), claimId, uuid);
     player.sendMessage(plugin.getConfigManager().getMessage("invite-sent", "player", target.getName()));
     plugin.getConfigManager().playSound(player, "gui-click");
 
     if (target.isOnline() && target.getPlayer() != null) {
         Component msg = plugin.getConfigManager().getMessage("invite-received", "player", player.getName())
-                .append(plugin.getConfigManager().getMessage("invite-accept-btn")
+                .append(plugin.getConfigManager().getComponent("invite-accept-btn")
                         .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/ac invite confirm"))
-                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(plugin.getConfigManager().getMessage("invite-accept-hover"))));
+                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(plugin.getConfigManager().getComponent("invite-accept-hover"))));
         target.getPlayer().sendMessage(msg);
         plugin.getConfigManager().playSound(target.getPlayer(), "anchor-place");
     }
