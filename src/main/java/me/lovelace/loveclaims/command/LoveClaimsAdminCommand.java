@@ -34,7 +34,7 @@ import java.util.Optional;
  */
 public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "expand", "addmembers", "access", "gem", "spawnupgrader", "help");
+    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "givecore", "expand", "addmembers", "access", "gem", "spawnupgrader", "help");
 
     private final LoveClaims plugin;
     private final GemCommandHandler gemCommandHandler;
@@ -62,6 +62,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "reload" -> handleReload(sender);
             case "give" -> handleGive(sender, args);
+            case "givecore" -> handleGiveCore(sender, args);
             // expand works on the claim the admin stands in, so it is the only player-only subcommand.
             case "expand" -> {
                 if (sender instanceof Player player) {
@@ -152,6 +153,28 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    /** /loveclaimsadmin givecore <player> <tier 1-3>: hands out an anchor core (repairs a cracked anchor). */
+    private void handleGiveCore(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (args.length < 3) {
+            sendHelp(sender);
+            return;
+        }
+        Player target = Bukkit.getPlayer(args[1]);
+        int tier;
+        try {
+            tier = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            sendHelp(sender);
+            return;
+        }
+        if (target == null || tier < 1 || tier > 3) {
+            sender.sendMessage(plugin.getConfigManager().getMessage("admin-give-fail"));
+            return;
+        }
+        target.getInventory().addItem(me.lovelace.loveclaims.gems.AnchorCores.create(plugin, tier));
+        sender.sendMessage(plugin.getConfigManager().getMessage("admin-give-success", "player", target.getName()));
+    }
+
     private void handleExpand(@NotNull Player player, @NotNull String[] args) {
         if (args.length < 3) {
             sendHelp(player);
@@ -238,7 +261,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
         List<String> onlineNames = new ArrayList<>();
         for (Player p : Bukkit.getOnlinePlayers()) onlineNames.add(p.getName());
 
-        if (args.length == 2 && (sub.equals("give") || sub.equals("expand") || sub.equals("addmembers") || sub.equals("access"))) {
+        if (args.length == 2 && (sub.equals("give") || sub.equals("givecore") || sub.equals("expand") || sub.equals("addmembers") || sub.equals("access"))) {
             return StringUtil.copyPartialMatches(args[1], onlineNames, new ArrayList<>());
         }
         if (args.length == 3 && sub.equals("give")) {

@@ -26,6 +26,16 @@ public record ClaimModifiers(
     }
 
     public static ClaimModifiers fromGems(Collection<GemStats> gems) {
+        return fromGems(gems, 0, false);
+    }
+
+    /**
+     * @param anchorLevel anchor tier of the claim; gems above it lose part of their positive buffs
+     *                    (see {@link GemOverload}); 0 disables the penalty
+     * @param broken      a broken anchor core keeps the territory (radius, member slots) but turns every
+     *                    other buff off, so a break never shrinks the claim around existing builds
+     */
+    public static ClaimModifiers fromGems(Collection<GemStats> gems, int anchorLevel, boolean broken) {
         if (gems == null || gems.isEmpty()) {
             return EMPTY;
         }
@@ -40,14 +50,22 @@ public record ClaimModifiers(
 
         for (GemStats gem : gems) {
             if (gem == null) continue;
+            int gap = GemOverload.gap(gem, anchorLevel);
+            double f = GemOverload.factor(gap);
             slots += Math.max(1, gem.slotCost());
-            radius += gem.radiusBonus();
-            members += gem.membersBonus();
-            crop += gem.cropGrowthMultiplier();
-            furnace += gem.furnaceSpeedMultiplier();
-            doubleDrop = Math.max(doubleDrop, gem.doubleDropChance());
-            bypass = bypass || gem.allowLimitBypass();
-            gem.potionEffects().forEach((type, amp) -> effects.merge(type, amp, Math::max));
+            // Only positive bonuses are cut: a debuff gem must keep its full penalty.
+            radius += gem.radiusBonus() > 0 ? (int) Math.round(gem.radiusBonus() * f) : gem.radiusBonus();
+            members += gem.membersBonus() > 0 ? (int) Math.round(gem.membersBonus() * f) : gem.membersBonus();
+            if (broken) continue;
+            crop += gem.cropGrowthMultiplier() > 0 ? gem.cropGrowthMultiplier() * f : gem.cropGrowthMultiplier();
+            furnace += gem.furnaceSpeedMultiplier() > 0 ? gem.furnaceSpeedMultiplier() * f : gem.furnaceSpeedMultiplier();
+            doubleDrop = Math.max(doubleDrop, gem.doubleDropChance() * f);
+            // A gem that does not fit cannot lift the claim limits.
+            bypass = bypass || (gem.allowLimitBypass() && gap == 0);
+            gem.potionEffects().forEach((type, amp) -> {
+                int reduced = amp - gap; // amplifier is 0-based: one gap = one level lower, below 0 the effect is gone
+                if (reduced >= 0) effects.merge(type, reduced, Math::max);
+            });
         }
 
         return new ClaimModifiers(

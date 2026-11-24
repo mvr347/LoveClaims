@@ -283,6 +283,7 @@ public final class GemRegistry {
                 }
             }
         }
+        AnchorCores.registerRecipes(plugin, this::addRecipeSafely);
     }
 
     private void addRecipeSafely(NamespacedKey key, org.bukkit.inventory.Recipe recipe) {

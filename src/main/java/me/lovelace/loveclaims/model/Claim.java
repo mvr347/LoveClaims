@@ -58,6 +58,10 @@ public class Claim {
     private volatile int adminExpandBonus = 0;
     private volatile int appliedRadiusBonus = 0;
     private volatile boolean extraExpansionUnlocked = false;
+    /** Anchor tier used to cut buffs of gems that are too strong for it; 0 = unknown, no penalty. */
+    private volatile int anchorLevel = 0;
+    /** True after an overloaded anchor core cracked; cleared when the core is replaced. */
+    private volatile boolean anchorBroken = false;
     private final List<GemStats> installedGems = new CopyOnWriteArrayList<>();
     private volatile ClaimModifiers modifiers = ClaimModifiers.EMPTY;
 
@@ -387,6 +391,22 @@ public class Claim {
         markModified();
     }
 
+    public int getAnchorLevel() { return anchorLevel; }
+
+    /** Sets the tier used for overload penalties and recomputes the modifiers. */
+    public void setAnchorLevel(int level) {
+        this.anchorLevel = Math.max(0, level);
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
+    }
+
+    public boolean isAnchorBroken() { return anchorBroken; }
+
+    public void setAnchorBroken(boolean broken) {
+        this.anchorBroken = broken;
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
+        markModified();
+    }
+
     public List<GemStats> getInstalledGems() {
         return Collections.unmodifiableList(installedGems);
     }
@@ -394,7 +414,7 @@ public class Claim {
     public void addInstalledGem(GemStats stats) {
         if (stats != null) {
             installedGems.add(stats);
-            this.modifiers = ClaimModifiers.fromGems(installedGems);
+            this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
             markModified();
         }
     }
@@ -402,7 +422,7 @@ public class Claim {
     public GemStats removeInstalledGem(int index) {
         if (index < 0 || index >= installedGems.size()) return null;
         GemStats removed = installedGems.remove(index);
-        this.modifiers = ClaimModifiers.fromGems(installedGems);
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
         markModified();
         return removed;
     }
@@ -412,7 +432,7 @@ public class Claim {
         if (gems != null) {
             installedGems.addAll(gems);
         }
-        this.modifiers = ClaimModifiers.fromGems(installedGems);
+        this.modifiers = ClaimModifiers.fromGems(installedGems, anchorLevel, anchorBroken);
     }
 
     public ClaimModifiers getModifiers() {

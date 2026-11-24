@@ -39,6 +39,7 @@ public class ConfigManager {
         plugin.saveDefaultConfig();
         plugin.reloadConfig();
         config = plugin.getConfig();
+        me.lovelace.loveclaims.gems.GemOverload.load(config);
 
         this.debugMode = config.getBoolean("misc.debug", false);
         this.language = config.getString("misc.language", "ru");

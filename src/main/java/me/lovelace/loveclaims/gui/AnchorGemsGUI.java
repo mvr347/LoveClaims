@@ -62,6 +62,14 @@ public class AnchorGemsGUI extends AbstractGUI {
         infoLore.add(noItalic(MM.deserialize("<gray>Якорь: <white>Тир " + anchorLevel
                 + (tier != null && tier.modified() ? " <light_purple>[Мод.]</light_purple>" : ""))));
         infoLore.add(noItalic(MM.deserialize("<gray>Слоты гемов: <aqua>" + usedSlots + "<gray>/<white>" + maxSlots)));
+        int overload = me.lovelace.loveclaims.gems.GemOverload.totalOverload(claim.getInstalledGems(), anchorLevel);
+        infoLore.add(noItalic(MM.deserialize("<gray>Перегруз: <white>" + overload + " <dark_gray>/ <white>"
+                + me.lovelace.loveclaims.gems.GemOverload.explodeThreshold())));
+        if (claim.isAnchorBroken()) {
+            infoLore.add(noItalic(MM.deserialize("<red>✕ Ядро якоря треснуло")));
+            infoLore.add(noItalic(MM.deserialize("<red>Причина: <gray>перегруз сильными гемами")));
+            infoLore.add(noItalic(MM.deserialize("<dark_gray>Клик по ядру якоря в инвентаре — заменить")));
+        }
         infoLore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
         infoLore.add(noItalic(MM.deserialize("<gray>Радиус от гемов: <white>" + signed(mods.radiusBonus()) + " бл.")));
         infoLore.add(noItalic(MM.deserialize("<gray>Слоты участников: <white>" + signed(mods.membersBonus()))));
@@ -249,9 +257,16 @@ public class AnchorGemsGUI extends AbstractGUI {
     public void handleBottomClick(InventoryClickEvent event) {
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType().isAir()) return;
+
+        // Anchor core: repairs a cracked anchor
+        var coreTier = me.lovelace.loveclaims.gems.AnchorCores.readTier(plugin, clicked);
+        if (coreTier.isPresent()) {
+            handleCoreClick(event, clicked, coreTier.getAsInt());
+            return;
+        }
+
         GemFactory factory = plugin.getGemFactory();
         if (factory == null) return;
-
         var statsOpt = factory.readStats(clicked);
         if (statsOpt.isEmpty()) return;
 
@@ -261,19 +276,16 @@ public class AnchorGemsGUI extends AbstractGUI {
             return;
         }
         if (!validateClaimAccess()) return;
-
-        GemStats stats = statsOpt.get();
-        ClaimTier tier = plugin.getAnchorManager().resolveClaimTier(claim);
-        int anchorLevel = tier != null ? tier.anchorLevel() : 1;
-        int maxSlots = tier != null ? tier.gemSlots() : 3;
-
-        if (anchorLevel < stats.rarity().minAnchorLevel()) {
+        if (claim.isAnchorBroken()) {
             plugin.getConfigManager().playSound(viewer, "gui-error");
-            viewer.sendMessage(noItalic(MM.deserialize(
-                    "<red>Этот гем требует Якорь уровня <white>" + stats.rarity().minAnchorLevel()
-                            + "</white> (у вас тир <white>" + anchorLevel + "</white>).</red>")));
+            viewer.sendMessage(noItalic(MM.deserialize("<red>Ядро якоря треснуло: сначала замените ядро.</red>")));
             return;
         }
+
+        GemStats stats = statsOpt.get();
+        plugin.getClaimManager().syncAnchorLevel(claim);
+        ClaimTier tier = plugin.getAnchorManager().resolveClaimTier(claim);
+        int maxSlots = tier != null ? tier.gemSlots() : 3;
 
         int usedSlots = claim.getModifiers().usedSlots();
         if (usedSlots + stats.slotCost() > maxSlots) {
@@ -292,18 +304,104 @@ public class AnchorGemsGUI extends AbstractGUI {
             return;
         }
 
-        claim.addInstalledGem(stats);
-        plugin.getClaimManager().recalculateClaimModifiers(claim);
+        // A gem above the anchor tier, or one that pushes overload into the risk zone, needs confirmation.
+        int level = claim.getAnchorLevel();
+        boolean tooStrong = me.lovelace.loveclaims.gems.GemOverload.gap(stats, level) > 0;
+        boolean risky = me.lovelace.loveclaims.gems.GemOverload.breakChance(
+                me.lovelace.loveclaims.gems.GemOverload.totalOverload(candidate, level)) > 0;
+        if (tooStrong || risky) {
+            viewer.openInventory(new GemOverloadConfirmGUI(plugin, viewer, claim, stats,
+                    event.getSlot(), clicked).getInventory());
+            return;
+        }
+        insertConfirmed(event.getSlot(), clicked, stats);
+    }
 
-        if (clicked.getAmount() > 1) {
-            clicked.setAmount(clicked.getAmount() - 1);
+    private void handleCoreClick(InventoryClickEvent event, ItemStack core, int coreTier) {
+        if (!validateClaimAccess()) return;
+        plugin.getClaimManager().syncAnchorLevel(claim);
+        if (!claim.isAnchorBroken()) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            viewer.sendMessage(noItalic(MM.deserialize("<red>Ядро якоря цело, замена не нужна.</red>")));
+            return;
+        }
+        if (coreTier < claim.getAnchorLevel()) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            viewer.sendMessage(noItalic(MM.deserialize("<red>Нужно ядро тира <white>" + claim.getAnchorLevel()
+                    + "</white> или выше (у вас тир <white>" + coreTier + "</white>).</red>")));
+            return;
+        }
+        if (core.getAmount() > 1) {
+            core.setAmount(core.getAmount() - 1);
         } else {
             event.getClickedInventory().setItem(event.getSlot(), null);
         }
-
+        claim.setAnchorBroken(false);
+        plugin.getClaimManager().recalculateClaimModifiers(claim);
         plugin.getStorage().saveClaimAsync(claim);
-        plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "gem-insert");
+        plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "core-replace");
+        viewer.sendMessage(noItalic(MM.deserialize("<green>Ядро якоря заменено, баффы гемов снова работают.</green>")));
         setMenuItems();
+    }
+
+    /**
+     * Inserts the gem after all checks and confirmations passed: takes one item from the viewer's inventory slot,
+     * applies the gem and rolls the anchor break if the claim is overloaded.
+     */
+    void insertConfirmed(int inventorySlot, ItemStack source, GemStats stats) {
+        if (!validateClaimAccess() || claim.isAnchorBroken()) return;
+        ItemStack current = viewer.getInventory().getItem(inventorySlot);
+        if (current == null || !current.isSimilar(source)) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            return;
+        }
+        List<GemStats> candidate = new ArrayList<>(claim.getInstalledGems());
+        candidate.add(stats);
+        if (!plugin.getClaimManager().canApplyCandidateGems(claim, candidate)) {
+            plugin.getConfigManager().playSound(viewer, "gui-error");
+            viewer.sendMessage(plugin.getConfigManager().getMessage("claim-overlap"));
+            return;
+        }
+
+        claim.addInstalledGem(stats);
+        plugin.getClaimManager().recalculateClaimModifiers(claim);
+        if (current.getAmount() > 1) {
+            current.setAmount(current.getAmount() - 1);
+        } else {
+            viewer.getInventory().setItem(inventorySlot, null);
+        }
+
+        int overload = me.lovelace.loveclaims.gems.GemOverload.totalOverload(claim.getInstalledGems(), claim.getAnchorLevel());
+        double chance = me.lovelace.loveclaims.gems.GemOverload.breakChance(overload);
+        if (chance > 0 && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < chance) {
+            breakAnchor();
+        } else {
+            plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "gem-insert");
+        }
+        plugin.getStorage().saveClaimAsync(claim);
+        setMenuItems();
+    }
+
+    /** The strongest gem (largest gap, then slot cost) is destroyed and the core cracks. */
+    private void breakAnchor() {
+        int level = claim.getAnchorLevel();
+        List<GemStats> gems = claim.getInstalledGems();
+        int worst = -1;
+        long worstScore = Long.MIN_VALUE;
+        for (int i = 0; i < gems.size(); i++) {
+            GemStats g = gems.get(i);
+            long score = (long) me.lovelace.loveclaims.gems.GemOverload.gap(g, level) * 100 + g.slotCost();
+            if (score >= worstScore) {
+                worstScore = score;
+                worst = i;
+            }
+        }
+        if (worst >= 0) claim.removeInstalledGem(worst);
+        claim.setAnchorBroken(true);
+        plugin.getClaimManager().recalculateClaimModifiers(claim);
+        plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "anchor-break");
+        viewer.sendMessage(noItalic(MM.deserialize(
+                "<red>Ядро якоря треснуло! Самый сильный гем пропал, баффы выключены до замены ядра.</red>")));
     }
 
     private boolean validateClaimAccess() {

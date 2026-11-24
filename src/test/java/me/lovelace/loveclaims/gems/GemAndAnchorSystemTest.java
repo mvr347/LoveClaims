@@ -413,6 +413,7 @@ class GemAndAnchorSystemTest {
                 BoundingBox.of(center.clone().add(-20, -20, -20), center.clone().add(20, 20, 20)),
                 owner.getUniqueId(), center);
         GemStats impCeres = ((PureGemDescriptor) plugin.getGemRegistry().getDescriptor("imperium_ceres").orElseThrow()).baseStats();
+        claim.setAnchorTierId("tier-3"); // legendary gem fits only a tier 3 anchor without the overload cut
         claim.addInstalledGem(impCeres); // +100% growth
         plugin.getClaimManager().addClaimToCache(claim);
 
@@ -647,6 +648,7 @@ class GemAndAnchorSystemTest {
                 BoundingBox.of(center.clone().add(-20, -20, -20), center.clone().add(20, 20, 20)),
                 owner.getUniqueId(), center);
         claim.setName("MyFarm");
+        claim.setAnchorTierId("tier-3"); // legendary gem fits only a tier 3 anchor without the overload cut
         claim.addInstalledGem(new GemStats("imperium_ceres", GemRarity.LEGENDARY, 3, 0, 0, 1.0, 1.0, 1.0, false, Map.of()));
         claim.addInstalledGem(new GemStats("hybrid_demos_vita", GemRarity.MODIFIED, 2, 0, 0, 0, 0, 0, false,
                 Map.of(PotionEffectType.SLOWNESS, 0), HybridRollOutcome.DEBUFF));
