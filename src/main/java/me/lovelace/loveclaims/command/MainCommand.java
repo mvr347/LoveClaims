@@ -300,6 +300,10 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
                 }
                 return true;
             }
+            case "merge" -> {
+                handleMerge(player, args);
+                return true;
+            }
             case "border", "proximity" -> {
                 me.lovelace.loveclaims.model.UserData data = plugin.getUserManager().getUserData(player.getUniqueId());
                 boolean newState = !data.isShowProximityBorder();
@@ -390,6 +394,61 @@ public class MainCommand implements CommandExecutor, org.bukkit.command.TabCompl
             }
         }
         return true;
+    }
+
+    /** /ac merge: open the merge menu for the claim you stand in; /ac merge accept|decline answers a request. */
+    private void handleMerge(Player player, String[] args) {
+        var merger = plugin.getClaimMerger();
+        if (args.length >= 2 && (args[1].equalsIgnoreCase("accept") || args[1].equalsIgnoreCase("decline"))) {
+            var request = merger.takeRequest(player.getUniqueId());
+            if (request == null) {
+                player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                        .deserialize("<red>Нет активного запроса на слияние.</red>"));
+                return;
+            }
+            Player requester = plugin.getServer().getPlayer(request.requester());
+            var mini = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage();
+            if (args[1].equalsIgnoreCase("decline")) {
+                player.sendMessage(mini.deserialize("<gray>Запрос на слияние отклонён.</gray>"));
+                if (requester != null) requester.sendMessage(mini.deserialize("<red>Владелец отклонил слияние.</red>"));
+                return;
+            }
+            Claim survivor = plugin.getClaimManager().getClaimById(request.survivorId()).orElse(null);
+            Claim absorbed = plugin.getClaimManager().getClaimById(request.absorbedId()).orElse(null);
+            if (requester == null || survivor == null || absorbed == null
+                    || !survivor.isOwner(requester.getUniqueId()) || !absorbed.isOwner(player.getUniqueId())) {
+                player.sendMessage(mini.deserialize("<red>Запрос устарел: приваты или владельцы изменились.</red>"));
+                return;
+            }
+            var plan = merger.plan(survivor, absorbed);
+            if (plan.isEmpty()) {
+                player.sendMessage(mini.deserialize("<red>Слияние уже невозможно.</red>"));
+                requester.sendMessage(mini.deserialize("<red>Слияние уже невозможно.</red>"));
+                return;
+            }
+            if (!me.lovelace.loveclaims.util.MergeSeal.consume(plugin, requester)) {
+                player.sendMessage(mini.deserialize("<red>У автора запроса нет Печати слияния.</red>"));
+                requester.sendMessage(mini.deserialize("<red>Нужна Печать слияния.</red>"));
+                return;
+            }
+            var result = merger.execute(plan.get());
+            if (result != me.lovelace.loveclaims.manager.ClaimMerger.Reason.OK) {
+                // Give the seal back: nothing was merged.
+                requester.getInventory().addItem(me.lovelace.loveclaims.util.MergeSeal.create(plugin));
+                player.sendMessage(mini.deserialize("<red>Слияние не удалось.</red>"));
+                return;
+            }
+            player.sendMessage(mini.deserialize("<green>Приваты объединены. Якорь и гемы вашего привата вернулись вам.</green>"));
+            requester.sendMessage(mini.deserialize("<green>Приваты объединены.</green>"));
+            return;
+        }
+        Claim here = plugin.getClaimManager().getClaimAt(player.getLocation()).orElse(null);
+        if (here == null || !here.isOwner(player.getUniqueId()) || here.isRentalPlot() || here.isClanTerritory()) {
+            player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                    .deserialize("<red>Встаньте в свой приват, который хотите объединить.</red>"));
+            return;
+        }
+        player.openInventory(new me.lovelace.loveclaims.gui.MergeGUI(plugin, player, here).getInventory());
     }
 
     @Override

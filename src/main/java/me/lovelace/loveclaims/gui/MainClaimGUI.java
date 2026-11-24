@@ -67,6 +67,24 @@ public class MainClaimGUI extends AbstractGUI {
                 plugin.getConfigManager().getComponent("main.members-name"),
                 plugin.getConfigManager().getHelpMessage("main.members-lore")));
 
+        // Header control button (gui_gen RULE 4: one button -> slot 4), owner only; otherwise glass
+        if (claim.isOwner(viewer.getUniqueId()) && !claim.isRentalPlot() && !claim.isClanTerritory()) {
+            inventory.setItem(headerControlSlots(1)[0], createHead(HEAD_PROMOTE,
+                    net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                            .deserialize("<gold>Слияние <dark_gray>|</dark_gray> <yellow>Приваты</yellow>")
+                            .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
+                    List.of(
+                            net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                                    .deserialize("<dark_gray>Объединить с соседним приватом")
+                                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
+                            net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                                    .deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")
+                                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
+                            net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                                    .deserialize("<green>ЛКМ <dark_gray>— <gray>выбрать соседа")
+                                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))));
+        }
+
         // Footer: standalone-меню (открывается напрямую с якоря) — Back неактивен, только Close.
         setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
         fillFrameGlass();
@@ -100,6 +118,12 @@ public class MainClaimGUI extends AbstractGUI {
                     } else {
                         plugin.getConfigManager().playSound(viewer, "gui-error");
                     }
+                }
+            }
+            case 4 -> {
+                if (claim.isOwner(viewer.getUniqueId()) && !claim.isRentalPlot() && !claim.isClanTerritory()) {
+                    plugin.getConfigManager().playSound(viewer, "gui-click");
+                    viewer.openInventory(new MergeGUI(plugin, viewer, claim).getInventory());
                 }
             }
             case 11 -> {

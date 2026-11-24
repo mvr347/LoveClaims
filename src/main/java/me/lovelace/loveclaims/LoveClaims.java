@@ -40,6 +40,7 @@ public class LoveClaims extends JavaPlugin {
     private SQLiteStorage storage;
     private ConfigManager configManager;
     private me.lovelace.loveclaims.effects.ClaimEffects effects;
+    private me.lovelace.loveclaims.manager.ClaimMerger claimMerger;
     private ClaimManager claimManager;
     private AnchorManager anchorManager;
     private UserManager userManager;
@@ -89,6 +90,7 @@ public class LoveClaims extends JavaPlugin {
             this.claimManager = new ClaimManager(this);
             this.userManager = new UserManager(this);
             this.rentalManager = new RentalManager(this);
+            this.claimMerger = new me.lovelace.loveclaims.manager.ClaimMerger(this);
 
             // 4. Инициализация API
             me.lovelace.loveclaims.api.LoveClaimsAPI.init(this);
@@ -246,6 +248,7 @@ public class LoveClaims extends JavaPlugin {
     public SQLiteStorage getStorage() { return storage; }
     public ConfigManager getConfigManager() { return configManager; }
     public me.lovelace.loveclaims.effects.ClaimEffects getEffects() { return effects; }
+    public me.lovelace.loveclaims.manager.ClaimMerger getClaimMerger() { return claimMerger; }
     public ClaimManager getClaimManager() { return claimManager; }
     public AnchorManager getAnchorManager() { return anchorManager; }
     public UserManager getUserManager() { return userManager; }
