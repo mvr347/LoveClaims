@@ -136,6 +136,22 @@ public final class ClaimMerger {
         return null;
     }
 
+    /**
+     * Whether the survivor may take {@code gem} as its fused gem: the same tier and slot rules as fusing it by hand
+     * (a legendary gem needs tier 2+, the ordinary gems plus one slot must fit) and its radius must fit the area.
+     * A cracked core does not matter here: a fused gem is kept while the core is cracked.
+     */
+    private boolean fusionAllowed(Claim survivor, GemStats gem) {
+        plugin.getClaimManager().syncAnchorLevel(survivor);
+        var tier = plugin.getAnchorManager().resolveClaimTier(survivor);
+        int max = tier != null ? tier.gemSlots() : 0;
+        int ordinarySlots = 0;
+        for (GemStats g : survivor.getInstalledGems()) ordinarySlots += Math.max(1, g.slotCost());
+        var check = me.lovelace.loveclaims.gems.GemFusion.check(survivor.getAnchorLevel(), gem, false, false, ordinarySlots, max);
+        return check == me.lovelace.loveclaims.gems.GemFusion.Check.OK
+                && plugin.getClaimManager().canApplyCandidateGems(survivor, new java.util.ArrayList<>(survivor.getInstalledGems()), gem);
+    }
+
     private static int mergedMemberCount(Claim survivor, Claim absorbed) {
         Set<UUID> all = new HashSet<>(survivor.getMembers().keySet());
         all.addAll(absorbed.getMembers().keySet());
@@ -238,7 +254,7 @@ public final class ClaimMerger {
         // A fused gem taken over from the absorbed claim may add radius that would reach a neighbour of the
         // merged area: then the survivor keeps its own state and the gem comes back as an ordinary item.
         GemStats own = survivor.getPermanentGem();
-        if (chosen != own && !claims.canApplyCandidateGems(survivor, new java.util.ArrayList<>(survivor.getInstalledGems()), chosen)) {
+        if (chosen != own && !fusionAllowed(survivor, chosen)) {
             var registry = plugin.getGemRegistry();
             ItemStack back = registry != null ? registry.createItemFromStats(chosen) : null;
             if (back != null) giveItem(absorbed, back);

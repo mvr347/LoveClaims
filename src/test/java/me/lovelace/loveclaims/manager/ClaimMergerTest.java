@@ -127,6 +127,18 @@ class ClaimMergerTest {
     }
 
     @Test
+    void absorbedLegendaryFusedGemIsNotAdoptedByATierOneSurvivor() {
+        Claim a = claim(owner, 0, 10);
+        Claim b = claim(owner, 12, 22);
+        b.setPermanentGem(new GemStats("imperium", GemRarity.LEGENDARY, 3, 0, 0, 0.0, 0.0, 0.0, false, Map.of(), null));
+        assertEquals(OK, plugin.getClaimMerger().execute(plugin.getClaimMerger().plan(a, b).orElseThrow()));
+        assertNull(a.getPermanentGem(), "a tier 1 anchor cannot hold a legendary fused gem");
+        // the gem is not lost: it went back to the absorbed claim's owner as an ordinary gem item
+        assertTrue(java.util.Arrays.stream(owner.getInventory().getContents())
+                .anyMatch(i -> i != null && plugin.getGemFactory().isGem(i)));
+    }
+
+    @Test
     void bothFusedGemsLeaveExactlyOne() {
         Claim a = claim(owner, 0, 10);
         Claim b = claim(owner, 12, 22);
