@@ -21,17 +21,19 @@ public final class GemOverload {
 
     /** Reads gems.overload.* with the single-argument getters, so jar defaults apply to old config files. */
     public static void load(FileConfiguration cfg) {
+        // Single-argument getters: a missing key gives the jar default, an explicit 0 stays 0
+        // (0 chance = this overload level never breaks the anchor).
         double m = cfg.getDouble("gems.overload.buff-multiplier-per-gap");
-        multiplierPerGap = m > 0 && m <= 1 ? m : 0.5;
+        multiplierPerGap = m >= 0 && m <= 1 ? m : 0.5;
         int t = cfg.getInt("gems.overload.explode-threshold");
         explodeThreshold = t > 0 ? t : 3;
-        chanceLow = clamp(cfg.getDouble("gems.overload.break-chance.at-threshold"), 0.15);
-        chanceMid = clamp(cfg.getDouble("gems.overload.break-chance.at-threshold-plus-1"), 0.40);
-        chanceHigh = clamp(cfg.getDouble("gems.overload.break-chance.at-threshold-plus-2"), 0.75);
+        chanceLow = probability(cfg.getDouble("gems.overload.break-chance.at-threshold"), 0.15);
+        chanceMid = probability(cfg.getDouble("gems.overload.break-chance.at-threshold-plus-1"), 0.40);
+        chanceHigh = probability(cfg.getDouble("gems.overload.break-chance.at-threshold-plus-2"), 0.75);
     }
 
-    private static double clamp(double v, double fallback) {
-        return v > 0 && v <= 1 ? v : fallback;
+    private static double probability(double v, double fallback) {
+        return v >= 0 && v <= 1 ? v : fallback;
     }
 
     /** 0 when the anchor level is unknown (&lt;= 0) or the gem fits. */

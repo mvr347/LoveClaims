@@ -54,6 +54,15 @@ class GemOverloadTest {
     }
 
     @Test
+    void harmfulPotionEffectsAreNotWeakenedByTheGap() {
+        var hybrid = new GemStats("h", GemRarity.MODIFIED, 2, 0, 0, 0.0, 0.0, 0.0, false,
+                Map.of(org.bukkit.potion.PotionEffectType.HUNGER, 0), null);
+        // tier 1 anchor, gap 1: a buff of level I would vanish, a debuff of level I must stay
+        var mods = ClaimModifiers.fromGems(List.of(hybrid), 1, false);
+        assertTrue(mods.potionEffects().containsKey(org.bukkit.potion.PotionEffectType.HUNGER));
+    }
+
+    @Test
     void breakChanceGrowsWithOverloadAboveThreshold() {
         int t = GemOverload.explodeThreshold();
         assertEquals(0.0, GemOverload.breakChance(t - 1));

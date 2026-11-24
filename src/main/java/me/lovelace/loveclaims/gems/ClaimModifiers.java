@@ -25,6 +25,15 @@ public record ClaimModifiers(
         potionEffects = potionEffects == null ? Map.of() : Map.copyOf(potionEffects);
     }
 
+    @SuppressWarnings("deprecation")
+    private static boolean isHarmful(PotionEffectType type) {
+        try {
+            return type.getEffectCategory() == PotionEffectType.Category.HARMFUL;
+        } catch (RuntimeException e) {
+            return false; // unknown category: treat as a buff
+        }
+    }
+
     public static ClaimModifiers fromGems(Collection<GemStats> gems) {
         return fromGems(gems, 0, false);
     }
@@ -73,8 +82,9 @@ public record ClaimModifiers(
             furnace += gem.furnaceSpeedMultiplier() > 0 ? gem.furnaceSpeedMultiplier() * f : gem.furnaceSpeedMultiplier();
             doubleDrop = Math.max(doubleDrop, gem.doubleDropChance() * f);
             gem.potionEffects().forEach((type, amp) -> {
-                int reduced = amp - gap; // amplifier is 0-based: one gap = one level lower, below 0 the effect is gone
-                if (reduced >= 0) effects.merge(type, reduced, Math::max);
+                // Harmful effects (debuff gems) keep their full level: only buffs are cut by the gap.
+                int level = isHarmful(type) ? amp : amp - gap; // amplifier is 0-based: one gap = one level lower, below 0 the effect is gone
+                if (level >= 0) effects.merge(type, level, Math::max);
             });
         }
 
