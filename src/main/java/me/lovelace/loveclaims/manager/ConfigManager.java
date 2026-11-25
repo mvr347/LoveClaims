@@ -97,13 +97,31 @@ public class ConfigManager {
             if (freshGems == null) return;
             boolean changed = false;
             for (String id : freshGems.getKeys(false)) {
-                if (!id.startsWith("improved_") || gems.contains("gems." + id)) continue;
-                gems.set("gems." + id, freshGems.getConfigurationSection(id));
-                changed = true;
+                if (id.startsWith("improved_") && !gems.contains("gems." + id)) {
+                    gems.set("gems." + id, freshGems.getConfigurationSection(id));
+                    changed = true;
+                    continue;
+                }
+                // ItemsAdder ids of existing gems are added once; a key the admin set (even blank) stays as it is.
+                String ia = freshGems.getString(id + ".itemsadder", "");
+                if (!ia.isBlank() && gems.contains("gems." + id) && !gems.contains("gems." + id + ".itemsadder")) {
+                    gems.set("gems." + id + ".itemsadder", ia);
+                    changed = true;
+                }
+            }
+            var freshHybrids = fresh.getConfigurationSection("hybrids");
+            if (freshHybrids != null) {
+                for (String id : freshHybrids.getKeys(false)) {
+                    String ia = freshHybrids.getString(id + ".itemsadder", "");
+                    if (!ia.isBlank() && gems.contains("hybrids." + id) && !gems.contains("hybrids." + id + ".itemsadder")) {
+                        gems.set("hybrids." + id + ".itemsadder", ia);
+                        changed = true;
+                    }
+                }
             }
             if (changed) {
                 gems.save(gemsFile);
-                plugin.getLogger().info("gems.yml: added the improved gems");
+                plugin.getLogger().info("gems.yml: added the improved gems and ItemsAdder ids");
             }
         } catch (java.io.IOException e) {
             plugin.getLogger().warning("Could not update gems.yml: " + e.getMessage());

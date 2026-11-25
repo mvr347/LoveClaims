@@ -16,6 +16,7 @@ gems:
   # ===== ВЕТКА ДОМЕЙН (ТЕРРИТОРИЯ) =====
   domain:
     rarity: BASIC
+    itemsadder: "voidcore:gem_domain_base"
     material: AMETHYST_SHARD
     custom-model-data: 1001
     name: "<aqua>Гем Домейн</aqua>"
@@ -37,6 +38,7 @@ gems:
 
   modified_domain:
     rarity: MODIFIED
+    itemsadder: "voidcore:gem_domain_modify"
     material: AMETHYST_SHARD
     custom-model-data: 1002
     name: "<light_purple>Модифицированный Домейн</light_purple>"
@@ -49,6 +51,7 @@ gems:
 
   imperium_domain:
     rarity: LEGENDARY
+    itemsadder: "voidcore:gem_domain_legendary"
     material: AMETHYST_SHARD
     custom-model-data: 1003
     name: "<gold>Домейн Империум</gold>"
@@ -62,6 +65,7 @@ gems:
   # ===== ВЕТКА ДЕМОС (УЧАСТНИКИ) =====
   demos:
     rarity: BASIC
+    itemsadder: "voidcore:gem_demos_base"
     material: EMERALD
     custom-model-data: 1011
     name: "<green>Гем Демос</green>"
@@ -83,6 +87,7 @@ gems:
 
   modified_demos:
     rarity: MODIFIED
+    itemsadder: "voidcore:gem_demos_modify"
     material: EMERALD
     custom-model-data: 1012
     name: "<light_purple>Модифицированный Демос</light_purple>"
@@ -96,6 +101,7 @@ gems:
 
   imperium_demos:
     rarity: LEGENDARY
+    itemsadder: "voidcore:gem_demos_legendary"
     material: EMERALD
     custom-model-data: 1013
     name: "<gold>Демос Империум</gold>"
@@ -111,6 +117,7 @@ gems:
   # ===== ВЕТКА ЦЕРЕС (ФЕРМЫ И ПРОИЗВОДСТВО) =====
   ceres:
     rarity: BASIC
+    itemsadder: "voidcore:gem_ceres_base"
     material: PRISMARINE_CRYSTALS
     custom-model-data: 1021
     name: "<yellow>Гем Церес</yellow>"
@@ -132,6 +139,7 @@ gems:
 
   modified_ceres:
     rarity: MODIFIED
+    itemsadder: "voidcore:gem_ceres_modify"
     material: PRISMARINE_CRYSTALS
     custom-model-data: 1022
     name: "<light_purple>Модифицированный Церес</light_purple>"
@@ -144,6 +152,7 @@ gems:
 
   imperium_ceres:
     rarity: LEGENDARY
+    itemsadder: "voidcore:gem_ceres_legendary"
     material: PRISMARINE_CRYSTALS
     custom-model-data: 1023
     name: "<gold>Церес Империум</gold>"
@@ -158,6 +167,7 @@ gems:
   # ===== ВЕТКА ВИТА (КОМФОРТ И БАФФЫ) =====
   vita:
     rarity: BASIC
+    itemsadder: "voidcore:gem_vita_base"
     material: GHAST_TEAR
     custom-model-data: 1031
     name: "<red>Гем Вита</red>"
@@ -180,6 +190,7 @@ gems:
 
   modified_vita:
     rarity: MODIFIED
+    itemsadder: "voidcore:gem_vita_modify"
     material: GHAST_TEAR
     custom-model-data: 1032
     name: "<light_purple>Модифицированный Вита</light_purple>"
@@ -193,6 +204,7 @@ gems:
 
   imperium_vita:
     rarity: LEGENDARY
+    itemsadder: "voidcore:gem_vita_legendary"
     material: GHAST_TEAR
     custom-model-data: 1033
     name: "<gold>Вита Империум</gold>"
@@ -209,6 +221,7 @@ gems:
   # Между базовым и модифицированным (модифицированный гем получают у ремесленника за монеты или в награду за квест).
   improved_domain:
     rarity: IMPROVED
+    itemsadder: "voidcore:gem_domain_upgrade"
     material: AMETHYST_SHARD
     custom-model-data: 1005
     name: "<aqua>Улучшенный Домейн</aqua>"
@@ -231,6 +244,7 @@ gems:
 
   improved_demos:
     rarity: IMPROVED
+    itemsadder: "voidcore:gem_demos_upgrade"
     material: EMERALD
     custom-model-data: 1015
     name: "<green>Улучшенный Демос</green>"
@@ -253,6 +267,7 @@ gems:
 
   improved_ceres:
     rarity: IMPROVED
+    itemsadder: "voidcore:gem_ceres_upgrade"
     material: PRISMARINE_CRYSTALS
     custom-model-data: 1025
     name: "<yellow>Улучшенный Церес</yellow>"
@@ -275,6 +290,7 @@ gems:
 
   improved_vita:
     rarity: IMPROVED
+    itemsadder: "voidcore:gem_vita_upgrade"
     material: GHAST_TEAR
     custom-model-data: 1035
     name: "<red>Улучшенный Вита</red>"
@@ -359,6 +375,7 @@ gems:
 hybrids:
   hybrid_domain_demos:
     material: ECHO_SHARD
+    itemsadder: "voidcore:gem_demos_domain_hybrid"
     custom-model-data: 1201
     name: "<light_purple>Гибрид Домейн-Демос</light_purple>"
     lore:
@@ -374,6 +391,7 @@ hybrids:
 
   hybrid_ceres_vita:
     material: ECHO_SHARD
+    itemsadder: "voidcore:gem_vita_ceres_hybrid"
     custom-model-data: 1202
     name: "<light_purple>Гибрид Церес-Вита</light_purple>"
     lore:
@@ -392,6 +410,7 @@ hybrids:
 
   hybrid_domain_ceres:
     material: ECHO_SHARD
+    itemsadder: "voidcore:gem_domain_ceres_hybrid"
     custom-model-data: 1203
     name: "<light_purple>Гибрид Домейн-Церес</light_purple>"
     lore:

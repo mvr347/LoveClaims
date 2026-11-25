@@ -169,4 +169,14 @@ class ClaimUxTest {
                 .map(i -> plugin.getGemFactory().readStats(i).orElseThrow().gemId()).toList();
         assertEquals(java.util.List.of("modified_domain"), gems);
     }
+
+    @Test
+    void gemsCarryTheirItemsAdderIds() {
+        var gems = plugin.getConfigManager().getGems();
+        assertEquals("voidcore:gem_domain_base", gems.getString("gems.domain.itemsadder"));
+        assertEquals("voidcore:gem_vita_upgrade", gems.getString("gems.improved_vita.itemsadder"));
+        assertEquals("voidcore:gem_ceres_modify", gems.getString("gems.modified_ceres.itemsadder"));
+        assertEquals("voidcore:gem_demos_legendary", gems.getString("gems.imperium_demos.itemsadder"));
+        assertEquals("voidcore:gem_domain_ceres_hybrid", gems.getString("hybrids.hybrid_domain_ceres.itemsadder"));
+    }
 }

@@ -88,6 +88,7 @@ public class LoveClaims extends JavaPlugin {
             this.chatListener = new ChatListener(this);
             this.anchorManager = new AnchorManager(this);
             this.gemRegistry = new GemRegistry(this, this.gemFactory);
+            this.gemRegistry.refreshWhenItemsAdderIsReady();
             this.claimManager = new ClaimManager(this);
             this.userManager = new UserManager(this);
             this.rentalManager = new RentalManager(this);

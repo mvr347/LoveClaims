@@ -183,6 +183,41 @@ public final class GemRegistry {
         return new GemStats(id, rarity, slotCost, radius, members, crop, furnace, doubleDrop, bypass, effects);
     }
 
+    /**
+     * Recipe ingredient for a gem used as a material: the configured material and, once ItemsAdder has loaded,
+     * the material of the gem's ItemsAdder item. The crafting listener still demands real gems with their tags.
+     */
+    private RecipeChoice gemIngredient(String gemId) {
+        java.util.Set<Material> materials = new java.util.LinkedHashSet<>();
+        Material configured = gemMaterials.get(gemId);
+        if (configured != null) materials.add(configured);
+        ItemStack ia = me.lovelace.loveclaims.util.IaItems.get(gemIaIds.get(gemId));
+        if (ia != null) materials.add(ia.getType());
+        return new RecipeChoice.MaterialChoice(new ArrayList<>(materials));
+    }
+
+    private org.bukkit.scheduler.BukkitTask iaRefresh;
+
+    /**
+     * ItemsAdder loads its items after the server has started, so recipes built at enable time cannot know the
+     * material of a gem's ItemsAdder item yet. Checks every 5 seconds (up to 15 minutes) and rebuilds the recipes once.
+     */
+    public void refreshWhenItemsAdderIsReady() {
+        String probe = gemIaIds.values().stream().filter(v -> v != null && !v.isBlank()).findFirst().orElse(null);
+        if (probe == null || iaRefresh != null) return;
+        int[] tries = {0};
+        iaRefresh = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (me.lovelace.loveclaims.util.IaItems.get(probe) != null) {
+                iaRefresh.cancel();
+                iaRefresh = null;
+                reload();
+            } else if (++tries[0] > 180) {
+                iaRefresh.cancel();
+                iaRefresh = null;
+            }
+        }, 100L, 100L);
+    }
+
     private void registerRecipes(FileConfiguration gemsCfg) {
         // 1. Craftable pure gems (STRICTLY BASIC & MODIFIED only, never LEGENDARY)
         ConfigurationSection pureSection = gemsCfg.getConfigurationSection("gems");
@@ -216,7 +251,13 @@ public final class GemRegistry {
                         valid = false;
                         break;
                     }
-                    recipe.setIngredient(sym.charAt(0), mat);
+                    String baseGemId = recipeSec.getString("base-gem", "").toLowerCase(Locale.ROOT);
+                    // A slot that takes a base gem accepts the gem's configured material and its ItemsAdder material
+                    if (!baseGemId.isEmpty() && mat == gemMaterials.get(baseGemId)) {
+                        recipe.setIngredient(sym.charAt(0), gemIngredient(baseGemId));
+                    } else {
+                        recipe.setIngredient(sym.charAt(0), mat);
+                    }
                 }
                 if (!valid) continue;
 
@@ -238,8 +279,8 @@ public final class GemRegistry {
 
             NamespacedKey key = new NamespacedKey(plugin, "gem_hybrid_" + hybrid.id());
             ShapelessRecipe recipe = new ShapelessRecipe(key, createHybridItem(hybrid, HybridRollOutcome.NEUTRAL, true));
-            recipe.addIngredient(m1);
-            recipe.addIngredient(m2);
+            recipe.addIngredient(gemIngredient(hybrid.firstBaseGemId()));
+            recipe.addIngredient(gemIngredient(hybrid.secondBaseGemId()));
             addRecipeSafely(key, recipe);
             hybridRecipes.put(key, hybrid);
         }
