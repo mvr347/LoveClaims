@@ -67,52 +67,52 @@ public final class LoveClaimsAPI {
     // ===== CLAIMS API =====
 
     /**
-     * Получить приват по координатам.
+     * Получить клейм по координатам.
      * @param location Координаты
-     * @return Optional с приватом
+     * @return Optional с клеймом
      */
     public Optional<Claim> getClaimAt(Location location) {
         return plugin.getClaimManager().getClaimAt(location);
     }
 
     /**
-     * Получить приват по ID.
-     * @param claimId ID привата
-     * @return Optional с приватом
+     * Получить клейм по ID.
+     * @param claimId ID клейма
+     * @return Optional с клеймом
      */
     public Optional<Claim> getClaimById(UUID claimId) {
         return plugin.getClaimManager().getClaimById(claimId);
     }
 
     /**
-     * Получить все приваты (игроков и кланов).
-     * @return Список всех приватов
+     * Получить все клеймы (игроков и кланов).
+     * @return Список всех клеймов
      */
     public Collection<Claim> getAllClaims() {
         return plugin.getClaimManager().getAllClaims();
     }
 
     /**
-     * Получить все клановые приваты.
-     * @return Список клановых приватов
+     * Получить все клановые клеймы.
+     * @return Список клановых клеймов
      */
     public List<Claim> getAllClanClaims() {
         return plugin.getClaimManager().getAllClanClaims();
     }
 
     /**
-     * Получить клановый приват по ID клана (ownerUuid).
+     * Получить клановый клейм по ID клана (ownerUuid).
      * @param clanId ID клана
-     * @return Optional с приватом
+     * @return Optional с клеймом
      */
     public Optional<Claim> getClanClaim(UUID clanId) {
         return plugin.getClaimManager().getClanClaimByClanId(clanId);
     }
 
     /**
-     * Получить все приваты игрока.
+     * Получить все клеймы игрока.
      * @param player Игрок
-     * @return Список приватов игрока
+     * @return Список клеймов игрока
      */
     public List<Claim> getPlayerClaims(OfflinePlayer player) {
         if (player == null || player.getUniqueId() == null) {
@@ -122,9 +122,9 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Получить все приваты, где игрок имеет доступ.
+     * Получить все клеймы, где игрок имеет доступ.
      * @param player Игрок
-     * @return Список приватов с доступом
+     * @return Список клеймов с доступом
      */
     public List<Claim> getPlayerAccessibleClaims(OfflinePlayer player) {
         if (player == null || player.getUniqueId() == null) {
@@ -134,29 +134,29 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Создать новый приват игрока.
+     * Создать новый клейм игрока.
      * @param world Мир
      * @param box Границы
      * @param owner Владелец
      * @param anchorLocation Место якоря
-     * @return Созданный приват либо {@code null}, если границы пересекают существующий приват
+     * @return Созданный клейм либо {@code null}, если границы пересекают существующий клейм
      */
     public Claim createClaim(World world, BoundingBox box, UUID owner, Location anchorLocation) {
-        if (overlapsExistingClaim(world, box, "приват игрока")) {
+        if (overlapsExistingClaim(world, box, "клейм игрока")) {
             return null;
         }
         Claim claim = new Claim(UUID.randomUUID(), world, box, owner, anchorLocation);
-        claim.setClaimType(Claim.ClaimType.PLAYER); // Отмечаем как приват игрока
+        claim.setClaimType(Claim.ClaimType.PLAYER); // Отмечаем как клейм игрока
         plugin.getClaimManager().addClaimToCache(claim);
         plugin.getStorage().saveClaimAsync(claim);
         return claim;
     }
 
     /**
-     * Приваты не пересекаются и не вкладываются друг в друга — ни приват игрока в клановый,
-     * ни наоборот. Проверка живёт здесь, а не у вызывающего: реестр приватов один, и правило
+     * Клеймы не пересекаются и не вкладываются друг в друга — ни клейм игрока в клановый,
+     * ни наоборот. Проверка живёт здесь, а не у вызывающего: реестр клеймов один, и правило
      * должно держаться в нём, иначе его пришлось бы дублировать в каждом плагине, который
-     * умеет создавать приваты, и любой пропуск ломал бы правило молча.
+     * умеет создавать клеймы, и любой пропуск ломал бы правило молча.
      *
      * Собственные пути плагина (установка якоря, изменение границ) проверяют пересечение сами;
      * до этой правки внешний вызов через API был единственной дырой в правиле.
@@ -169,33 +169,33 @@ public final class LoveClaimsAPI {
             return false;
         }
         plugin.getLogger().warning("Отказано в создании: " + what
-                + " пересекает существующий приват в мире " + world.getName()
+                + " пересекает существующий клейм в мире " + world.getName()
                 + " (" + (int) box.getMinX() + ", " + (int) box.getMinZ() + ").");
         return true;
     }
 
     /**
-     * Создать новый клановый приват.
+     * Создать новый клановый клейм.
      * @param world Мир
      * @param box Границы
      * @param clanId ID клана (будет владельцем)
      * @param anchorLocation Место якоря
-     * @return Созданный клановый приват
+     * @return Созданный клановый клейм
      */
     public Claim createClanClaim(World world, BoundingBox box, UUID clanId, Location anchorLocation) {
         return createClanClaim(world, box, clanId, anchorLocation, null);
     }
 
     /**
-     * Создать новый клановый приват.
+     * Создать новый клановый клейм.
      * @param world Мир
      * @param box Границы
      * @param clanId ID клана (будет владельцем)
      * @param anchorLocation Место якоря
      * @param ownerDisplayName Отображаемое имя клана (тег/название), показывается вместо
      *                         дефолтной надписи "Клан" при входе/выходе из территории.
-     * @return Созданный клановый приват либо {@code null}, если границы пересекают
-     *         существующий приват — клановую территорию нельзя положить поверх чужой земли
+     * @return Созданный клановый клейм либо {@code null}, если границы пересекают
+     *         существующий клейм — клановую территорию нельзя положить поверх чужой земли
      */
     public Claim createClanClaim(World world, BoundingBox box, UUID clanId, Location anchorLocation, String ownerDisplayName) {
         if (overlapsExistingClaim(world, box, "клановая территория")) {
@@ -203,7 +203,7 @@ public final class LoveClaimsAPI {
         }
         Claim claim = new Claim(UUID.randomUUID(), world, box, clanId, anchorLocation);
         // clanId не является UUID игрока, поэтому конструктор Claim ошибочно
-        // генерирует имя "Приват null" через Bukkit.getOfflinePlayer(clanId).
+        // генерирует имя "Клейм null" через Bukkit.getOfflinePlayer(clanId).
         // Сбрасываем его, чтобы отображалось дефолтное название клановой территории.
         claim.setName(null);
         claim.setClaimType(Claim.ClaimType.CLAN);
@@ -215,7 +215,7 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Обновить отображаемое имя клана-владельца во всех его клановых приватах.
+     * Обновить отображаемое имя клана-владельца во всех его клановых клеймах.
      * Вызывается LoveClans при переименовании клана/смене тега, чтобы надпись
      * "владелец: ..." при входе на территорию оставалась актуальной.
      * @param clanId ID клана
@@ -234,8 +234,8 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Удалить приват.
-     * @param claimId ID привата
+     * Удалить клейм.
+     * @param claimId ID клейма
      */
     public void deleteClaim(UUID claimId) {
         plugin.getClaimManager().getClaimById(claimId).ifPresent(claim -> {
@@ -245,8 +245,8 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Добавить игрока в приват.
-     * @param claim Приват
+     * Добавить игрока в клейм.
+     * @param claim Клейм
      * @param player Игрок
      * @param trustLevel Уровень доступа
      */
@@ -257,8 +257,8 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Удалить игрока из привата.
-     * @param claim Приват
+     * Удалить игрока из клейма.
+     * @param claim Клейм
      * @param player Игрок
      */
     public void removePlayerFromClaim(Claim claim, OfflinePlayer player) {
@@ -268,8 +268,8 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Удалить участника клана из привата.
-     * @param claimId ID привата
+     * Удалить участника клана из клейма.
+     * @param claimId ID клейма
      * @param playerUuid UUID игрока
      */
     public void removeClanMemberFromClaim(UUID claimId, UUID playerUuid) {
@@ -281,8 +281,8 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Получить уровень доступа игрока к привату.
-     * @param claim Приват
+     * Получить уровень доступа игрока к клейму.
+     * @param claim Клейм
      * @param player Игрок
      * @return Уровень доступа
      */
@@ -291,8 +291,8 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Проверить, имеет ли игрок доступ к привату.
-     * @param claim Приват
+     * Проверить, имеет ли игрок доступ к клейму.
+     * @param claim Клейм
      * @param player Игрок
      * @param requiredLevel Требуемый уровень
      * @return true если есть доступ
@@ -315,12 +315,12 @@ public final class LoveClaimsAPI {
      *     Если у игрока был уровень {@link TrustLevel#MANAGER}, он также будет понижен.</li>
      * <li>При разрешении {@link ClaimPermission#BUILD}, уровень игрока устанавливается в {@link TrustLevel#BUILD}.</li>
      * <li>При запрете {@link ClaimPermission#CONTAINER}, если у игрока нет права на строительство (уровень ниже {@link TrustLevel#BUILD}),
-     *     он полностью удаляется из привата.</li>
+     *     он полностью удаляется из клейма.</li>
      * <li>При разрешении {@link ClaimPermission#CONTAINER}, если у игрока еще нет доступа к контейнерам,
      *     ему выдается уровень {@link TrustLevel#CONTAINER}. Это не затронет игроков с более высокими правами (например, {@link TrustLevel#BUILD}).</li>
      * </ul>
      *
-     * @param claimId        ID привата
+     * @param claimId        ID клейма
      * @param playerUuid     UUID игрока
      * @param permission     Тип разрешения
      * @param state          Новое состояние (true - разрешить, false - запретить)
@@ -345,7 +345,7 @@ public final class LoveClaimsAPI {
                 plugin.getClaimManager().syncTrustGranted(claim, playerUuid);
                 plugin.getStorage().saveMemberAsync(claim.getId(), playerUuid, TrustLevel.BUILD);
             } else if (!state && permission == ClaimPermission.CONTAINER) {
-                // Запретили сундуки. Если строить тоже нельзя (уровень ниже BUILD) — удаляем из привата
+                // Запретили сундуки. Если строить тоже нельзя (уровень ниже BUILD) — удаляем из клейма
                 if (currentLevel.ordinal() < TrustLevel.BUILD.ordinal()) {
                     claim.removePlayer(playerUuid);
                     plugin.getClaimManager().syncTrustRevoked(claim, playerUuid);
@@ -368,7 +368,7 @@ public final class LoveClaimsAPI {
      * Динамическое управление ролями из других плагинов (например, Clans).
      * @deprecated Используйте {@link #updatePlayerRole(UUID, UUID, ClaimPermission, boolean)} вместо этого метода
      *
-     * @param claimId        ID привата
+     * @param claimId        ID клейма
      * @param playerUuid     UUID игрока
      * @param permissionType Тип разрешения (BUILD, CONTAINERS и т.д.)
      * @param state          Новое состояние
@@ -403,7 +403,7 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Показать игроку визуальные границы вокруг BoundingBox для конкретного привата.
+     * Показать игроку визуальные границы вокруг BoundingBox для конкретного клейма.
      * В отличие от {@link #showBorder(Player, BoundingBox, long)}, зная claimId, можно
      * применить особые правила отображения — например, клановая территория всегда
      * подсвечивается красным стеклом вне зависимости от {@code border.material} в конфиге
@@ -412,7 +412,7 @@ public final class LoveClaimsAPI {
      * @param player Игрок, которому нужно показать границы
      * @param box BoundingBox (область), которую нужно подсветить
      * @param durationTicks Время отображения в тиках (20 тиков = 1 секунда)
-     * @param claimId ID привата, которому принадлежит эта граница
+     * @param claimId ID клейма, которому принадлежит эта граница
      */
     public void showBorder(Player player, BoundingBox box, long durationTicks, java.util.UUID claimId) {
         if (player == null || !player.isOnline() || box == null) return;
@@ -430,9 +430,9 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Проверяет, пересекается ли переданный BoundingBox с каким-либо существующим приватом.
+     * Проверяет, пересекается ли переданный BoundingBox с каким-либо существующим клеймом.
      * Это полезно для интеграции с другими плагинами (например, кланами),
-     * чтобы убедиться, что их регион не накладывается на приват.
+     * чтобы убедиться, что их регион не накладывается на клейм.
      *
      * @param world Мир
      * @param box   Границы для проверки
@@ -443,12 +443,12 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Проверяет, пересекается ли переданный BoundingBox с каким-либо существующим приватом,
-     * игнорируя указанный приват (полезно при расширении).
+     * Проверяет, пересекается ли переданный BoundingBox с каким-либо существующим клеймом,
+     * игнорируя указанный клейм (полезно при расширении).
      *
      * @param world         Мир
      * @param box           Границы для проверки
-     * @param ignoreClaimId ID привата, который нужно игнорировать
+     * @param ignoreClaimId ID клейма, который нужно игнорировать
      * @return true если пересекается, false если свободно
      */
     public boolean checkOverlap(World world, BoundingBox box, UUID ignoreClaimId) {
@@ -456,14 +456,14 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Меняет границы существующего привата (расширение территории клана). Границы обновляются
-     * атомарно: сначала проверка пересечений с остальными приватами, затем замена в чанковом кэше
+     * Меняет границы существующего клейма (расширение территории клана). Границы обновляются
+     * атомарно: сначала проверка пересечений с остальными клеймами, затем замена в чанковом кэше
      * и сохранение. Должен вызываться с главного потока.
      *
-     * @param claimId ID привата
+     * @param claimId ID клейма
      * @param newBox  новые границы
-     * @return true если границы применены; false если приват не найден, мир не загружен или
-     *         новые границы пересекают чужой приват (тогда ничего не меняется)
+     * @return true если границы применены; false если клейм не найден, мир не загружен или
+     *         новые границы пересекают чужой клейм (тогда ничего не меняется)
      */
     public boolean resizeClaim(UUID claimId, BoundingBox newBox) {
         if (claimId == null || newBox == null) return false;
@@ -474,7 +474,7 @@ public final class LoveClaimsAPI {
         if (world == null) return false;
         if (plugin.getClaimManager().checkOverlap(world, newBox, claimId)) return false;
         // getBoundingBox() отдаёт внутреннюю ссылку: клонируем до замены, иначе кэш чанков
-        // не узнает, из каких чанков приват нужно убрать.
+        // не узнает, из каких чанков клейм нужно убрать.
         BoundingBox oldBox = claim.getBoundingBox().clone();
         claim.setBoundingBox(newBox.clone());
         plugin.getClaimManager().resizeClaimInCache(claim, oldBox);
@@ -483,8 +483,8 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Устанавливает статус клановой территории для привата.
-     * @param claimId ID привата
+     * Устанавливает статус клановой территории для клейма.
+     * @param claimId ID клейма
      * @param status true, если это клановая территория, false иначе
      */
     public void setClanTerritory(UUID claimId, boolean status) {
@@ -495,8 +495,8 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Устанавливает/снимает режим осады для привата.
-     * @param claimId ID привата
+     * Устанавливает/снимает режим осады для клейма.
+     * @param claimId ID клейма
      * @param active true, если режим осады активен, false иначе
      */
     public void setSiegeMode(UUID claimId, boolean active) {
@@ -507,9 +507,9 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Возвращает локацию блока-якоря (баннера) привата.
-     * @param claimId ID привата
-     * @return Локация якоря или null, если приват не найден
+     * Возвращает локацию блока-якоря (баннера) клейма.
+     * @param claimId ID клейма
+     * @return Локация якоря или null, если клейм не найден
      */
     public Location getClaimAnchor(UUID claimId) {
         return plugin.getClaimManager().getClaimById(claimId)
@@ -518,15 +518,15 @@ public final class LoveClaimsAPI {
     }
 
     /**
-     * Проверяет, находится ли указанная локация вне BoundingBox привата.
-     * @param claimId ID привата
+     * Проверяет, находится ли указанная локация вне BoundingBox клейма.
+     * @param claimId ID клейма
      * @param loc Локация для проверки
-     * @return true, если локация вне привата, false если внутри или приват не найден
+     * @return true, если локация вне клейма, false если внутри или клейм не найден
      */
     public boolean isOutsideClaim(UUID claimId, Location loc) {
         return plugin.getClaimManager().getClaimById(claimId)
                 .map(claim -> !claim.getBoundingBox().contains(loc.getX(), loc.getY(), loc.getZ()))
-                .orElse(true); // Если приват не найден, считаем, что локация "вне"
+                .orElse(true); // Если клейм не найден, считаем, что локация "вне"
     }
 
     // ===== USER DATA API =====

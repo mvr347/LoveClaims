@@ -155,9 +155,9 @@ public class ProtectionListener implements Listener {
         if (claimOpt.isPresent()) {
             Claim claim = claimOpt.get();
 
-            // Если приват клановый
+            // Если клейм клановый
             if (claim.isClanTerritory()) {
-                // Если приват в режиме осады
+                // Если клейм в режиме осады
                 if (claim.isUnderSiege()) {
                     Location anchorLoc = claim.getAnchorLocation();
                     // Разрешаем ломать только баннер (якорь), и только вражескому клану
@@ -190,7 +190,7 @@ public class ProtectionListener implements Listener {
                 return;
             }
 
-            // Обычная логика привата
+            // Обычная логика клейма
             if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
                 deny(player, claim, plugin.getConfigManager().getMessage("deny-break"));
@@ -218,9 +218,9 @@ public class ProtectionListener implements Listener {
         if (claimOpt.isPresent()) {
             Claim claim = claimOpt.get();
 
-            // Если приват клановый
+            // Если клейм клановый
             if (claim.isClanTerritory()) {
-                // Если приват в режиме осады
+                // Если клейм в режиме осады
                 if (claim.isUnderSiege()) {
                     event.setCancelled(true);
                     deny(player, claim, plugin.getConfigManager().getMessage("siege-place-deny"));
@@ -232,7 +232,7 @@ public class ProtectionListener implements Listener {
                 return;
             }
 
-            // Обычная логика привата
+            // Обычная логика клейма
             if (!claim.hasPermission(player.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)) {
                 event.setCancelled(true);
                 deny(player, claim, plugin.getConfigManager().getMessage("deny-place"));
@@ -264,9 +264,9 @@ public class ProtectionListener implements Listener {
         Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(event.getTo());
         if (claimOpt.isPresent()) {
             Claim claim = claimOpt.get();
-            // Если приват клановый
+            // Если клейм клановый
             if (claim.isClanTerritory()) {
-                // Если приват в режиме осады, то эндер-перлы и хорус могут быть разрешены (пока запрещаем)
+                // Если клейм в режиме осады, то эндер-перлы и хорус могут быть разрешены (пока запрещаем)
                 if (claim.isUnderSiege()) {
                     event.setCancelled(true);
                     deny(event.getPlayer(), claim, plugin.getConfigManager().getMessage("siege-teleport-deny")); // Новое сообщение
@@ -300,9 +300,9 @@ public class ProtectionListener implements Listener {
         if (claimOpt.isPresent()) {
             Claim claim = claimOpt.get();
 
-            // Если приват клановый
+            // Если клейм клановый
             if (claim.isClanTerritory()) {
-                // Если приват в режиме осады
+                // Если клейм в режиме осады
                 if (claim.isUnderSiege()) {
                     // Если это якорь (баннер), взаимодействовать могут только члены клана-владельца
                     if (block.getLocation().equals(claim.getAnchorLocation())) {
@@ -337,7 +337,7 @@ public class ProtectionListener implements Listener {
                 return;
             }
 
-            // Обычная логика привата: каждый клик требует одно право по типу блока (сундук - CONTAINERS, дверь - INTERACT, остальное -
+            // Обычная логика клейма: каждый клик требует одно право по типу блока (сундук - CONTAINERS, дверь - INTERACT, остальное -
             // BUILD). Раньше после успешной проверки контейнера/двери код шёл дальше в общую проверку BUILD и отменял клик, поэтому
             // доверие CONTAINER и ACCESS ничего не открывало.
             Material type = block.getType();
@@ -356,7 +356,7 @@ public class ProtectionListener implements Listener {
         // Защита спавна - раньше этой ветки не было вовсе, поэтому двери/люки/кнопки/рычаги и
         // контейнеры на территории спавна (она не входит ни в один Claim, isSpawnProtected()
         // проверяется отдельно) открывались всем без ограничений, хотя точно такое же
-        // взаимодействие внутри обычного привата корректно требует прав.
+        // взаимодействие внутри обычного клейма корректно требует прав.
         if (isSpawnProtected(block.getLocation()) && !plugin.getConfigManager().getSpawnFlag("interact")) {
             Material type = block.getType();
             boolean allowDoor = isDoorOrButtonBlock(type) && plugin.getConfigManager().getSpawnFlag("doors");
@@ -377,9 +377,9 @@ public class ProtectionListener implements Listener {
         Optional<Claim> claimOpt = plugin.getClaimManager().getClaimAt(player.getLocation());
         if (claimOpt.isPresent()) {
             Claim claim = claimOpt.get();
-            // Если приват клановый
+            // Если клейм клановый
             if (claim.isClanTerritory()) {
-                // Если приват в режиме осады, то элитры могут быть разрешены (пока запрещаем)
+                // Если клейм в режиме осады, то элитры могут быть разрешены (пока запрещаем)
                 if (claim.isUnderSiege()) {
                     event.setCancelled(true);
                     deny(player, claim, plugin.getConfigManager().getMessage("siege-elytra-deny")); // Новое сообщение
@@ -476,7 +476,7 @@ public class ProtectionListener implements Listener {
      * Извлечение/установка/поворот предмета в рамке - отдельное от {@link #onHangingBreak}
      * действие: снятие предмета с занятой рамки не ломает саму рамку и никогда не порождает
      * HangingBreakByEntityEvent, поэтому без этого хендлера было полностью незащищено и внутри
-     * приватов, и на спавне (см. javadoc PlayerItemFrameChangeEvent - Paper добавил его именно
+     * клеймов, и на спавне (см. javadoc PlayerItemFrameChangeEvent - Paper добавил его именно
      * из-за этого пробела в ванильном Bukkit API).
      */
     @EventHandler(ignoreCancelled = true)

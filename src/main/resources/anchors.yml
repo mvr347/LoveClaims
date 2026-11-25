@@ -1,9 +1,12 @@
 # ====================================================== #
-#               LoveClaims - Якоря Приватов              #
+#               LoveClaims - Якоря Клеймов              #
 # ====================================================== #
 # 3 уровня якорей с Обычным и Модифицированным подтипом.
 # Апгрейд Обычный -> Модифицированный выполняется у NPC.
 # Переход между уровнями I -> II -> III — на верстаке.
+# ====================================================== #
+# Необязательный ключ itemsadder: "пространство:имя" у тира берёт внешний вид из предмета ItemsAdder
+# (материал предмета должен совпадать с material тира). Пример: itemsadder: "claims:anchor_1"
 # ====================================================== #
 
 tiers:
@@ -14,9 +17,9 @@ tiers:
     upgrade-target: "tier-1-mod"
     upgrade-cost: "5i"
     material: "CAMPFIRE"
-    name: "<green>Якорь Привата I</green>"
+    name: "<green>Якорь Клейма I</green>"
     lore:
-      - "<gray>Создаёт приват размером 25x25</gray>"
+      - "<gray>Создаёт клейм размером 25x25</gray>"
       - ""
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: <white>12</white> блоков</gray>"
@@ -41,9 +44,9 @@ tiers:
     modified: true
     gem-slots: 4
     material: "SOUL_CAMPFIRE"
-    name: "<green>Якорь Привата I <light_purple>[Мод.]</light_purple></green>"
+    name: "<green>Якорь Клейма I <light_purple>[Мод.]</light_purple></green>"
     lore:
-      - "<gray>Создаёт приват размером 31x31</gray>"
+      - "<gray>Создаёт клейм размером 31x31</gray>"
       - ""
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: <white>15</white> блоков</gray>"
@@ -70,9 +73,9 @@ tiers:
     upgrade-target: "tier-2-mod"
     upgrade-cost: "2g"
     material: "LANTERN"
-    name: "<aqua>Якорь Привата II</aqua>"
+    name: "<aqua>Якорь Клейма II</aqua>"
     lore:
-      - "<gray>Создаёт приват размером 49x49</gray>"
+      - "<gray>Создаёт клейм размером 49x49</gray>"
       - ""
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: <white>24</white> блока</gray>"
@@ -97,9 +100,9 @@ tiers:
     modified: true
     gem-slots: 7
     material: "SOUL_LANTERN"
-    name: "<aqua>Якорь Привата II <light_purple>[Мод.]</light_purple></aqua>"
+    name: "<aqua>Якорь Клейма II <light_purple>[Мод.]</light_purple></aqua>"
     lore:
-      - "<gray>Создаёт приват размером 61x61</gray>"
+      - "<gray>Создаёт клейм размером 61x61</gray>"
       - ""
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: <white>30</white> блоков</gray>"
@@ -126,9 +129,9 @@ tiers:
     upgrade-target: "tier-3-mod"
     upgrade-cost: "1d"
     material: "LODESTONE"
-    name: "<gold>Якорь Привата III</gold>"
+    name: "<gold>Якорь Клейма III</gold>"
     lore:
-      - "<gray>Создаёт приват размером 85x85</gray>"
+      - "<gray>Создаёт клейм размером 85x85</gray>"
       - ""
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: <white>42</white> блока</gray>"
@@ -153,9 +156,9 @@ tiers:
     modified: true
     gem-slots: 9
     material: "BEACON"
-    name: "<gold>Якорь Привата III <light_purple>[Мод.]</light_purple></gold>"
+    name: "<gold>Якорь Клейма III <light_purple>[Мод.]</light_purple></gold>"
     lore:
-      - "<gray>Создаёт приват размером 105x105</gray>"
+      - "<gray>Создаёт клейм размером 105x105</gray>"
       - ""
       - "<white>Характеристики:</white>"
       - "<gray>• Радиус: <white>52</white> блока</gray>"

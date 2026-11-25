@@ -23,6 +23,12 @@ public class MemberActionGUI extends AbstractGUI {
     private final Player viewer;
     private final Claim claim;
     private final UUID targetId;
+    private static final ClaimPermission[] PERMISSIONS = {ClaimPermission.BUILD, ClaimPermission.CONTAINERS,
+            ClaimPermission.INTERACT, ClaimPermission.CORE, ClaimPermission.MANAGE};
+
+    private static int[] permissionSlots() {
+        return centeredRowSlots(PERMISSIONS.length);
+    }
 
     public MemberActionGUI(LoveClaims plugin, Player viewer, Claim claim, UUID targetId) {
         super(27, plugin.getConfigManager().getComponent("member-action.title"));
@@ -38,35 +44,35 @@ public class MemberActionGUI extends AbstractGUI {
         inventory.clear();
 
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetId);
-        String targetName = target.getName() != null ? target.getName() : "Неизвестный";
+        String targetName = target.getName() != null ? target.getName() : plugin.getConfigManager().getString("members.unknown");
 
         // gui-gen-5: Слот 0 — голова настраиваемого участника
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta headMeta = (SkullMeta) head.getItemMeta();
         if (headMeta != null) {
             me.lovelace.loveclaims.util.PlayerHeads.apply(headMeta, target);
-            headMeta.displayName(plugin.getConfigManager().getComponent("members.member-name", "player", targetName));
+            headMeta.displayName(plugin.getConfigManager().getComponent("members.member-name", "player", me.lovelace.loveclaims.util.GuiText.esc(targetName))
+                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
             List<Component> headLore = new ArrayList<>();
-            headLore.add(plugin.getConfigManager().getComponent("member-action.profile-lore"));
+            headLore.add(me.lovelace.loveclaims.util.GuiText.name(plugin, "member-action.profile-lore"));
             headMeta.lore(headLore);
             head.setItemMeta(headMeta);
         }
         inventory.setItem(0, head);
 
-        // Рабочая зона: ряд 1 (слоты 9-17). Слоты 9 и 17 пустые.
-        // 4 кнопки переключения прав: 10, 12, 14, 16
-        inventory.setItem(10, createPermissionToggle(ClaimPermission.BUILD, Material.IRON_PICKAXE));
-        inventory.setItem(12, createPermissionToggle(ClaimPermission.CONTAINERS, Material.CHEST));
-        inventory.setItem(14, createPermissionToggle(ClaimPermission.INTERACT, Material.OAK_DOOR));
-        inventory.setItem(16, createPermissionToggle(ClaimPermission.MANAGE, Material.NAME_TAG));
+        // Work zone: five permission toggles, centred (11-15); the side walls stay empty.
+        int[] slots = permissionSlots();
+        for (int i = 0; i < PERMISSIONS.length; i++) {
+            inventory.setItem(slots[i], createPermissionToggle(PERMISSIONS[i], Material.STONE));
+        }
 
         // Footer (слоты 18-26):
         // Слот 24 — кнопка выгнать
         // Слот 25 — Назад
         // Слот 26 — Закрыть
         ItemStack kickBtn = createHead(HEAD_BARRIER,
-                plugin.getConfigManager().getComponent("member-action.kick-button"),
-                plugin.getConfigManager().getHelpMessage("member-action.kick-button-lore"));
+                me.lovelace.loveclaims.util.GuiText.name(plugin, "member-action.kick-button"),
+                me.lovelace.loveclaims.util.GuiText.lore(plugin, "member-action.kick-button-lore"));
 
         setFooterButtons(
                 kickBtn,
@@ -84,7 +90,7 @@ public class MemberActionGUI extends AbstractGUI {
             String nameKey = "permissions." + permission.name().toLowerCase() + ".name";
             String descKey = "permissions." + permission.name().toLowerCase() + ".desc";
 
-            meta.displayName(plugin.getConfigManager().getComponent(nameKey));
+            meta.displayName(plugin.getConfigManager().getComponent(nameKey).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
 
             List<Component> lore = new ArrayList<>();
             lore.add(plugin.getConfigManager().getComponent(descKey));
@@ -94,10 +100,9 @@ public class MemberActionGUI extends AbstractGUI {
 
             lore.add(plugin.getConfigManager().getComponent("settings.states.status")
                     .append(plugin.getConfigManager().getComponent(enabled ? "permissions.status-enabled" : "permissions.status-disabled")));
-            lore.add(Component.text(" "));
             lore.addAll(plugin.getConfigManager().getHelpMessage("permissions.click-toggle"));
 
-            meta.lore(lore);
+            meta.lore(lore.stream().map(c -> c.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)).toList());
             item.setItemMeta(meta);
         }
         return item;
@@ -166,10 +171,10 @@ public class MemberActionGUI extends AbstractGUI {
         }
 
         ClaimPermission permToToggle = null;
-        if (slot == 10) permToToggle = ClaimPermission.BUILD;
-        else if (slot == 12) permToToggle = ClaimPermission.CONTAINERS;
-        else if (slot == 14) permToToggle = ClaimPermission.INTERACT;
-        else if (slot == 16) permToToggle = ClaimPermission.MANAGE;
+        int[] toggleSlots = permissionSlots();
+        for (int i = 0; i < PERMISSIONS.length; i++) {
+            if (toggleSlots[i] == slot) permToToggle = PERMISSIONS[i];
+        }
 
         if (permToToggle != null) {
             if (permToToggle == ClaimPermission.MANAGE && !isOwner) {
@@ -192,9 +197,9 @@ public class MemberActionGUI extends AbstractGUI {
 
             Player onlineTarget = Bukkit.getPlayer(targetId);
             if (onlineTarget != null) {
-                String permName = plugin.getConfigManager().getGuiText("permissions." + permToToggle.name().toLowerCase() + ".name");
-                String stateText = !current ? "разрешено" : "запрещено";
-                onlineTarget.sendMessage(Component.text("§7[§bLoveClaims§7] §fПраво " + permName + " §fдля вас было изменено: " + (!current ? "§a" : "§c") + stateText));
+                String permName = plugin.getConfigManager().getString("permissions." + permToToggle.name().toLowerCase() + ".name");
+                onlineTarget.sendMessage(plugin.getConfigManager().getMessage("member-action.perm-changed", "name", permName,
+                        "state", plugin.getConfigManager().getString(!current ? "member-action.allowed" : "member-action.denied")));
             }
         }
     }

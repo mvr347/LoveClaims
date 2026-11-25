@@ -14,6 +14,16 @@ class GemOverloadTest {
     }
 
     @Test
+    void aSingleLegendaryGemOverloadsATierOneAnchorAndCanBreakIt() {
+        var legendary = gem(GemRarity.LEGENDARY, 20, 1.0);
+        int overload = GemOverload.totalOverload(List.of(legendary), 1);
+        assertEquals(2, overload);
+        assertTrue(GemOverload.breakChance(overload) > 0, "owner request 2026-11-24: legendary in tier 1 can break the anchor");
+        assertEquals(0.0, GemOverload.breakChance(GemOverload.totalOverload(List.of(legendary), 2) ), 1e-9,
+                "gap 1 in a tier 2 anchor stays safe");
+    }
+
+    @Test
     void gapIsZeroWhenGemFitsOrLevelUnknown() {
         assertEquals(0, GemOverload.gap(gem(GemRarity.MODIFIED, 10, 0), 2));
         assertEquals(0, GemOverload.gap(gem(GemRarity.BASIC, 10, 0), 3));

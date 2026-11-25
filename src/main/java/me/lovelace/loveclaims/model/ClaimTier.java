@@ -9,19 +9,19 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Модель уровня якоря привата.
+ * Модель уровня якоря клейма.
  * Определяет параметры для каждого тира якорей.
  *
  * @param id              Уникальный идентификатор тира (например, "tier-1")
  * @param material        Материал блока якоря
  * @param name            Название предмета (MiniMessage формат)
  * @param lore            Описание предмета (список строк)
- * @param radiusX         Радиус привата по оси X
- * @param radiusY         Радиус привата по оси Y (высота)
- * @param radiusZ         Радиус привата по оси Z
+ * @param radiusX         Радиус клейма по оси X
+ * @param radiusY         Радиус клейма по оси Y (высота)
+ * @param radiusZ         Радиус клейма по оси Z
  * @param customModelData CustomModelData для кастомной текстуры
  * @param permission      Требуемая пермишн для использования
- * @param createCost      Стоимость создания привата
+ * @param createCost      Стоимость создания клейма
  * @param borderRed       Красный компонент цвета границы (0-255)
  * @param borderGreen     Зеленый компонент цвета границы (0-255)
  * @param borderBlue      Синий компонент цвета границы (0-255)
@@ -117,7 +117,7 @@ public record ClaimTier(
     }
 
     /**
-     * Получить размер привата по оси X.
+     * Получить размер клейма по оси X.
      * @return Полный размер (radiusX * 2 + 1)
      */
     public int getSizeX() {
@@ -125,7 +125,7 @@ public record ClaimTier(
     }
 
     /**
-     * Получить размер привата по оси Y.
+     * Получить размер клейма по оси Y.
      * @return Полный размер (radiusY * 2 + 1)
      */
     public int getSizeY() {
@@ -133,7 +133,7 @@ public record ClaimTier(
     }
 
     /**
-     * Получить размер привата по оси Z.
+     * Получить размер клейма по оси Z.
      * @return Полный размер (radiusZ * 2 + 1)
      */
     public int getSizeZ() {

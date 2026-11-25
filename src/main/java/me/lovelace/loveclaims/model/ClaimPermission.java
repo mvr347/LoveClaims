@@ -6,7 +6,8 @@ public enum ClaimPermission {
     BUILD("Строительство", "Разрешить установку и разрушение блоков, использование вёдер и рамок", Material.IRON_PICKAXE),
     CONTAINERS("Контейнеры", "Разрешить открытие сундуков, бочек, печей, шалкеров и воронок", Material.CHEST),
     INTERACT("Взаимодействие", "Разрешить использование дверей, люков, кнопок и рычагов", Material.OAK_DOOR),
-    MANAGE("Управление", "Разрешить изменять настройки привата и приглашать участников", Material.NAME_TAG);
+    MANAGE("Управление", "Разрешить изменять настройки клейма и приглашать участников", Material.NAME_TAG),
+    CORE("Ядро", "Разрешить вставлять и извлекать гемы ядра клейма", Material.BEACON);
 
     private final String title;
     private final String description;

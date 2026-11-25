@@ -46,7 +46,7 @@ class SettingsGUITest {
     @Test
     void unavailableButtonsKeepTheirSlotWithStatusAndReason() {
         var inv = new SettingsGUI(plugin, guest, claim).getInventory();
-        for (int slot : new int[]{12, 14, 16}) {
+        for (int slot : new int[]{12, 14}) {
             var meta = inv.getItem(slot).getItemMeta();
             assertTrue(plain(meta.displayName()).contains("Недоступно"), "slot " + slot);
             var lore = meta.lore().stream().map(SettingsGUITest::plain).toList();
@@ -59,9 +59,13 @@ class SettingsGUITest {
     @Test
     void ownerSeesActiveButtonsWithStateInTheName() {
         var inv = new SettingsGUI(plugin, owner, claim).getInventory();
-        assertEquals(Material.PLAYER_HEAD, inv.getItem(10).getType());
-        assertTrue(plain(inv.getItem(10).getItemMeta().displayName()).matches("(?s).*(Включено|Выключено).*"));
+        assertEquals(Material.PLAYER_HEAD, inv.getItem(12).getType());
+        assertTrue(plain(inv.getItem(12).getItemMeta().displayName()).matches("(?s).*(Включено|Выключено).*"));
         assertFalse(plain(inv.getItem(12).getItemMeta().displayName()).contains("Недоступно"));
+        assertTrue(plain(inv.getItem(14).getItemMeta().displayName()).contains("Снять клейм"));
+        assertFalse(plain(inv.getItem(14).getItemMeta().displayName()).contains("Недоступно"));
+        assertNull(inv.getItem(10));
+        assertNull(inv.getItem(16));
         // side walls stay empty, footer has no empty slot
         assertNull(inv.getItem(9));
         assertNull(inv.getItem(17));

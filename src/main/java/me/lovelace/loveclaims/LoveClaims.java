@@ -41,6 +41,7 @@ public class LoveClaims extends JavaPlugin {
     private ConfigManager configManager;
     private me.lovelace.loveclaims.effects.ClaimEffects effects;
     private me.lovelace.loveclaims.manager.ClaimMerger claimMerger;
+    private me.lovelace.loveclaims.manager.ClaimTeleport claimTeleport;
     private ClaimManager claimManager;
     private AnchorManager anchorManager;
     private UserManager userManager;
@@ -87,16 +88,19 @@ public class LoveClaims extends JavaPlugin {
             this.chatListener = new ChatListener(this);
             this.anchorManager = new AnchorManager(this);
             this.gemRegistry = new GemRegistry(this, this.gemFactory);
+            this.gemRegistry.refreshWhenItemsAdderIsReady();
             this.claimManager = new ClaimManager(this);
             this.userManager = new UserManager(this);
             this.rentalManager = new RentalManager(this);
             this.claimMerger = new me.lovelace.loveclaims.manager.ClaimMerger(this);
+            this.claimTeleport = new me.lovelace.loveclaims.manager.ClaimTeleport(this);
+            getServer().getPluginManager().registerEvents(claimTeleport, this);
 
             // 4. Инициализация API
             me.lovelace.loveclaims.api.LoveClaimsAPI.init(this);
             getLogger().info("API initialized!");
 
-            // 5. Загрузка приватов из базы данных
+            // 5. Загрузка клеймов из базы данных
             this.storage.loadAllClaims()
                     .thenAccept(claims -> {
                         claimManager.loadClaims(claims);
@@ -188,6 +192,7 @@ public class LoveClaims extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (claimTeleport != null) claimTeleport.shutdown();
         HandlerList.unregisterAll(this);
         getLogger().info("Disabling LoveClaims...");
 
@@ -221,7 +226,7 @@ public class LoveClaims extends JavaPlugin {
                 getLogger().info("Caffeine caches cleared!");
             }
 
-            // 4. Сохранение всех изменённых приватов синхронно
+            // 4. Сохранение всех изменённых клеймов синхронно
             if (claimManager != null && storage != null) {
                 storage.saveAllClaimsSync(claimManager.getAllClaims());
                 getLogger().info("Claims saved synchronously!");
@@ -249,6 +254,7 @@ public class LoveClaims extends JavaPlugin {
     public ConfigManager getConfigManager() { return configManager; }
     public me.lovelace.loveclaims.effects.ClaimEffects getEffects() { return effects; }
     public me.lovelace.loveclaims.manager.ClaimMerger getClaimMerger() { return claimMerger; }
+    public me.lovelace.loveclaims.manager.ClaimTeleport getClaimTeleport() { return claimTeleport; }
     public ClaimManager getClaimManager() { return claimManager; }
     public AnchorManager getAnchorManager() { return anchorManager; }
     public UserManager getUserManager() { return userManager; }

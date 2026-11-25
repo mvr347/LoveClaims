@@ -24,21 +24,24 @@ class AccessMenusTest {
     }
     @AfterEach void stop(){MockBukkit.unmock();}
     @Test void permissionsAreTexturedHeadsWithSeparateFormattedHintLines(){
-        var normal=new DefaultPermissionsGUI(plugin,owner,claim).getInventory();
         var member=new MemberActionGUI(plugin,owner,claim,target.getUniqueId()).getInventory();
-        for(int slot:new int[]{11,13,15})assertEquals(Material.PLAYER_HEAD,normal.getItem(slot).getType());
-        for(int slot:new int[]{10,12,14,16})assertEquals(Material.PLAYER_HEAD,member.getItem(slot).getType());
+        // five toggles centred: build, containers, interact, core, manage
+        for(int slot:new int[]{11,12,13,14,15})assertEquals(Material.PLAYER_HEAD,member.getItem(slot).getType());
         var plain=PlainTextComponentSerializer.plainText();
-        var lore=normal.getItem(11).getItemMeta().lore();
+        var lore=member.getItem(14).getItemMeta().lore();
+        assertTrue(plain.serialize(member.getItem(14).getItemMeta().displayName()).contains("Ядро"));
         assertTrue(lore.stream().anyMatch(line->plain.serialize(line).contains("ЛКМ")));
         for(var line:lore)assertFalse(plain.serialize(line).matches("(?s).*(§|\\n|Error:).*"));
         var settings=new SettingsGUI(plugin,owner,claim).getInventory();
-        for(int slot:new int[]{10,12,14,16})for(var line:settings.getItem(slot).getItemMeta().lore())
+        for(int slot:new int[]{12,14})for(var line:settings.getItem(slot).getItemMeta().lore())
             assertFalse(plain.serialize(line).matches("(?s).*(§|\\n|Error:).*"));
     }
     @Test void addMovesBeforeBackForBothClaimsAndRentals(){
         var empty=new MembersGUI(plugin,owner,claim).getInventory();
-        assertEquals(Material.PLAYER_HEAD,empty.getItem(19).getType());
+        // no members: the "no members" head sits in the centre, the add button before Back
+        assertEquals(Material.PLAYER_HEAD,empty.getItem(31).getType());
+        assertTrue(PlainTextComponentSerializer.plainText().serialize(empty.getItem(31).getItemMeta().displayName()).contains("Нет участников"));
+        assertTrue(PlainTextComponentSerializer.plainText().serialize(empty.getItem(51).getItemMeta().displayName()).contains("Добавить"));
         claim.setTrust(target.getUniqueId(),TrustLevel.ACCESS);
         var populated=new MembersGUI(plugin,owner,claim).getInventory();
         assertTrue(PlainTextComponentSerializer.plainText().serialize(populated.getItem(51).getItemMeta().displayName()).contains("Добавить"));

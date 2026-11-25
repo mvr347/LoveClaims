@@ -97,27 +97,27 @@ class GemAndAnchorSystemTest {
         assertNotNull(t3);
         assertNotNull(t3m);
 
-        assertEquals(3, t1.gemSlots());
+        assertEquals(4, t1.gemSlots());
         assertEquals(12, t1.radiusX());
         assertEquals(25, t1.getSizeX());
 
-        assertEquals(4, t1m.gemSlots());
+        assertEquals(5, t1m.gemSlots());
         assertEquals(15, t1m.radiusX());
         assertEquals(31, t1m.getSizeX());
 
-        assertEquals(6, t2.gemSlots());
+        assertEquals(7, t2.gemSlots());
         assertEquals(24, t2.radiusX());
         assertEquals(49, t2.getSizeX());
 
-        assertEquals(7, t2m.gemSlots());
+        assertEquals(8, t2m.gemSlots());
         assertEquals(30, t2m.radiusX());
         assertEquals(61, t2m.getSizeX());
 
-        assertEquals(8, t3.gemSlots());
+        assertEquals(9, t3.gemSlots());
         assertEquals(42, t3.radiusX());
         assertEquals(85, t3.getSizeX());
 
-        assertEquals(9, t3m.gemSlots());
+        assertEquals(10, t3m.gemSlots());
         assertEquals(52, t3m.radiusX());
         assertEquals(105, t3m.getSizeX());
     }
@@ -125,7 +125,9 @@ class GemAndAnchorSystemTest {
     @Test
     void legendaryGemsHaveZeroCraftRecipesWhileBasicAndModifiedAreLoaded() {
         GemRegistry reg = plugin.getGemRegistry();
-        assertEquals(20, reg.getAllDescriptors().size());
+        assertEquals(25, reg.getAllDescriptors().size());
+        // a modified gem is never made on a workbench (craftsman or quest only)
+        assertNull(Bukkit.getRecipe(new NamespacedKey(plugin, "gem_craft_modified_domain")));
 
         // Ensure NO recipe produces a LEGENDARY gem
         Iterator<Recipe> it = Bukkit.recipeIterator();
@@ -229,7 +231,7 @@ class GemAndAnchorSystemTest {
         // Attempt to insert MODIFIED gem into Tier I anchor -> rejected
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, gui.getInventory().getSize(),
-                ClickType.LEFT, InventoryAction.PICKUP_ALL));
+                ClickType.RIGHT, InventoryAction.PICKUP_HALF));
         assertTrue(claim.getInstalledGems().isEmpty());
         assertNotNull(owner.getInventory().getItem(0));
 
@@ -237,17 +239,14 @@ class GemAndAnchorSystemTest {
         int bottomRawSlot = gui.getInventory().getSize() + 1;
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, bottomRawSlot,
-                ClickType.LEFT, InventoryAction.PICKUP_ALL));
+                ClickType.RIGHT, InventoryAction.PICKUP_HALF));
 
         assertEquals(1, claim.getInstalledGems().size());
         assertEquals(6, claim.getModifiers().radiusBonus());
         assertEquals(36, Math.round(claim.getBoundingBox().getWidthX())); // 24 + 12
         assertTrue(plugin.getClaimManager().getClaimAt(center.clone().add(17, 0, 0)).isPresent());
 
-        // Extraction needs extract mode: toggle button sits in header slot 4 (gui_gen RULE 4, one button)
-        Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
-                view, InventoryType.SlotType.CONTAINER, 4,
-                ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        // Left click on an installed gem extracts it (right click inserts)
         // Extract gem from top slot 10 (first work slot) -> shrinks back to 24 width
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 view, InventoryType.SlotType.CONTAINER, 10,
@@ -455,28 +454,28 @@ class GemAndAnchorSystemTest {
         GemRegistry reg = plugin.getGemRegistry();
         GemFactory factory = plugin.getGemFactory();
 
-        // 1. Raw vanilla AMETHYST_SHARD must NOT craft modified_domain
-        Recipe modDomainRecipe = Bukkit.getRecipe(new NamespacedKey(plugin, "gem_craft_modified_domain"));
-        assertNotNull(modDomainRecipe);
+        // 1. Raw vanilla AMETHYST_SHARD must NOT craft improved_domain (two real basic gems are required)
+        Recipe impRecipe = Bukkit.getRecipe(new NamespacedKey(plugin, "gem_craft_improved_domain"));
+        assertNotNull(impRecipe);
         CraftingInventory modInv = (CraftingInventory) Bukkit.createInventory(null, InventoryType.WORKBENCH);
         modInv.setMatrix(new ItemStack[]{
-                new ItemStack(Material.AMETHYST_BLOCK), new ItemStack(Material.ENDER_EYE), new ItemStack(Material.AMETHYST_BLOCK),
-                new ItemStack(Material.AMETHYST_SHARD), new ItemStack(Material.DIAMOND_BLOCK), new ItemStack(Material.AMETHYST_SHARD),
-                new ItemStack(Material.AMETHYST_BLOCK), new ItemStack(Material.ENDER_EYE), new ItemStack(Material.AMETHYST_BLOCK)
+                null, new ItemStack(Material.AMETHYST_SHARD), null,
+                new ItemStack(Material.PRISMARINE_CRYSTALS), new ItemStack(Material.ECHO_SHARD), new ItemStack(Material.PRISMARINE_CRYSTALS),
+                null, new ItemStack(Material.AMETHYST_SHARD), null
         });
-        modInv.setResult(modDomainRecipe.getResult().clone());
+        modInv.setResult(impRecipe.getResult().clone());
         InventoryView modView = mockView(owner, modInv);
         Bukkit.getPluginManager().callEvent(new PrepareItemCraftEvent(modInv, modView, false));
-        assertNull(modInv.getResult(), "Raw vanilla AMETHYST_SHARD must not craft modified_domain");
+        assertNull(modInv.getResult(), "Raw vanilla AMETHYST_SHARD must not craft improved_domain");
 
-        // Replacing both shards with real domain gems must allow it
+        // Two real domain gems in place of the shards must allow it
         ItemStack[] validModMatrix = modInv.getMatrix().clone();
-        validModMatrix[3] = reg.createGemItem("domain", 1);
-        validModMatrix[5] = reg.createGemItem("domain", 1);
+        validModMatrix[1] = reg.createGemItem("domain", 1);
+        validModMatrix[7] = reg.createGemItem("domain", 1);
         modInv.setMatrix(validModMatrix);
-        modInv.setResult(modDomainRecipe.getResult().clone());
+        modInv.setResult(impRecipe.getResult().clone());
         Bukkit.getPluginManager().callEvent(new PrepareItemCraftEvent(modInv, modView, false));
-        assertNotNull(modInv.getResult(), "Two real domain gems should craft modified_domain");
+        assertNotNull(modInv.getResult(), "Two real domain gems should craft improved_domain");
 
         // 2. Vanilla CAMPFIRE must NOT craft tier-2 anchor
         Recipe tier2Recipe = Bukkit.getRecipe(new NamespacedKey(plugin, "anchor_upgrade_tier_2_0"));
@@ -514,7 +513,7 @@ class GemAndAnchorSystemTest {
         assertNull(pairInv.getResult(), "Unmatched 2-gem combo must clear any external recipe result");
 
         // 4. CrafterCraftEvent must cancel plugin recipes
-        if (modDomainRecipe instanceof CraftingRecipe cr) {
+        if (impRecipe instanceof CraftingRecipe cr) {
             var crafterBlock = world.getBlockAt(10, 64, 10);
             crafterBlock.setType(Material.CRAFTER);
             CrafterCraftEvent crafterEvent = new CrafterCraftEvent(crafterBlock, cr, cr.getResult().clone());
@@ -598,9 +597,6 @@ class GemAndAnchorSystemTest {
         // Attempting to remove the negative-radius debuff must be blocked due to neighbor overlap
         owner.getInventory().clear();
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
-                mockView(owner, top), InventoryType.SlotType.CONTAINER, 4,
-                ClickType.LEFT, InventoryAction.PICKUP_ALL));
-        Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
                 mockView(owner, top), InventoryType.SlotType.CONTAINER, 10,
                 ClickType.LEFT, InventoryAction.PICKUP_ALL));
         assertEquals(1, claim1.getInstalledGems().size(), "Debuff removal must be blocked on neighbor overlap");
@@ -630,12 +626,12 @@ class GemAndAnchorSystemTest {
         legacy.setAdminExpandBonus(6); // base = 12 (tier-1)
         assertEquals("tier-1", plugin.getAnchorManager().resolveClaimTier(legacy).id());
 
-        // SettingsGUI move returns anchor & gems, and clicking stale SettingsGUI does not dupe
+        // Releasing the claim returns anchor & gems, and clicking a stale confirm window does not dupe
         claim1.addInstalledGem(negHybrid);
-        SettingsGUI settingsGui = new SettingsGUI(plugin, owner, claim1);
+        DeleteConfirmGUI settingsGui = new DeleteConfirmGUI(plugin, owner, claim1);
         owner.getInventory().clear();
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
-                mockView(owner, settingsGui.getInventory()), InventoryType.SlotType.CONTAINER, 16,
+                mockView(owner, settingsGui.getInventory()), InventoryType.SlotType.CONTAINER, 1,
                 ClickType.LEFT, InventoryAction.PICKUP_ALL));
         assertTrue(plugin.getClaimManager().getClaimById(claim1.getId()).isEmpty());
         long returnedAnchors = Arrays.stream(owner.getInventory().getContents())
@@ -647,7 +643,7 @@ class GemAndAnchorSystemTest {
         // Stale click must NOT dupe
         owner.getInventory().clear();
         Bukkit.getPluginManager().callEvent(new InventoryClickEvent(
-                mockView(owner, settingsGui.getInventory()), InventoryType.SlotType.CONTAINER, 16,
+                mockView(owner, settingsGui.getInventory()), InventoryType.SlotType.CONTAINER, 1,
                 ClickType.LEFT, InventoryAction.PICKUP_ALL));
         assertTrue(Arrays.stream(owner.getInventory().getContents()).allMatch(Objects::isNull),
                 "Clicking move on already-deleted claim must not dupe anchor or gems");

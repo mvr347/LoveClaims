@@ -29,9 +29,17 @@ public class ClaimPickerGUI extends AbstractGUI {
     private final Player viewer;
     private final List<Claim> claims;
     private int page = 0;
+    /** true: a click starts a teleport to the claim (/claim home); false: it opens the claim menu (/claim). */
+    private final boolean homeMode;
 
     public ClaimPickerGUI(LoveClaims plugin, Player viewer, List<Claim> claims) {
-        super(sizeFor(claims.size()), noItalic(MM.deserialize("<gold>Выбор привата</gold>")));
+        this(plugin, viewer, claims, false);
+    }
+
+    public ClaimPickerGUI(LoveClaims plugin, Player viewer, List<Claim> claims, boolean homeMode) {
+        super(sizeFor(claims.size()), homeMode ? me.lovelace.loveclaims.util.GuiText.name(plugin, "picker.home-title")
+                : me.lovelace.loveclaims.util.GuiText.name(plugin, "picker.title"));
+        this.homeMode = homeMode;
         this.plugin = plugin;
         this.viewer = viewer;
         this.claims = new ArrayList<>(claims);
@@ -87,8 +95,8 @@ public class ClaimPickerGUI extends AbstractGUI {
         SkullMeta selfMeta = (SkullMeta) self.getItemMeta();
         if (selfMeta != null) {
             me.lovelace.loveclaims.util.PlayerHeads.apply(selfMeta, viewer);
-            selfMeta.displayName(noItalic(MM.deserialize("<gold>" + viewer.getName() + "</gold>")));
-            selfMeta.lore(List.of(noItalic(MM.deserialize("<dark_gray>Ваши приваты: <white>" + claims.size()))));
+            selfMeta.displayName(noItalic(MM.deserialize("<gold>" + MM.escapeTags(viewer.getName()) + "</gold>")));
+            selfMeta.lore(List.of(me.lovelace.loveclaims.util.GuiText.name(plugin, "picker.profile-lore", "count", String.valueOf(claims.size()))));
             self.setItemMeta(selfMeta);
         }
         inventory.setItem(0, self);
@@ -106,15 +114,13 @@ public class ClaimPickerGUI extends AbstractGUI {
         if (inventory.getSize() == 54) {
             if (page > 0) {
                 inventory.setItem(PAGINATION_PREV_SLOT_54, createHead(HEAD_ARROW_LEFT,
-                        noItalic(MM.deserialize("<gold>Предыдущая страница")), List.of(
-                                noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                                noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>назад")))));
+                        me.lovelace.loveclaims.util.GuiText.name(plugin, "picker.page-prev"),
+                        me.lovelace.loveclaims.util.GuiText.lore(plugin, "picker.page-prev-lore")));
             }
             if (page < totalPages - 1) {
                 inventory.setItem(PAGINATION_NEXT_SLOT_54, createHead(HEAD_ARROW_RIGHT,
-                        noItalic(MM.deserialize("<gold>Следующая страница")), List.of(
-                                noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                                noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>вперёд")))));
+                        me.lovelace.loveclaims.util.GuiText.name(plugin, "picker.page-next"),
+                        me.lovelace.loveclaims.util.GuiText.lore(plugin, "picker.page-next-lore")));
             }
         }
 
@@ -125,28 +131,29 @@ public class ClaimPickerGUI extends AbstractGUI {
 
     private ItemStack claimItem(Claim claim, int number) {
         boolean owner = claim.isOwner(viewer.getUniqueId());
-        String name = claim.getName() != null && !claim.getName().isBlank() ? claim.getName() : "Приват " + number;
+        String name = claim.getName() != null && !claim.getName().isBlank() ? claim.getName()
+                : plugin.getConfigManager().getString("picker.default-name", "n", String.valueOf(number));
         var anchor = claim.getAnchorLocation() != null ? claim.getAnchorLocation() : claim.getBoundingBox().getCenter().toLocation(claim.getWorld());
         var tier = plugin.getAnchorManager().resolveClaimTier(claim);
         int used = claim.getModifiers().usedSlots();
         int max = tier != null ? tier.gemSlots() : 0;
+        String x = String.valueOf(anchor.getBlockX()), y = String.valueOf(anchor.getBlockY()), z = String.valueOf(anchor.getBlockZ());
 
+        // The world is deliberately not shown: a player's claims all lie in the same world.
         List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(MM.deserialize("<dark_gray>" + (owner ? "Ваш приват" : "Вы участник"))));
+        lore.add(me.lovelace.loveclaims.util.GuiText.name(plugin, owner ? "picker.own" : "picker.member"));
         lore.add(Component.empty());
-        lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Расположение:")));
-        lore.add(noItalic(MM.deserialize("  <gray>Мир: <white>" + (claim.getWorld() != null ? claim.getWorld().getName() : "?"))));
-        lore.add(noItalic(MM.deserialize("  <gray>Якорь: <white>" + anchor.getBlockX() + " " + anchor.getBlockY() + " " + anchor.getBlockZ())));
-        lore.add(Component.empty());
-        lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Якорь:")));
-        lore.add(noItalic(MM.deserialize("  <gray>Тир: <white>" + (tier != null ? tier.anchorLevel() : "?"))));
-        lore.add(noItalic(MM.deserialize("  <gray>Слоты гемов: <white>" + used + " <dark_gray>/ <white>" + max)));
-        if (claim.isAnchorBroken()) {
-            lore.add(noItalic(MM.deserialize("  <red>✕ Ядро якоря треснуло")));
+        if (homeMode) {
+            lore.addAll(me.lovelace.loveclaims.util.GuiText.lore(plugin, "picker.home-lore", "x", x, "y", y, "z", z,
+                    "delay", String.valueOf(plugin.getClaimTeleport().delaySeconds())));
+        } else {
+            lore.addAll(me.lovelace.loveclaims.util.GuiText.lore(plugin, "picker.lore", "x", x, "y", y, "z", z,
+                    "tier", String.valueOf(tier != null ? tier.anchorLevel() : "?"), "used", String.valueOf(used), "max", String.valueOf(max)));
+            if (claim.isAnchorBroken()) {
+                lore.add(1, me.lovelace.loveclaims.util.GuiText.name(plugin, "picker.lore-broken"));
+            }
         }
-        lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
-        lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>открыть меню привата")));
-        return createHead(HEAD_INFO, noItalic(MM.deserialize("<gold>" + escape(name) + "</gold>")), lore);
+        return createHead(HEAD_CLAIM, noItalic(MM.deserialize("<gold>" + escape(name) + "</gold>")), lore);
     }
 
     @Override
@@ -186,7 +193,12 @@ public class ClaimPickerGUI extends AbstractGUI {
                 return;
             }
             plugin.getConfigManager().playSound(viewer, "gui-click");
-            viewer.openInventory(new MainClaimGUI(plugin, viewer, target).getInventory());
+            if (homeMode) {
+                viewer.closeInventory();
+                plugin.getClaimTeleport().request(viewer, target);
+            } else {
+                viewer.openInventory(new MainClaimGUI(plugin, viewer, target).getInventory());
+            }
             return;
         }
     }

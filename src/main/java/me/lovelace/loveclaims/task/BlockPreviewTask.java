@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Задача для предпросмотра зоны привата перед созданием.
+ * Задача для предпросмотра зоны клейма перед созданием.
  * Использует Paper API sendMultiBlockChange для максимальной производительности.
  * Или ItemDisplay entities если use-glass-blocks: false.
  */

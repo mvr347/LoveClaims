@@ -4,6 +4,8 @@
 # ВНИМАНИЕ: Легендарные гемы (imperium_* и archon_*) НЕ
 # регистрируются в рецептах верстака по правилам баланса.
 # Уровни зелий задаются человекочитаемо (1 = I, 2 = II).
+# Необязательный ключ itemsadder: "пространство:имя" у гема берёт внешний вид из предмета ItemsAdder
+# (название, описание и характеристики остаются от плагина).
 # ====================================================== #
 
 settings:
@@ -14,13 +16,14 @@ gems:
   # ===== ВЕТКА ДОМЕЙН (ТЕРРИТОРИЯ) =====
   domain:
     rarity: BASIC
+    itemsadder: "voidcore:gem_domain_base"
     material: AMETHYST_SHARD
     custom-model-data: 1001
     name: "<aqua>Гем Домейн</aqua>"
     lore:
       - "<dark_gray>Базовый гем территории (1 слот)</dark_gray>"
       - ""
-      - "<gray>Расширяет границы привата.</gray>"
+      - "<gray>Расширяет границы клейма.</gray>"
     radius-bonus: 6
     recipe:
       enabled: true
@@ -35,30 +38,20 @@ gems:
 
   modified_domain:
     rarity: MODIFIED
+    itemsadder: "voidcore:gem_domain_modify"
     material: AMETHYST_SHARD
     custom-model-data: 1002
     name: "<light_purple>Модифицированный Домейн</light_purple>"
     lore:
       - "<dark_gray>Модифицированный гем территории (2 слота)</dark_gray>"
       - ""
-      - "<gray>Значительно расширяет границы привата.</gray>"
+      - "<gray>Значительно расширяет границы клейма.</gray>"
     radius-bonus: 14
     members-bonus: 1
-    recipe:
-      enabled: true
-      base-gem: domain
-      shape:
-        - "ABA"
-        - "GDG"
-        - "ABA"
-      ingredients:
-        A: AMETHYST_BLOCK
-        B: ENDER_EYE
-        G: AMETHYST_SHARD
-        D: DIAMOND_BLOCK
 
   imperium_domain:
     rarity: LEGENDARY
+    itemsadder: "voidcore:gem_domain_legendary"
     material: AMETHYST_SHARD
     custom-model-data: 1003
     name: "<gold>Домейн Империум</gold>"
@@ -72,6 +65,7 @@ gems:
   # ===== ВЕТКА ДЕМОС (УЧАСТНИКИ) =====
   demos:
     rarity: BASIC
+    itemsadder: "voidcore:gem_demos_base"
     material: EMERALD
     custom-model-data: 1011
     name: "<green>Гем Демос</green>"
@@ -93,31 +87,21 @@ gems:
 
   modified_demos:
     rarity: MODIFIED
+    itemsadder: "voidcore:gem_demos_modify"
     material: EMERALD
     custom-model-data: 1012
     name: "<light_purple>Модифицированный Демос</light_purple>"
     lore:
       - "<dark_gray>Модифицированный гем участников (2 слота)</dark_gray>"
       - ""
-      - "<gray>Больше мест в привате и ускорение участников.</gray>"
+      - "<gray>Больше мест в клейме и ускорение участников.</gray>"
     members-bonus: 5
     effects:
       SPEED: 1
-    recipe:
-      enabled: true
-      base-gem: demos
-      shape:
-        - "EBE"
-        - "GDG"
-        - "EBE"
-      ingredients:
-        E: EMERALD_BLOCK
-        B: GOLDEN_APPLE
-        G: EMERALD
-        D: DIAMOND_BLOCK
 
   imperium_demos:
     rarity: LEGENDARY
+    itemsadder: "voidcore:gem_demos_legendary"
     material: EMERALD
     custom-model-data: 1013
     name: "<gold>Демос Империум</gold>"
@@ -133,6 +117,7 @@ gems:
   # ===== ВЕТКА ЦЕРЕС (ФЕРМЫ И ПРОИЗВОДСТВО) =====
   ceres:
     rarity: BASIC
+    itemsadder: "voidcore:gem_ceres_base"
     material: PRISMARINE_CRYSTALS
     custom-model-data: 1021
     name: "<yellow>Гем Церес</yellow>"
@@ -154,6 +139,7 @@ gems:
 
   modified_ceres:
     rarity: MODIFIED
+    itemsadder: "voidcore:gem_ceres_modify"
     material: PRISMARINE_CRYSTALS
     custom-model-data: 1022
     name: "<light_purple>Модифицированный Церес</light_purple>"
@@ -163,21 +149,10 @@ gems:
       - "<gray>Ускоряет рост культур, печи и зельеварение.</gray>"
     crop-growth-multiplier: 0.50
     furnace-speed-multiplier: 0.30
-    recipe:
-      enabled: true
-      base-gem: ceres
-      shape:
-        - "HBH"
-        - "GDG"
-        - "HBH"
-      ingredients:
-        H: HAY_BLOCK
-        B: BLAZE_POWDER
-        G: PRISMARINE_CRYSTALS
-        D: DIAMOND_BLOCK
 
   imperium_ceres:
     rarity: LEGENDARY
+    itemsadder: "voidcore:gem_ceres_legendary"
     material: PRISMARINE_CRYSTALS
     custom-model-data: 1023
     name: "<gold>Церес Империум</gold>"
@@ -192,13 +167,14 @@ gems:
   # ===== ВЕТКА ВИТА (КОМФОРТ И БАФФЫ) =====
   vita:
     rarity: BASIC
+    itemsadder: "voidcore:gem_vita_base"
     material: GHAST_TEAR
     custom-model-data: 1031
     name: "<red>Гем Вита</red>"
     lore:
       - "<dark_gray>Базовый гем жизни (1 слот)</dark_gray>"
       - ""
-      - "<gray>Дарует регенерацию участникам внутри привата.</gray>"
+      - "<gray>Дарует регенерацию участникам внутри клейма.</gray>"
     effects:
       REGENERATION: 1
     recipe:
@@ -214,42 +190,128 @@ gems:
 
   modified_vita:
     rarity: MODIFIED
+    itemsadder: "voidcore:gem_vita_modify"
     material: GHAST_TEAR
     custom-model-data: 1032
     name: "<light_purple>Модифицированный Вита</light_purple>"
     lore:
       - "<dark_gray>Модифицированный гем жизни (2 слота)</dark_gray>"
       - ""
-      - "<gray>Регенерация и спешка для участников привата.</gray>"
+      - "<gray>Регенерация и спешка для участников клейма.</gray>"
     effects:
       REGENERATION: 1
       HASTE: 1
-    recipe:
-      enabled: true
-      base-gem: vita
-      shape:
-        - "ABA"
-        - "GDG"
-        - "ABA"
-      ingredients:
-        A: GOLDEN_APPLE
-        B: GLOWSTONE
-        G: GHAST_TEAR
-        D: DIAMOND_BLOCK
 
   imperium_vita:
     rarity: LEGENDARY
+    itemsadder: "voidcore:gem_vita_legendary"
     material: GHAST_TEAR
     custom-model-data: 1033
     name: "<gold>Вита Империум</gold>"
     lore:
       - "<dark_gray>Легендарный гем жизни (3 слота)</dark_gray>"
       - ""
-      - "<gray>Мощные баффы жизни и скорости внутри привата.</gray>"
+      - "<gray>Мощные баффы жизни и скорости внутри клейма.</gray>"
     effects:
       REGENERATION: 2
       HASTE: 2
       SPEED: 1
+
+  # ===== УЛУЧШЕННЫЕ ГЕМЫ (2026-11-24): игрок делает на верстаке из 2 базовых гемов одного вида =====
+  # Между базовым и модифицированным (модифицированный гем получают у ремесленника за монеты или в награду за квест).
+  improved_domain:
+    rarity: IMPROVED
+    itemsadder: "voidcore:gem_domain_upgrade"
+    material: AMETHYST_SHARD
+    custom-model-data: 1005
+    name: "<aqua>Улучшенный Домейн</aqua>"
+    lore:
+      - "<dark_gray>Улучшенный гем (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Заметно расширяет границы клейма.</gray>"
+    radius-bonus: 10
+    recipe:
+      enabled: true
+      base-gem: domain
+      shape:
+        - " G "
+        - "PEP"
+        - " G "
+      ingredients:
+        G: AMETHYST_SHARD
+        E: ECHO_SHARD
+        P: PRISMARINE_CRYSTALS
+
+  improved_demos:
+    rarity: IMPROVED
+    itemsadder: "voidcore:gem_demos_upgrade"
+    material: EMERALD
+    custom-model-data: 1015
+    name: "<green>Улучшенный Демос</green>"
+    lore:
+      - "<dark_gray>Улучшенный гем (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Добавляет слоты участников.</gray>"
+    members-bonus: 3
+    recipe:
+      enabled: true
+      base-gem: demos
+      shape:
+        - " G "
+        - "PEP"
+        - " G "
+      ingredients:
+        G: EMERALD
+        E: ECHO_SHARD
+        P: PRISMARINE_CRYSTALS
+
+  improved_ceres:
+    rarity: IMPROVED
+    itemsadder: "voidcore:gem_ceres_upgrade"
+    material: PRISMARINE_CRYSTALS
+    custom-model-data: 1025
+    name: "<yellow>Улучшенный Церес</yellow>"
+    lore:
+      - "<dark_gray>Улучшенный гем (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Ускоряет рост урожая в клейме.</gray>"
+    crop-growth-multiplier: 0.35
+    recipe:
+      enabled: true
+      base-gem: ceres
+      shape:
+        - " G "
+        - "PEP"
+        - " G "
+      ingredients:
+        G: PRISMARINE_CRYSTALS
+        E: ECHO_SHARD
+        P: PRISMARINE_CRYSTALS
+
+  improved_vita:
+    rarity: IMPROVED
+    itemsadder: "voidcore:gem_vita_upgrade"
+    material: GHAST_TEAR
+    custom-model-data: 1035
+    name: "<red>Улучшенный Вита</red>"
+    lore:
+      - "<dark_gray>Улучшенный гем (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Регенерация и сытость для участников клейма.</gray>"
+    effects:
+      REGENERATION: 1
+      SATURATION: 1
+    recipe:
+      enabled: true
+      base-gem: vita
+      shape:
+        - " G "
+        - "PEP"
+        - " G "
+      ingredients:
+        G: GHAST_TEAR
+        E: ECHO_SHARD
+        P: PRISMARINE_CRYSTALS
 
   # ===== ЛЕГЕНДАРНЫЕ СЛИЯНИЯ (АРХОНТЫ, БЕЗ КРАФТА) =====
   archon_domain_demos:
@@ -313,6 +375,7 @@ gems:
 hybrids:
   hybrid_domain_demos:
     material: ECHO_SHARD
+    itemsadder: "voidcore:gem_demos_domain_hybrid"
     custom-model-data: 1201
     name: "<light_purple>Гибрид Домейн-Демос</light_purple>"
     lore:
@@ -328,6 +391,7 @@ hybrids:
 
   hybrid_ceres_vita:
     material: ECHO_SHARD
+    itemsadder: "voidcore:gem_vita_ceres_hybrid"
     custom-model-data: 1202
     name: "<light_purple>Гибрид Церес-Вита</light_purple>"
     lore:
@@ -346,6 +410,7 @@ hybrids:
 
   hybrid_domain_ceres:
     material: ECHO_SHARD
+    itemsadder: "voidcore:gem_domain_ceres_hybrid"
     custom-model-data: 1203
     name: "<light_purple>Гибрид Домейн-Церес</light_purple>"
     lore:
@@ -358,6 +423,22 @@ hybrids:
     debuffs:
       - furnace-speed-multiplier: -0.25
       - radius-bonus: -4
+
+  hybrid_demos_ceres:
+    material: ECHO_SHARD
+    custom-model-data: 1205
+    itemsadder: "voidcore:gem_demos_ceres_hybrid"
+    name: "<light_purple>Гибрид Демос-Церес</light_purple>"
+    lore:
+      - "<dark_gray>Гибридный гем (2 слота)</dark_gray>"
+      - "<gray>Нестабильное слияние союза и ферм.</gray>"
+    first-base: demos
+    second-base: ceres
+    first-modified: modified_demos
+    second-modified: modified_ceres
+    debuffs:
+      - members-bonus: -2
+      - crop-growth-multiplier: -0.25
 
   hybrid_demos_vita:
     material: ECHO_SHARD

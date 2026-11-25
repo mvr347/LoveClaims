@@ -47,7 +47,7 @@ public final class HeadTextures {
             HeadsConfig.get("arrow-right", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWM4YzJhMDExYmU4ZTI2NDk4YjAzNmJjNDA3OTc3NDA4ODczYTYxYTc0MjYxMmM0OTdhMjI1MzU5YTMwYjRjZDMifX19");
 
     /**
-     * Текстура «зелёного стекла» для голов-дисплеев предпросмотра границ привата
+     * Текстура «зелёного стекла» для голов-дисплеев предпросмотра границ клейма
      * (см. {@code task.BlockPreviewTask}, {@code task.BorderDisplayTask}).
      */
     public static final String PREVIEW_GLASS_GREEN =
@@ -58,5 +58,9 @@ public final class HeadTextures {
     public static final String HEAD_PERMISSION_BUILD = HeadsConfig.get("permission-build", HEAD_MOVE_ANCHOR);
     public static final String HEAD_PERMISSION_CONTAINERS = HeadsConfig.get("permission-containers", HEAD_INFO);
     public static final String HEAD_PERMISSION_INTERACT = HeadsConfig.get("permission-interact", HEAD_HIDE_ANCHOR);
+    public static final String HEAD_PERMISSION_CORE = HeadsConfig.get("permission-core", HEAD_INFO);
+    /** Texture of a claim in the claim picker (owner request 2026-11-24). */
+    public static final String HEAD_CLAIM = HeadsConfig.get("claim",
+            "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZmJkOTY2ZDg1ZDRhNGI4ZTIxZTY3NjkwMWUzZDlmZDE5ZWVjODA4N2MzMWJhZjUxOWI0ZjM5YjNjZTU3ZDE5MiJ9fX0=");
     public static final String HEAD_PERMISSION_MANAGE = HeadsConfig.get("permission-manage", HEAD_SETTINGS);
 }

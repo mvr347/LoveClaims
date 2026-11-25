@@ -2,6 +2,9 @@ package me.lovelace.loveclaims.gems;
 
 public enum GemRarity {
     BASIC(1, 1, true),
+    /** Made by the player on a workbench from two basic gems; between basic and modified (2026-11-24). */
+    IMPROVED(2, 1, true),
+    /** Made at the craftsman from an improved gem (coins) or given for a quest; hybrids are modified too. */
     MODIFIED(2, 2, true),
     LEGENDARY(3, 3, false); // Крафт строго запрещён
 

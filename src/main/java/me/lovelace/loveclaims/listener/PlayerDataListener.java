@@ -23,7 +23,7 @@ public class PlayerDataListener implements Listener {
                     plugin.getUserManager().getUserData(playerUuid).loadFrom(userData);
                 });
 
-        // Обновляем активность приватов игрока при входе на сервер
+        // Обновляем активность клеймов игрока при входе на сервер
         plugin.getClaimManager().getClaimsByOwner(playerUuid).forEach(me.lovelace.loveclaims.model.Claim::updateLastActive);
         plugin.getClaimManager().getClaimsByPlayer(playerUuid).forEach(me.lovelace.loveclaims.model.Claim::updateLastActive);
 

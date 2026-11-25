@@ -24,7 +24,7 @@ import java.util.Optional;
 /**
  * Единая административная команда плагина: {@code /loveclaimsadmin <subcommand>}.
  * <p>
- * Раньше все admin-возможности LoveClaims (reload, выдача якорей, расширение приватов,
+ * Раньше все admin-возможности LoveClaims (reload, выдача якорей, расширение клеймов,
  * бонусные слоты участников, очки расширения) были зарыты внутри {@code /ac admin ...}, что не
  * соответствует принятому в экосистеме Love* стилю единой родительской admin-команды с
  * подкомандами. Старый путь оставлен в {@link MainCommand} как редирект, чтобы команда не
@@ -134,15 +134,15 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
                 + "; admin: " + target.hasPermission("loveclaims.admin")
                 + "; moderator: " + target.hasPermission("loveclaims.moderator")));
         if (claim.isEmpty()) {
-            sender.sendMessage(Component.text("В проверяемой точке нет привата."));
+            sender.sendMessage(Component.text("В проверяемой точке нет клейма."));
             return;
         }
         Claim c = claim.get();
-        sender.sendMessage(Component.text("Приват: " + c.getId() + "; владелец: " + c.getOwnerUuid()));
+        sender.sendMessage(Component.text("Клейм: " + c.getId() + "; владелец: " + c.getOwnerUuid()));
         sender.sendMessage(Component.text("Роль: " + c.getTrust(target.getUniqueId())
                 + "; личные права: " + c.getPermissions(target.getUniqueId())
                 + "; права посетителей: " + c.getDefaultPermissions()));
-        sender.sendMessage(Component.text("BUILD в этом привате: "
+        sender.sendMessage(Component.text("BUILD в этом клейме: "
                 + c.hasPermission(target.getUniqueId(), me.lovelace.loveclaims.model.ClaimPermission.BUILD)
                 + "; ожидающее приглашение: " + plugin.getClaimManager().getInvite(target.getUniqueId())));
     }
@@ -206,7 +206,7 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
             return;
         }
         Claim claim = opt.get();
-        // Админ-расширение работает над любыми приватами, включая клановые, при необходимости.
+        // Админ-расширение работает над любыми клеймами, включая клановые, при необходимости.
         if (!claim.getOwnerUuid().equals(owner.getUniqueId())) {
             player.sendMessage(plugin.getConfigManager().getMessage("admin-expand-not-owner", "player", owner.getName()));
             return;

@@ -3,6 +3,7 @@ package me.lovelace.loveclaims.gui;
 import dev.lovelace.lovecore.api.LoveCore;
 import dev.lovelace.lovecore.api.economy.LoveEconomy;
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.util.GuiText;
 import me.lovelace.loveclaims.manager.AnchorManager;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.model.ClaimTier;
@@ -34,7 +35,7 @@ public class AnchorUpgradeGUI extends AbstractGUI {
     private int heldAnchorSlot = -1;
 
     public AnchorUpgradeGUI(LoveClaims plugin, Player viewer) {
-        super(27, noItalic(MM.deserialize("<gold>Мастер Якорей</gold>")));
+        super(27, GuiText.name(plugin, "anchorUpgradeGUI.t1"));
         this.plugin = plugin;
         this.viewer = viewer;
         setMenuItems();
@@ -48,12 +49,12 @@ public class AnchorUpgradeGUI extends AbstractGUI {
         heldAnchorSlot = -1;
 
         inventory.setItem(0, createHead(HEAD_NPC,
-                noItalic(MM.deserialize("<gold>Мастер Якорей</gold>")),
+                GuiText.name(plugin, "anchorUpgradeGUI.t1"),
                 List.of(
-                        noItalic(MM.deserialize("<dark_gray>Модификация якорей</dark_gray>")),
+                        GuiText.name(plugin, "anchorUpgradeGUI.t2"),
                         Component.empty(),
-                        noItalic(MM.deserialize("<gray>Улучшает <white>Обычный</white> якорь в <light_purple>Модифицированный</light_purple>:")),
-                        noItalic(MM.deserialize("<green>+1 <gray>слот под гемы и <green>+25% <gray>к базовому радиусу"))
+                        GuiText.name(plugin, "anchorUpgradeGUI.t3"),
+                        GuiText.name(plugin, "anchorUpgradeGUI.t4")
                 )));
 
         for (Claim c : plugin.getClaimManager().getClaimsByOwner(viewer.getUniqueId())) {
@@ -73,10 +74,10 @@ public class AnchorUpgradeGUI extends AbstractGUI {
         if (totalEntries == 0) {
             contentSlots = centeredRowSlots(1);
             inventory.setItem(contentSlots[0], createHead(HEAD_BARRIER,
-                    noItalic(MM.deserialize("<red>Нет якорей для модификации</red>")),
+                    GuiText.name(plugin, "anchorUpgradeGUI.t5"),
                     List.of(
-                            noItalic(MM.deserialize("<gray>Возьмите обычный якорь в руку или")),
-                            noItalic(MM.deserialize("<gray>установите его для улучшения."))
+                            GuiText.name(plugin, "anchorUpgradeGUI.t6"),
+                            GuiText.name(plugin, "anchorUpgradeGUI.t7")
                     )));
         } else {
             contentSlots = centeredRowSlots(totalEntries);
@@ -89,7 +90,7 @@ public class AnchorUpgradeGUI extends AbstractGUI {
                 String claimLabel = claim.getName() != null ? claim.getName()
                         : claim.getAnchorLocation().getBlockX() + "," + claim.getAnchorLocation().getBlockZ();
                 inventory.setItem(contentSlots[idx], buildUpgradeIcon(
-                        "<aqua>Приват: <white>" + claimLabel, current, target));
+                        "<aqua>Клейм: <white>" + claimLabel, current, target));
             }
             if (hasHeldAnchorUpgrade && idx < contentSlots.length) {
                 ClaimTier current = heldTierOpt.get();
@@ -102,15 +103,19 @@ public class AnchorUpgradeGUI extends AbstractGUI {
             }
         }
 
-        // Header control button (gui_gen RULE 4: one button -> slot 4)
-        inventory.setItem(headerControlSlots(1)[0], createHead(HEAD_PROMOTE,
-                noItalic(MM.deserialize("<gold>Вшить гем <dark_gray>|</dark_gray> <yellow>Навсегда</yellow>")),
+        // Header control buttons (gui_gen RULE 4: two buttons -> slots 3 and 5): fuse a gem, modify a gem
+        int[] controls = headerControlSlots(2);
+        inventory.setItem(controls[0], createHead(HEAD_PROMOTE,
+                GuiText.name(plugin, "anchorUpgradeGUI.t8"),
                 List.of(
-                        noItalic(MM.deserialize("<dark_gray>Постоянное улучшение якоря")),
+                        GuiText.name(plugin, "anchorUpgradeGUI.t9"),
                         Component.empty(),
-                        noItalic(MM.deserialize("<gray>Один гем на якорь, занимает <white>1</white> слот")),
+                        GuiText.name(plugin, "anchorUpgradeGUI.t10"),
+                        Component.empty(),
                         noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                        noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>открыть вшивание")))));
+                        GuiText.name(plugin, "anchorUpgradeGUI.t11"))));
+        inventory.setItem(controls[1], createHead(HEAD_PROMOTE, GuiText.name(plugin, "gem-modify.header-button-name"),
+                GemModifyGUI.headerLore(plugin)));
 
         setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
         fillFrameGlass();
@@ -126,10 +131,11 @@ public class AnchorUpgradeGUI extends AbstractGUI {
         if (cost > 0) {
             lore.add(noItalic(MM.deserialize("<gray>Стоимость: <white>" + CoinFormat.formatGlyphs(cost))));
         } else {
-            lore.add(noItalic(MM.deserialize("<gray>Стоимость: <green>Бесплатно")));
+            lore.add(GuiText.name(plugin, "anchorUpgradeGUI.t12"));
         }
+        lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
-        lore.add(noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>улучшить якорь")));
+        lore.add(GuiText.name(plugin, "anchorUpgradeGUI.t13"));
         return createHead(HEAD_PROMOTE, noItalic(MM.deserialize(title)), lore);
     }
 
@@ -142,9 +148,15 @@ public class AnchorUpgradeGUI extends AbstractGUI {
             return;
         }
 
-        if (slot == headerControlSlots(1)[0]) {
+        int[] controls = headerControlSlots(2);
+        if (slot == controls[0]) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new GemFuseGUI(plugin, viewer).getInventory());
+            return;
+        }
+        if (slot == controls[1]) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.openInventory(new GemModifyGUI(plugin, viewer).getInventory());
             return;
         }
 
@@ -190,7 +202,7 @@ public class AnchorUpgradeGUI extends AbstractGUI {
         }
 
         plugin.getEffects().playFor(viewer, claim.getAnchorLocation(), "anchor-upgrade");
-        viewer.sendMessage(noItalic(MM.deserialize("<green>Якорь привата улучшен до <light_purple>Модифицированного</light_purple>!</green>")));
+        viewer.sendMessage(GuiText.name(plugin, "anchorUpgradeGUI.t14"));
         setMenuItems();
     }
 
@@ -225,7 +237,7 @@ public class AnchorUpgradeGUI extends AbstractGUI {
         }
 
         plugin.getEffects().playFor(viewer, viewer.getLocation(), "anchor-upgrade");
-        viewer.sendMessage(noItalic(MM.deserialize("<green>Якорь в руке улучшен до <light_purple>Модифицированного</light_purple>!</green>")));
+        viewer.sendMessage(GuiText.name(plugin, "anchorUpgradeGUI.t15"));
         setMenuItems();
     }
 

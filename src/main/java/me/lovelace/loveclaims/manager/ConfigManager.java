@@ -46,6 +46,7 @@ public class ConfigManager {
 
         File langFile = new File(plugin.getDataFolder(), "lang.yml");
         if (!langFile.exists()) plugin.saveResource("lang.yml", false);
+        refreshOutdatedLang(langFile);
         lang = YamlConfiguration.loadConfiguration(langFile);
         // Keys added in later versions must not show up as "Error: <key>" on servers that keep an
         // older lang.yml: the bundled file is the fallback for every key the server file lacks.
@@ -65,6 +66,7 @@ public class ConfigManager {
         File gemsFile = new File(plugin.getDataFolder(), "gems.yml");
         if (!gemsFile.exists()) plugin.saveResource("gems.yml", false);
         gems = YamlConfiguration.loadConfiguration(gemsFile);
+        addMissingGems(gemsFile);
         try (java.io.InputStream bundledGems = plugin.getResource("gems.yml")) {
             if (bundledGems != null) {
                 gems.setDefaults(YamlConfiguration.loadConfiguration(
@@ -80,6 +82,76 @@ public class ConfigManager {
         plugin.getLogger().info("Language: " + language);
 
         scheduleSpawnWorldCheck();
+    }
+
+    /**
+     * 2026-11-24: gems added in a later version (improved_*) are copied from the bundled gems.yml into a server file
+     * that lacks them, so a server with an old gems.yml gets the new gem tier without losing its own edits.
+     */
+    private void addMissingGems(File gemsFile) {
+        try (java.io.InputStream bundled = plugin.getResource("gems.yml")) {
+            if (bundled == null) return;
+            FileConfiguration fresh = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(bundled,
+                    java.nio.charset.StandardCharsets.UTF_8));
+            var freshGems = fresh.getConfigurationSection("gems");
+            if (freshGems == null) return;
+            boolean changed = false;
+            for (String id : freshGems.getKeys(false)) {
+                if (id.startsWith("improved_") && !gems.contains("gems." + id)) {
+                    gems.set("gems." + id, freshGems.getConfigurationSection(id));
+                    changed = true;
+                    continue;
+                }
+                // ItemsAdder ids of existing gems are added once; a key the admin set (even blank) stays as it is.
+                String ia = freshGems.getString(id + ".itemsadder", "");
+                if (!ia.isBlank() && gems.contains("gems." + id) && !gems.contains("gems." + id + ".itemsadder")) {
+                    gems.set("gems." + id + ".itemsadder", ia);
+                    changed = true;
+                }
+            }
+            var freshHybrids = fresh.getConfigurationSection("hybrids");
+            if (freshHybrids != null) {
+                for (String id : freshHybrids.getKeys(false)) {
+                    if (id.equals("hybrid_demos_ceres") && !gems.contains("hybrids." + id)) {
+                        gems.set("hybrids." + id, freshHybrids.getConfigurationSection(id));
+                        changed = true;
+                        continue;
+                    }
+                    String ia = freshHybrids.getString(id + ".itemsadder", "");
+                    if (!ia.isBlank() && gems.contains("hybrids." + id) && !gems.contains("hybrids." + id + ".itemsadder")) {
+                        gems.set("hybrids." + id + ".itemsadder", ia);
+                        changed = true;
+                    }
+                }
+            }
+            if (changed) {
+                gems.save(gemsFile);
+                plugin.getLogger().info("gems.yml: added the improved gems and ItemsAdder ids");
+            }
+        } catch (java.io.IOException e) {
+            plugin.getLogger().warning("Could not update gems.yml: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 2026-11-24: menu texts were rewritten (claims instead of privates, new lore). A lang.yml that keeps old values
+     * would hide every change, because the bundled file is only a fallback for missing keys. When the server file
+     * carries a lower {@code lang-revision}, it is saved next to itself and replaced by the bundled one.
+     */
+    private void refreshOutdatedLang(File langFile) {
+        try (java.io.InputStream bundled = plugin.getResource("lang.yml")) {
+            if (bundled == null) return;
+            int bundledRevision = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(bundled,
+                    java.nio.charset.StandardCharsets.UTF_8)).getInt("lang-revision", 0);
+            int current = YamlConfiguration.loadConfiguration(langFile).getInt("lang-revision", 0);
+            if (current >= bundledRevision) return;
+            java.nio.file.Files.copy(langFile.toPath(), new File(plugin.getDataFolder(), "lang.yml.bak-" + current).toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            plugin.saveResource("lang.yml", true);
+            plugin.getLogger().info("lang.yml updated to revision " + bundledRevision + "; the old file is lang.yml.bak-" + current);
+        } catch (java.io.IOException e) {
+            plugin.getLogger().warning("Could not refresh lang.yml: " + e.getMessage());
+        }
     }
 
     /**

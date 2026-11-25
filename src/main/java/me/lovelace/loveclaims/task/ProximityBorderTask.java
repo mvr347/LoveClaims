@@ -14,7 +14,7 @@ import org.bukkit.util.BoundingBox;
 import java.util.List;
 
 /**
- * Подсказка границ чужих приватов для игрока, который ХОДИТ с якорем в руке (стоящему не показывается).
+ * Подсказка границ чужих клеймов для игрока, который ХОДИТ с якорем в руке (стоящему не показывается).
  * Партиклы не создают энтити на сервере и отрисовываются клиентом. Rental и торговые точки здесь не
  * участвуют: их контур показывает {@link ParticleBorder} по событию.
  */
@@ -47,11 +47,7 @@ public class ProximityBorderTask {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (!player.isOnline()) continue;
 
-                UserData data = plugin.getUserManager().getUserData(player.getUniqueId());
-                if (data != null && !data.isShowProximityBorder()) {
-                    continue;
-                }
-
+                // 2026-11-24: the hint is always on for everyone (no personal switch any more).
                 Location pLoc = player.getLocation();
                 if (pLoc.getWorld() == null) continue;
 

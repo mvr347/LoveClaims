@@ -51,7 +51,7 @@ public class AnchorListener implements Listener {
     }
 
     /**
-     * +N к радиусу привата по X/Z за высокую вежливость или добрый стиль игры
+     * +N к радиусу клейма по X/Z за высокую вежливость или добрый стиль игры
      * (LoveCore.BehaviorLevels, ставит LoveBehavior). Без LoveCore/LoveBehavior — 0.
      */
     private int behaviorBonusRadius(UUID playerId) {
@@ -86,7 +86,7 @@ public class AnchorListener implements Listener {
         Claim claim = claimOpt.get();
 
         // Клановая территория управляется через LoveClans (осада/война), а не через
-        // GUI подтверждения удаления привата LoveClaims - это ветка только для приватов игроков.
+        // GUI подтверждения удаления клейма LoveClaims - это ветка только для клеймов игроков.
         // Без этой проверки разрушение баннера клановой территории всегда безусловно отменялось
         // бы здесь (сравнение claim.getOwnerUuid() с player.getUniqueId() для клана никогда не
         // совпадает, т.к. владелец клановой территории - UUID клана, а не игрока), не давая дойти
@@ -120,7 +120,7 @@ public class AnchorListener implements Listener {
         Block clickedBlock = event.getClickedBlock();
         if (clickedBlock == null) return;
 
-        // Если есть ожидающий приват, то не обрабатываем обычный клик по якорю
+        // Если есть ожидающий клейм, то не обрабатываем обычный клик по якорю
         if (pendingClaims.containsKey(player.getUniqueId())) return;
 
         Optional<Claim> existingClaimOpt = plugin.getClaimManager().getClaimAt(clickedBlock.getLocation());
@@ -132,20 +132,20 @@ public class AnchorListener implements Listener {
                     clickedBlock.getY() == anchorLoc.getBlockY() &&
                     clickedBlock.getZ() == anchorLoc.getBlockZ()) {
 
-                // Клановая территория управляется через LoveClans, а не через GUI приватов LoveClaims;
+                // Клановая территория управляется через LoveClans, а не через GUI клеймов LoveClaims;
                 // у арендного участка и торговой точки нет якоря (их "якорь" - место торговца).
                 if (!usesAnchor(claim.isClanTerritory(), claim.isRentalPlot())) {
                     return;
                 }
 
-                // Если приват в режиме осады и игрок НЕ является лидером клана, не открываем GUI
+                // Если клейм в режиме осады и игрок НЕ является лидером клана, не открываем GUI
                 if (claim.isUnderSiege() && !player.getUniqueId().equals(claim.getOwnerUuid())) {
                     event.setCancelled(true);
                     player.sendMessage(plugin.getConfigManager().getMessage("siege-interact-deny"));
                     return;
                 }
 
-                if (claim.isManager(player.getUniqueId())) {
+                if (claim.isManager(player.getUniqueId()) || claim.canManageCore(player.getUniqueId())) {
                     event.setCancelled(true);
                     player.openInventory(new MainClaimGUI(plugin, player, claim).getInventory());
                 }
@@ -180,7 +180,7 @@ public class AnchorListener implements Listener {
             }
         }
 
-        // Проверка на пересечение с существующими приватами других игроков (и рентой)
+        // Проверка на пересечение с существующими клеймами других игроков (и рентой)
         java.util.Optional<Claim> conflictingOpt = plugin.getClaimManager().getFirstOverlappingClaim(targetLoc.getWorld(), newBox, null);
         if (conflictingOpt.isPresent()) {
             Claim conflict = conflictingOpt.get();
@@ -244,11 +244,11 @@ public class AnchorListener implements Listener {
     public void onConfirmInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         if (event.getAction().name().contains("RIGHT_CLICK") && pendingClaims.containsKey(player.getUniqueId())) {
-            // Всегда отменяем клик, пока приват ожидает подтверждения - иначе, пока действует
+            // Всегда отменяем клик, пока клейм ожидает подтверждения - иначе, пока действует
             // debounce ниже, клик доходит до ванильной обработки и якорь (материал которого -
             // реальный ставящийся блок, напр. костёр) физически ставится в мире как обычный
             // блок, съедая предмет из руки. Следующая проверка в BlockPreviewTask видит пустую
-            // руку и откатывает приват с сообщением "держите якорь в руке", а блок остаётся
+            // руку и откатывает клейм с сообщением "держите якорь в руке", а блок остаётся
             // висеть незарегистрированным (ломается как ванильный, напр. роняет уголь).
             event.setCancelled(true);
 

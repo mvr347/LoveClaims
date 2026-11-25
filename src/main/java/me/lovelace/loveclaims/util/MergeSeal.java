@@ -24,16 +24,17 @@ public final class MergeSeal {
     }
 
     public static ItemStack create(LoveClaims plugin) {
-        ItemStack item = new ItemStack(Material.NAUTILUS_SHELL);
+        ItemStack item = IaItems.orElse(plugin.getConfig().getString("itemsadder.merge-seal"), new ItemStack(Material.NAUTILUS_SHELL));
         item.editMeta(meta -> {
-            meta.displayName(noItalic(MM.deserialize("<gold>Печать слияния <dark_gray>|</dark_gray> <yellow>Приваты</yellow>")));
+            meta.displayName(noItalic(MM.deserialize("<gold>Печать слияния <dark_gray>|</dark_gray> <yellow>Клеймы</yellow>")));
             meta.lore(List.of(
                     noItalic(MM.deserialize("<dark_gray>Особый предмет")),
                     Component.empty(),
-                    noItalic(MM.deserialize("<gray>Нужна, чтобы объединить свой приват")),
-                    noItalic(MM.deserialize("<gray>с приватом другого владельца.")),
+                    noItalic(MM.deserialize("<gray>Нужна для слияния двух клеймов:")),
+                    noItalic(MM.deserialize("<gray>своих или чужих. Тратится при слиянии.")),
+                    Component.empty(),
                     noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                    noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>по привату в меню слияния"))));
+                    noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>по клейму в меню слияния"))));
             meta.getPersistentDataContainer().set(key(plugin), PersistentDataType.BYTE, (byte) 1);
         });
         return item;

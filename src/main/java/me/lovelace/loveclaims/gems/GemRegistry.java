@@ -45,6 +45,8 @@ public final class GemRegistry {
     private final Map<String, GemDescriptor> descriptors = new LinkedHashMap<>();
     private final Map<String, Material> gemMaterials = new HashMap<>();
     private final Map<String, Integer> gemCmds = new HashMap<>();
+    /** Optional ItemsAdder ids ("namespace:id") used as the visual base of a gem item. */
+    private final Map<String, String> gemIaIds = new HashMap<>();
     private final Map<String, String> gemNames = new HashMap<>();
     private final Map<String, List<String>> gemBaseLore = new HashMap<>();
 
@@ -74,6 +76,7 @@ public final class GemRegistry {
         descriptors.clear();
         gemMaterials.clear();
         gemCmds.clear();
+        gemIaIds.clear();
         gemNames.clear();
         gemBaseLore.clear();
 
@@ -113,6 +116,7 @@ public final class GemRegistry {
         descriptors.put(id, new PureGemDescriptor(id, rarity, stats));
         gemMaterials.put(id, material);
         gemCmds.put(id, cmd);
+        gemIaIds.put(id, sec.getString("itemsadder", ""));
         gemNames.put(id, name);
         gemBaseLore.put(id, lore);
     }
@@ -151,6 +155,7 @@ public final class GemRegistry {
         descriptors.put(id, new HybridGemDescriptor(id, firstBase, secondBase, firstMod, secondMod, debuffs));
         gemMaterials.put(id, material);
         gemCmds.put(id, cmd);
+        gemIaIds.put(id, sec.getString("itemsadder", ""));
         gemNames.put(id, name);
         gemBaseLore.put(id, lore);
     }
@@ -178,6 +183,41 @@ public final class GemRegistry {
         return new GemStats(id, rarity, slotCost, radius, members, crop, furnace, doubleDrop, bypass, effects);
     }
 
+    /**
+     * Recipe ingredient for a gem used as a material: the configured material and, once ItemsAdder has loaded,
+     * the material of the gem's ItemsAdder item. The crafting listener still demands real gems with their tags.
+     */
+    private RecipeChoice gemIngredient(String gemId) {
+        java.util.Set<Material> materials = new java.util.LinkedHashSet<>();
+        Material configured = gemMaterials.get(gemId);
+        if (configured != null) materials.add(configured);
+        ItemStack ia = me.lovelace.loveclaims.util.IaItems.get(gemIaIds.get(gemId));
+        if (ia != null) materials.add(ia.getType());
+        return new RecipeChoice.MaterialChoice(new ArrayList<>(materials));
+    }
+
+    private org.bukkit.scheduler.BukkitTask iaRefresh;
+
+    /**
+     * ItemsAdder loads its items after the server has started, so recipes built at enable time cannot know the
+     * material of a gem's ItemsAdder item yet. Checks every 5 seconds (up to 15 minutes) and rebuilds the recipes once.
+     */
+    public void refreshWhenItemsAdderIsReady() {
+        String probe = gemIaIds.values().stream().filter(v -> v != null && !v.isBlank()).findFirst().orElse(null);
+        if (probe == null || iaRefresh != null) return;
+        int[] tries = {0};
+        iaRefresh = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (me.lovelace.loveclaims.util.IaItems.get(probe) != null) {
+                iaRefresh.cancel();
+                iaRefresh = null;
+                reload();
+            } else if (++tries[0] > 180) {
+                iaRefresh.cancel();
+                iaRefresh = null;
+            }
+        }, 100L, 100L);
+    }
+
     private void registerRecipes(FileConfiguration gemsCfg) {
         // 1. Craftable pure gems (STRICTLY BASIC & MODIFIED only, never LEGENDARY)
         ConfigurationSection pureSection = gemsCfg.getConfigurationSection("gems");
@@ -187,6 +227,9 @@ public final class GemRegistry {
                 GemDescriptor desc = descriptors.get(normId);
                 if (!(desc instanceof PureGemDescriptor pure)) continue;
                 if (!pure.rarity().isCraftable()) continue; // Hard block for LEGENDARY
+                // A modified gem is made at the craftsman (coins) or given for a quest, never on a workbench:
+                // an old gems.yml may still carry the former workbench recipe, so it is ignored here.
+                if (pure.rarity() == GemRarity.MODIFIED) continue;
 
                 ConfigurationSection recipeSec = pureSection.getConfigurationSection(id + ".recipe");
                 if (recipeSec == null || !recipeSec.getBoolean("enabled", false)) continue;
@@ -208,7 +251,13 @@ public final class GemRegistry {
                         valid = false;
                         break;
                     }
-                    recipe.setIngredient(sym.charAt(0), mat);
+                    String baseGemId = recipeSec.getString("base-gem", "").toLowerCase(Locale.ROOT);
+                    // A slot that takes a base gem accepts the gem's configured material and its ItemsAdder material
+                    if (!baseGemId.isEmpty() && mat == gemMaterials.get(baseGemId)) {
+                        recipe.setIngredient(sym.charAt(0), gemIngredient(baseGemId));
+                    } else {
+                        recipe.setIngredient(sym.charAt(0), mat);
+                    }
                 }
                 if (!valid) continue;
 
@@ -230,8 +279,8 @@ public final class GemRegistry {
 
             NamespacedKey key = new NamespacedKey(plugin, "gem_hybrid_" + hybrid.id());
             ShapelessRecipe recipe = new ShapelessRecipe(key, createHybridItem(hybrid, HybridRollOutcome.NEUTRAL, true));
-            recipe.addIngredient(m1);
-            recipe.addIngredient(m2);
+            recipe.addIngredient(gemIngredient(hybrid.firstBaseGemId()));
+            recipe.addIngredient(gemIngredient(hybrid.secondBaseGemId()));
             addRecipeSafely(key, recipe);
             hybridRecipes.put(key, hybrid);
         }
@@ -393,6 +442,14 @@ public final class GemRegistry {
         return key != null && registeredRecipeKeys.contains(key);
     }
 
+    /** The modified gem an improved gem becomes at the craftsman (improved_x -> modified_x), if such a gem exists. */
+    public Optional<String> modifiedFor(String gemId) {
+        String id = gemId == null ? "" : gemId.toLowerCase(Locale.ROOT);
+        if (!id.startsWith("improved_")) return Optional.empty();
+        String target = "modified_" + id.substring("improved_".length());
+        return descriptors.containsKey(target) ? Optional.of(target) : Optional.empty();
+    }
+
     public ItemStack createGemItem(String gemId, int amount) {
         Optional<GemDescriptor> descOpt = getDescriptor(gemId);
         if (descOpt.isEmpty()) return null;
@@ -496,6 +553,8 @@ public final class GemRegistry {
     private ItemStack buildTemplate(String gemId) {
         Material mat = gemMaterials.getOrDefault(gemId.toLowerCase(Locale.ROOT), Material.EMERALD);
         int cmd = gemCmds.getOrDefault(gemId.toLowerCase(Locale.ROOT), 0);
+        ItemStack ia = me.lovelace.loveclaims.util.IaItems.get(gemIaIds.get(gemId.toLowerCase(Locale.ROOT)));
+        if (ia != null) return ia;
         ItemStack item = new ItemStack(mat);
         if (cmd > 0) {
             item.editMeta(meta -> meta.setCustomModelData(cmd));
@@ -509,6 +568,7 @@ public final class GemRegistry {
             lore.add(noItalic(MM.deserialize(line)));
         }
 
+        lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
         if (pendingCraftPreview) {
             lore.add(noItalic(MM.deserialize("<yellow>? Характеристики определятся при крафте</yellow>")));
@@ -529,7 +589,7 @@ public final class GemRegistry {
         }
 
         if (stats.radiusBonus() != 0) {
-            lore.add(noItalic(formatSignedInt("Радиус привата", stats.radiusBonus(), " бл.")));
+            lore.add(noItalic(formatSignedInt("Радиус клейма", stats.radiusBonus(), " бл.")));
         }
         if (stats.membersBonus() != 0) {
             lore.add(noItalic(formatSignedInt("Слоты участников", stats.membersBonus(), "")));

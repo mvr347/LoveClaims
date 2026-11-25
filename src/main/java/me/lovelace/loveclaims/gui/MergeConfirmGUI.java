@@ -1,6 +1,7 @@
 package me.lovelace.loveclaims.gui;
 
 import me.lovelace.loveclaims.LoveClaims;
+import me.lovelace.loveclaims.util.GuiText;
 import me.lovelace.loveclaims.manager.ClaimMerger;
 import me.lovelace.loveclaims.model.Claim;
 import me.lovelace.loveclaims.util.MergeSeal;
@@ -22,8 +23,6 @@ import static me.lovelace.loveclaims.textures.HeadTextures.*;
  */
 public class MergeConfirmGUI extends AbstractGUI {
     private static final MiniMessage MM = MiniMessage.miniMessage();
-    private static final int CONFIRM_SLOT = 1;
-    private static final int CANCEL_SLOT = 7;
 
     private final LoveClaims plugin;
     private final Player viewer;
@@ -31,7 +30,7 @@ public class MergeConfirmGUI extends AbstractGUI {
     private final Claim absorbed;
 
     public MergeConfirmGUI(LoveClaims plugin, Player viewer, Claim survivor, Claim absorbed) {
-        super(9, noItalic(MM.deserialize("<gold>Подтвердите слияние</gold>")));
+        super(confirmSize(viewer), confirmTitle(viewer, GuiText.name(plugin, "mergeConfirmGUI.t1")));
         this.plugin = plugin;
         this.viewer = viewer;
         this.survivor = survivor;
@@ -48,43 +47,43 @@ public class MergeConfirmGUI extends AbstractGUI {
     protected void setMenuItems() {
         var plan = plugin.getClaimMerger().plan(survivor, absorbed);
         List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(MM.deserialize("<dark_gray>Слияние двух приватов")));
+        lore.add(GuiText.name(plugin, "mergeConfirmGUI.t2"));
         lore.add(Component.empty());
-        lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Что произойдёт:")));
-        lore.add(noItalic(MM.deserialize("  <green>✓ <gray>Остаётся этот приват, область объединяется")));
-        lore.add(noItalic(MM.deserialize("  <gray>Якорь и гемы второго привата вернутся владельцу")));
-        lore.add(noItalic(MM.deserialize("  <gray>Участники объединяются, права строже побеждают")));
+        lore.add(GuiText.name(plugin, "mergeConfirmGUI.t3"));
+        lore.add(GuiText.name(plugin, "mergeConfirmGUI.t4"));
+        lore.add(GuiText.name(plugin, "mergeConfirmGUI.t5"));
+        lore.add(GuiText.name(plugin, "mergeConfirmGUI.t6"));
         if (plan.isPresent() && plan.get().bothHavePermanentGem()) {
-            lore.add(noItalic(MM.deserialize("  <red>✕ <gray>У обоих вшит гем: останется <white>случайный</white>,")));
-            lore.add(noItalic(MM.deserialize("    <gray>второй пропадёт")));
+            lore.add(GuiText.name(plugin, "mergeConfirmGUI.t7"));
+            lore.add(GuiText.name(plugin, "mergeConfirmGUI.t8"));
         }
+        boolean seal = MergeSeal.has(plugin, viewer);
+        lore.add(Component.empty());
+        lore.add(GuiText.name(plugin, "mergeConfirmGUI.t9"));
+        lore.add(noItalic(MM.deserialize((seal ? "  <green>✓ " : "  <red>✕ ") + "<gray>Печать слияния: " + (seal ? "<green>есть" : "<red>нет"))));
         if (!sameOwner()) {
-            boolean seal = MergeSeal.has(plugin, viewer);
-            lore.add(Component.empty());
-            lore.add(noItalic(MM.deserialize("<dark_gray>▪ <gray>Требования:")));
-            lore.add(noItalic(MM.deserialize((seal ? "  <green>✓ " : "  <red>✕ ") + "<gray>Печать слияния: " + (seal ? "<green>есть" : "<red>нет"))));
-            lore.add(noItalic(MM.deserialize("  <gray>Согласие владельца второго привата")));
+            lore.add(GuiText.name(plugin, "mergeConfirmGUI.t10"));
         }
+        lore.add(Component.empty());
         lore.add(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")));
         lore.add(noItalic(MM.deserialize(sameOwner() ? "<green>ЛКМ <dark_gray>— <gray>объединить" : "<green>ЛКМ <dark_gray>— <gray>отправить запрос владельцу")));
-        inventory.setItem(CONFIRM_SLOT, createHead(HEAD_DELETE_YES, noItalic(MM.deserialize("<green>Подтвердить")), lore));
-        inventory.setItem(CANCEL_SLOT, createHead(HEAD_DELETE_NO, noItalic(MM.deserialize("<red>Отмена")),
-                List.of(noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
-                        noItalic(MM.deserialize("<green>ЛКМ <dark_gray>— <gray>вернуться")))));
-        setGlass(0, 2, 6, 8);
+        placeConfirm(GuiText.name(plugin, "mergeConfirmGUI.t11"), lore,
+                GuiText.name(plugin, "mergeConfirmGUI.t12"),
+                List.of(Component.empty(), noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
+                        GuiText.name(plugin, "mergeConfirmGUI.t13")));
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        if (event.getSlot() == CANCEL_SLOT) {
+        if (isCancelSlot(event.getSlot())) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new MergeGUI(plugin, viewer, survivor).getInventory());
             return;
         }
-        if (event.getSlot() != CONFIRM_SLOT) return;
+        if (!isConfirmSlot(event.getSlot())) return;
 
         if (!survivor.isOwner(viewer.getUniqueId())) {
-            deny("<red>Объединять приват может только его владелец.</red>");
+            deny("<red>Объединять клейм может только его владелец.</red>");
             return;
         }
         var plan = plugin.getClaimMerger().plan(survivor, absorbed);
@@ -92,27 +91,30 @@ public class MergeConfirmGUI extends AbstractGUI {
             deny("<red>" + MergeGUI.reasonText(plugin.getClaimMerger().check(survivor, absorbed)) + ".</red>");
             return;
         }
-        viewer.closeInventory();
-        if (sameOwner()) {
-            ClaimMerger.Reason result = plugin.getClaimMerger().execute(plan.get());
-            viewer.sendMessage(noItalic(MM.deserialize(result == ClaimMerger.Reason.OK
-                    ? "<green>Приваты объединены.</green>" : "<red>" + MergeGUI.reasonText(result) + ".</red>")));
-            return;
-        }
+        // Every merge costs a seal, also between two claims of one owner.
         if (!MergeSeal.has(plugin, viewer)) {
             deny("<red>Нужна Печать слияния.</red>");
             return;
         }
+        viewer.closeInventory();
+        if (sameOwner()) {
+            MergeSeal.consume(plugin, viewer);
+            ClaimMerger.Reason result = plugin.getClaimMerger().execute(plan.get());
+            if (result != ClaimMerger.Reason.OK) viewer.getInventory().addItem(MergeSeal.create(plugin)); // nothing merged: give it back
+            viewer.sendMessage(noItalic(MM.deserialize(result == ClaimMerger.Reason.OK
+                    ? "<green>Клеймы объединены.</green>" : "<red>" + MergeGUI.reasonText(result) + ".</red>")));
+            return;
+        }
         Player target = plugin.getServer().getPlayer(absorbed.getOwnerUuid());
         if (target == null) {
-            deny("<red>Владелец второго привата сейчас не в сети.</red>");
+            deny("<red>Владелец второго клейма сейчас не в сети.</red>");
             return;
         }
         plugin.getClaimMerger().request(survivor, absorbed, viewer);
         viewer.sendMessage(noItalic(MM.deserialize("<green>Запрос на слияние отправлен игроку <white>" + MM.escapeTags(target.getName())
                 + "</white>. Он действует 60 секунд.</green>")));
         target.sendMessage(noItalic(MM.deserialize("<gold>" + MM.escapeTags(viewer.getName())
-                + "</gold> <gray>предлагает объединить ваш приват со своим. Вы станете менеджером объединённого привата; "
+                + "</gold> <gray>предлагает объединить ваш клейм со своим. Вы станете менеджером объединённого клейма; "
                 + "ваш якорь и гемы вернутся вам.")));
         target.sendMessage(noItalic(MM.deserialize("<green>[Принять]</green>")
                 .clickEvent(ClickEvent.runCommand("/ac merge accept"))
