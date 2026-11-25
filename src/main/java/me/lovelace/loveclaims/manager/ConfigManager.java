@@ -112,6 +112,11 @@ public class ConfigManager {
             var freshHybrids = fresh.getConfigurationSection("hybrids");
             if (freshHybrids != null) {
                 for (String id : freshHybrids.getKeys(false)) {
+                    if (id.equals("hybrid_demos_ceres") && !gems.contains("hybrids." + id)) {
+                        gems.set("hybrids." + id, freshHybrids.getConfigurationSection(id));
+                        changed = true;
+                        continue;
+                    }
                     String ia = freshHybrids.getString(id + ".itemsadder", "");
                     if (!ia.isBlank() && gems.contains("hybrids." + id) && !gems.contains("hybrids." + id + ".itemsadder")) {
                         gems.set("hybrids." + id + ".itemsadder", ia);

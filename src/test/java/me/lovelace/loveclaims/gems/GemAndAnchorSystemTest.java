@@ -125,7 +125,7 @@ class GemAndAnchorSystemTest {
     @Test
     void legendaryGemsHaveZeroCraftRecipesWhileBasicAndModifiedAreLoaded() {
         GemRegistry reg = plugin.getGemRegistry();
-        assertEquals(24, reg.getAllDescriptors().size());
+        assertEquals(25, reg.getAllDescriptors().size());
         // a modified gem is never made on a workbench (craftsman or quest only)
         assertNull(Bukkit.getRecipe(new NamespacedKey(plugin, "gem_craft_modified_domain")));
 

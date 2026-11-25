@@ -424,6 +424,22 @@ hybrids:
       - furnace-speed-multiplier: -0.25
       - radius-bonus: -4
 
+  hybrid_demos_ceres:
+    material: ECHO_SHARD
+    custom-model-data: 1205
+    itemsadder: "voidcore:gem_demos_ceres_hybrid"
+    name: "<light_purple>Гибрид Демос-Церес</light_purple>"
+    lore:
+      - "<dark_gray>Гибридный гем (2 слота)</dark_gray>"
+      - "<gray>Нестабильное слияние союза и ферм.</gray>"
+    first-base: demos
+    second-base: ceres
+    first-modified: modified_demos
+    second-modified: modified_ceres
+    debuffs:
+      - members-bonus: -2
+      - crop-growth-multiplier: -0.25
+
   hybrid_demos_vita:
     material: ECHO_SHARD
     custom-model-data: 1204
