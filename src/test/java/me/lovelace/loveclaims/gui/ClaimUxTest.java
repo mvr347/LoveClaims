@@ -171,6 +171,15 @@ class ClaimUxTest {
     }
 
     @Test
+    void gemItemsShowTheirTextureEvenWhenItemsAdderDoesNotProvideTheItem() {
+        var gem = plugin.getGemRegistry().createGemItem("domain", 1);
+        assertEquals("voidcore:gem_domain_base", gem.getItemMeta().getItemModel().asString());
+        var improved = plugin.getGemRegistry().createGemItem("improved_vita", 1);
+        assertEquals("voidcore:gem_vita_upgrade", improved.getItemMeta().getItemModel().asString());
+        assertTrue(plugin.getGemFactory().isGem(gem), "the model does not break gem recognition");
+    }
+
+    @Test
     void gemsCarryTheirItemsAdderIds() {
         var gems = plugin.getConfigManager().getGems();
         assertEquals("voidcore:gem_domain_base", gems.getString("gems.domain.itemsadder"));

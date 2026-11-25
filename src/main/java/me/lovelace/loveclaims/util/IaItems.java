@@ -1,6 +1,7 @@
 package me.lovelace.loveclaims.util;
 
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,9 +40,20 @@ public final class IaItems {
         return null;
     }
 
-    /** The ItemsAdder item for {@code id}, or {@code fallback} when there is none. */
+    /**
+     * The ItemsAdder item for {@code id}. When ItemsAdder does not give one (not installed, still loading, or the
+     * item is not registered there) the id is used as the vanilla item model of {@code fallback}: ItemsAdder items
+     * are rendered by the resource pack model {@code namespace:id}, which a model component selects by itself, so
+     * the texture shows either way. A blank or malformed id keeps {@code fallback} untouched.
+     */
     public static ItemStack orElse(@Nullable String id, ItemStack fallback) {
         ItemStack item = get(id);
-        return item != null ? item : fallback;
+        if (item != null) return item;
+        if (id == null || id.isBlank()) return fallback;
+        NamespacedKey model = NamespacedKey.fromString(id.trim().toLowerCase(java.util.Locale.ROOT));
+        if (model == null) return fallback;
+        ItemStack copy = fallback.clone();
+        copy.editMeta(meta -> meta.setItemModel(model));
+        return copy;
     }
 }
