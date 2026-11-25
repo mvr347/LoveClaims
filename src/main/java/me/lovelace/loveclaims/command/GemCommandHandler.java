@@ -137,6 +137,7 @@ public final class GemCommandHandler {
         for (GemDescriptor desc : plugin.getGemRegistry().getAllDescriptors()) {
             String color = switch (desc.rarity()) {
                 case BASIC -> "<green>";
+                case IMPROVED -> "<aqua>";
                 case MODIFIED -> "<light_purple>";
                 case LEGENDARY -> "<gold>";
             };

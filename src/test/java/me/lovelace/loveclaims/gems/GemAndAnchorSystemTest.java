@@ -125,7 +125,9 @@ class GemAndAnchorSystemTest {
     @Test
     void legendaryGemsHaveZeroCraftRecipesWhileBasicAndModifiedAreLoaded() {
         GemRegistry reg = plugin.getGemRegistry();
-        assertEquals(20, reg.getAllDescriptors().size());
+        assertEquals(24, reg.getAllDescriptors().size());
+        // a modified gem is never made on a workbench (craftsman or quest only)
+        assertNull(Bukkit.getRecipe(new NamespacedKey(plugin, "gem_craft_modified_domain")));
 
         // Ensure NO recipe produces a LEGENDARY gem
         Iterator<Recipe> it = Bukkit.recipeIterator();
@@ -452,28 +454,28 @@ class GemAndAnchorSystemTest {
         GemRegistry reg = plugin.getGemRegistry();
         GemFactory factory = plugin.getGemFactory();
 
-        // 1. Raw vanilla AMETHYST_SHARD must NOT craft modified_domain
-        Recipe modDomainRecipe = Bukkit.getRecipe(new NamespacedKey(plugin, "gem_craft_modified_domain"));
-        assertNotNull(modDomainRecipe);
+        // 1. Raw vanilla AMETHYST_SHARD must NOT craft improved_domain (two real basic gems are required)
+        Recipe impRecipe = Bukkit.getRecipe(new NamespacedKey(plugin, "gem_craft_improved_domain"));
+        assertNotNull(impRecipe);
         CraftingInventory modInv = (CraftingInventory) Bukkit.createInventory(null, InventoryType.WORKBENCH);
         modInv.setMatrix(new ItemStack[]{
-                new ItemStack(Material.AMETHYST_BLOCK), new ItemStack(Material.ENDER_EYE), new ItemStack(Material.AMETHYST_BLOCK),
-                new ItemStack(Material.AMETHYST_SHARD), new ItemStack(Material.DIAMOND_BLOCK), new ItemStack(Material.AMETHYST_SHARD),
-                new ItemStack(Material.AMETHYST_BLOCK), new ItemStack(Material.ENDER_EYE), new ItemStack(Material.AMETHYST_BLOCK)
+                null, new ItemStack(Material.AMETHYST_SHARD), null,
+                new ItemStack(Material.PRISMARINE_CRYSTALS), new ItemStack(Material.ECHO_SHARD), new ItemStack(Material.PRISMARINE_CRYSTALS),
+                null, new ItemStack(Material.AMETHYST_SHARD), null
         });
-        modInv.setResult(modDomainRecipe.getResult().clone());
+        modInv.setResult(impRecipe.getResult().clone());
         InventoryView modView = mockView(owner, modInv);
         Bukkit.getPluginManager().callEvent(new PrepareItemCraftEvent(modInv, modView, false));
-        assertNull(modInv.getResult(), "Raw vanilla AMETHYST_SHARD must not craft modified_domain");
+        assertNull(modInv.getResult(), "Raw vanilla AMETHYST_SHARD must not craft improved_domain");
 
-        // Replacing both shards with real domain gems must allow it
+        // Two real domain gems in place of the shards must allow it
         ItemStack[] validModMatrix = modInv.getMatrix().clone();
-        validModMatrix[3] = reg.createGemItem("domain", 1);
-        validModMatrix[5] = reg.createGemItem("domain", 1);
+        validModMatrix[1] = reg.createGemItem("domain", 1);
+        validModMatrix[7] = reg.createGemItem("domain", 1);
         modInv.setMatrix(validModMatrix);
-        modInv.setResult(modDomainRecipe.getResult().clone());
+        modInv.setResult(impRecipe.getResult().clone());
         Bukkit.getPluginManager().callEvent(new PrepareItemCraftEvent(modInv, modView, false));
-        assertNotNull(modInv.getResult(), "Two real domain gems should craft modified_domain");
+        assertNotNull(modInv.getResult(), "Two real domain gems should craft improved_domain");
 
         // 2. Vanilla CAMPFIRE must NOT craft tier-2 anchor
         Recipe tier2Recipe = Bukkit.getRecipe(new NamespacedKey(plugin, "anchor_upgrade_tier_2_0"));
@@ -511,7 +513,7 @@ class GemAndAnchorSystemTest {
         assertNull(pairInv.getResult(), "Unmatched 2-gem combo must clear any external recipe result");
 
         // 4. CrafterCraftEvent must cancel plugin recipes
-        if (modDomainRecipe instanceof CraftingRecipe cr) {
+        if (impRecipe instanceof CraftingRecipe cr) {
             var crafterBlock = world.getBlockAt(10, 64, 10);
             crafterBlock.setType(Material.CRAFTER);
             CrafterCraftEvent crafterEvent = new CrafterCraftEvent(crafterBlock, cr, cr.getResult().clone());

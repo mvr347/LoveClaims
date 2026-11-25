@@ -46,18 +46,6 @@ gems:
       - "<gray>Значительно расширяет границы клейма.</gray>"
     radius-bonus: 14
     members-bonus: 1
-    recipe:
-      enabled: true
-      base-gem: domain
-      shape:
-        - "ABA"
-        - "GDG"
-        - "ABA"
-      ingredients:
-        A: AMETHYST_BLOCK
-        B: ENDER_EYE
-        G: AMETHYST_SHARD
-        D: DIAMOND_BLOCK
 
   imperium_domain:
     rarity: LEGENDARY
@@ -105,18 +93,6 @@ gems:
     members-bonus: 5
     effects:
       SPEED: 1
-    recipe:
-      enabled: true
-      base-gem: demos
-      shape:
-        - "EBE"
-        - "GDG"
-        - "EBE"
-      ingredients:
-        E: EMERALD_BLOCK
-        B: GOLDEN_APPLE
-        G: EMERALD
-        D: DIAMOND_BLOCK
 
   imperium_demos:
     rarity: LEGENDARY
@@ -165,18 +141,6 @@ gems:
       - "<gray>Ускоряет рост культур, печи и зельеварение.</gray>"
     crop-growth-multiplier: 0.50
     furnace-speed-multiplier: 0.30
-    recipe:
-      enabled: true
-      base-gem: ceres
-      shape:
-        - "HBH"
-        - "GDG"
-        - "HBH"
-      ingredients:
-        H: HAY_BLOCK
-        B: BLAZE_POWDER
-        G: PRISMARINE_CRYSTALS
-        D: DIAMOND_BLOCK
 
   imperium_ceres:
     rarity: LEGENDARY
@@ -226,18 +190,6 @@ gems:
     effects:
       REGENERATION: 1
       HASTE: 1
-    recipe:
-      enabled: true
-      base-gem: vita
-      shape:
-        - "ABA"
-        - "GDG"
-        - "ABA"
-      ingredients:
-        A: GOLDEN_APPLE
-        B: GLOWSTONE
-        G: GHAST_TEAR
-        D: DIAMOND_BLOCK
 
   imperium_vita:
     rarity: LEGENDARY
@@ -252,6 +204,98 @@ gems:
       REGENERATION: 2
       HASTE: 2
       SPEED: 1
+
+  # ===== УЛУЧШЕННЫЕ ГЕМЫ (2026-11-24): игрок делает на верстаке из 2 базовых гемов одного вида =====
+  # Между базовым и модифицированным (модифицированный гем получают у ремесленника за монеты или в награду за квест).
+  improved_domain:
+    rarity: IMPROVED
+    material: AMETHYST_SHARD
+    custom-model-data: 1005
+    name: "<aqua>Улучшенный Домейн</aqua>"
+    lore:
+      - "<dark_gray>Улучшенный гем (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Заметно расширяет границы клейма.</gray>"
+    radius-bonus: 10
+    recipe:
+      enabled: true
+      base-gem: domain
+      shape:
+        - " G "
+        - "PEP"
+        - " G "
+      ingredients:
+        G: AMETHYST_SHARD
+        E: ECHO_SHARD
+        P: PRISMARINE_CRYSTALS
+
+  improved_demos:
+    rarity: IMPROVED
+    material: EMERALD
+    custom-model-data: 1015
+    name: "<green>Улучшенный Демос</green>"
+    lore:
+      - "<dark_gray>Улучшенный гем (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Добавляет слоты участников.</gray>"
+    members-bonus: 3
+    recipe:
+      enabled: true
+      base-gem: demos
+      shape:
+        - " G "
+        - "PEP"
+        - " G "
+      ingredients:
+        G: EMERALD
+        E: ECHO_SHARD
+        P: PRISMARINE_CRYSTALS
+
+  improved_ceres:
+    rarity: IMPROVED
+    material: PRISMARINE_CRYSTALS
+    custom-model-data: 1025
+    name: "<yellow>Улучшенный Церес</yellow>"
+    lore:
+      - "<dark_gray>Улучшенный гем (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Ускоряет рост урожая в клейме.</gray>"
+    crop-growth-multiplier: 0.35
+    recipe:
+      enabled: true
+      base-gem: ceres
+      shape:
+        - " G "
+        - "PEP"
+        - " G "
+      ingredients:
+        G: PRISMARINE_CRYSTALS
+        E: ECHO_SHARD
+        P: PRISMARINE_CRYSTALS
+
+  improved_vita:
+    rarity: IMPROVED
+    material: GHAST_TEAR
+    custom-model-data: 1035
+    name: "<red>Улучшенный Вита</red>"
+    lore:
+      - "<dark_gray>Улучшенный гем (2 слота)</dark_gray>"
+      - ""
+      - "<gray>Регенерация и сытость для участников клейма.</gray>"
+    effects:
+      REGENERATION: 1
+      SATURATION: 1
+    recipe:
+      enabled: true
+      base-gem: vita
+      shape:
+        - " G "
+        - "PEP"
+        - " G "
+      ingredients:
+        G: GHAST_TEAR
+        E: ECHO_SHARD
+        P: PRISMARINE_CRYSTALS
 
   # ===== ЛЕГЕНДАРНЫЕ СЛИЯНИЯ (АРХОНТЫ, БЕЗ КРАФТА) =====
   archon_domain_demos:

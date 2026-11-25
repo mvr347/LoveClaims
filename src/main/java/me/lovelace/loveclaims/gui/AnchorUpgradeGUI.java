@@ -103,8 +103,9 @@ public class AnchorUpgradeGUI extends AbstractGUI {
             }
         }
 
-        // Header control button (gui_gen RULE 4: one button -> slot 4)
-        inventory.setItem(headerControlSlots(1)[0], createHead(HEAD_PROMOTE,
+        // Header control buttons (gui_gen RULE 4: two buttons -> slots 3 and 5): fuse a gem, modify a gem
+        int[] controls = headerControlSlots(2);
+        inventory.setItem(controls[0], createHead(HEAD_PROMOTE,
                 GuiText.name(plugin, "anchorUpgradeGUI.t8"),
                 List.of(
                         GuiText.name(plugin, "anchorUpgradeGUI.t9"),
@@ -113,6 +114,8 @@ public class AnchorUpgradeGUI extends AbstractGUI {
                         Component.empty(),
                         noItalic(MM.deserialize("<dark_gray><st>─────────────────────</st></dark_gray>")),
                         GuiText.name(plugin, "anchorUpgradeGUI.t11"))));
+        inventory.setItem(controls[1], createHead(HEAD_PROMOTE, GuiText.name(plugin, "gem-modify.header-button-name"),
+                GemModifyGUI.headerLore(plugin)));
 
         setFooterButtons(null, null, createHead(HEAD_BARRIER, plugin.getConfigManager().getComponent("common.close"), null));
         fillFrameGlass();
@@ -145,9 +148,15 @@ public class AnchorUpgradeGUI extends AbstractGUI {
             return;
         }
 
-        if (slot == headerControlSlots(1)[0]) {
+        int[] controls = headerControlSlots(2);
+        if (slot == controls[0]) {
             plugin.getConfigManager().playSound(viewer, "gui-click");
             viewer.openInventory(new GemFuseGUI(plugin, viewer).getInventory());
+            return;
+        }
+        if (slot == controls[1]) {
+            plugin.getConfigManager().playSound(viewer, "gui-click");
+            viewer.openInventory(new GemModifyGUI(plugin, viewer).getInventory());
             return;
         }
 

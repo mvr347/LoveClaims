@@ -66,6 +66,7 @@ public class ConfigManager {
         File gemsFile = new File(plugin.getDataFolder(), "gems.yml");
         if (!gemsFile.exists()) plugin.saveResource("gems.yml", false);
         gems = YamlConfiguration.loadConfiguration(gemsFile);
+        addMissingGems(gemsFile);
         try (java.io.InputStream bundledGems = plugin.getResource("gems.yml")) {
             if (bundledGems != null) {
                 gems.setDefaults(YamlConfiguration.loadConfiguration(
@@ -81,6 +82,32 @@ public class ConfigManager {
         plugin.getLogger().info("Language: " + language);
 
         scheduleSpawnWorldCheck();
+    }
+
+    /**
+     * 2026-11-24: gems added in a later version (improved_*) are copied from the bundled gems.yml into a server file
+     * that lacks them, so a server with an old gems.yml gets the new gem tier without losing its own edits.
+     */
+    private void addMissingGems(File gemsFile) {
+        try (java.io.InputStream bundled = plugin.getResource("gems.yml")) {
+            if (bundled == null) return;
+            FileConfiguration fresh = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(bundled,
+                    java.nio.charset.StandardCharsets.UTF_8));
+            var freshGems = fresh.getConfigurationSection("gems");
+            if (freshGems == null) return;
+            boolean changed = false;
+            for (String id : freshGems.getKeys(false)) {
+                if (!id.startsWith("improved_") || gems.contains("gems." + id)) continue;
+                gems.set("gems." + id, freshGems.getConfigurationSection(id));
+                changed = true;
+            }
+            if (changed) {
+                gems.save(gemsFile);
+                plugin.getLogger().info("gems.yml: added the improved gems");
+            }
+        } catch (java.io.IOException e) {
+            plugin.getLogger().warning("Could not update gems.yml: " + e.getMessage());
+        }
     }
 
     /**

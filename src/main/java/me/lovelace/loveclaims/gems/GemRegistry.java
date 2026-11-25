@@ -192,6 +192,9 @@ public final class GemRegistry {
                 GemDescriptor desc = descriptors.get(normId);
                 if (!(desc instanceof PureGemDescriptor pure)) continue;
                 if (!pure.rarity().isCraftable()) continue; // Hard block for LEGENDARY
+                // A modified gem is made at the craftsman (coins) or given for a quest, never on a workbench:
+                // an old gems.yml may still carry the former workbench recipe, so it is ignored here.
+                if (pure.rarity() == GemRarity.MODIFIED) continue;
 
                 ConfigurationSection recipeSec = pureSection.getConfigurationSection(id + ".recipe");
                 if (recipeSec == null || !recipeSec.getBoolean("enabled", false)) continue;
@@ -396,6 +399,14 @@ public final class GemRegistry {
 
     public boolean isPluginRecipe(NamespacedKey key) {
         return key != null && registeredRecipeKeys.contains(key);
+    }
+
+    /** The modified gem an improved gem becomes at the craftsman (improved_x -> modified_x), if such a gem exists. */
+    public Optional<String> modifiedFor(String gemId) {
+        String id = gemId == null ? "" : gemId.toLowerCase(Locale.ROOT);
+        if (!id.startsWith("improved_")) return Optional.empty();
+        String target = "modified_" + id.substring("improved_".length());
+        return descriptors.containsKey(target) ? Optional.of(target) : Optional.empty();
     }
 
     public ItemStack createGemItem(String gemId, int amount) {

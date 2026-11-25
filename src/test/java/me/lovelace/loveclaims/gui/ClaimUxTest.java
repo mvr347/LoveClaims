@@ -152,4 +152,21 @@ class ClaimUxTest {
             }
         }
     }
+
+    @Test
+    void craftsmanTurnsAnImprovedGemIntoAModifiedOne() {
+        plugin.getConfig().set("gems.modify.cost", 0);
+        var improved = plugin.getGemRegistry().createGemItem("improved_domain", 1);
+        assertNotNull(improved);
+        owner.getInventory().setItem(0, improved);
+        var stats = plugin.getGemFactory().readStats(improved).orElseThrow();
+        assertEquals(me.lovelace.loveclaims.gems.GemRarity.IMPROVED, stats.rarity());
+        assertEquals("modified_domain", plugin.getGemRegistry().modifiedFor("improved_domain").orElseThrow());
+        assertTrue(plugin.getGemRegistry().modifiedFor("domain").isEmpty());
+        click(new GemModifyConfirmGUI(plugin, owner, stats, 0, improved), owner, 1);
+        var gems = java.util.Arrays.stream(owner.getInventory().getContents())
+                .filter(i -> i != null && plugin.getGemFactory().isGem(i))
+                .map(i -> plugin.getGemFactory().readStats(i).orElseThrow().gemId()).toList();
+        assertEquals(java.util.List.of("modified_domain"), gems);
+    }
 }
