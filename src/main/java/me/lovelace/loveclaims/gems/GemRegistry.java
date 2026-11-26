@@ -553,12 +553,11 @@ public final class GemRegistry {
     private ItemStack buildTemplate(String gemId) {
         Material mat = gemMaterials.getOrDefault(gemId.toLowerCase(Locale.ROOT), Material.EMERALD);
         int cmd = gemCmds.getOrDefault(gemId.toLowerCase(Locale.ROOT), 0);
-        ItemStack ia = me.lovelace.loveclaims.util.IaItems.get(gemIaIds.get(gemId.toLowerCase(Locale.ROOT)));
-        if (ia != null) return ia;
         ItemStack item = new ItemStack(mat);
         if (cmd > 0) {
             item.editMeta(meta -> meta.setCustomModelData(cmd));
         }
+        item = me.lovelace.loveclaims.util.IaItems.orElse(gemIaIds.get(gemId.toLowerCase(Locale.ROOT)), item);
         return item;
     }
 

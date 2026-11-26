@@ -40,6 +40,7 @@ public class ConfigManager {
         plugin.reloadConfig();
         config = plugin.getConfig();
         me.lovelace.loveclaims.gems.GemOverload.load(config);
+        me.lovelace.loveclaims.util.IaItems.setModelFallback(config.getBoolean("itemsadder.model-fallback"));
 
         this.debugMode = config.getBoolean("misc.debug", false);
         this.language = config.getString("misc.language", "ru");

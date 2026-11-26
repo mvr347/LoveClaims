@@ -148,8 +148,8 @@ public class AnchorManager {
 
         ItemStack item = new ItemStack(tier.material());
         // An ItemsAdder base is taken only when it has the tier's material: recipes and placement depend on it.
-        ItemStack ia = me.lovelace.loveclaims.util.IaItems.get(iaIds.get(tier.id()));
-        if (ia != null && ia.getType() == tier.material()) item = ia;
+        ItemStack ia = me.lovelace.loveclaims.util.IaItems.orElse(iaIds.get(tier.id()), item);
+        if (ia.getType() == tier.material()) item = ia;
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 
