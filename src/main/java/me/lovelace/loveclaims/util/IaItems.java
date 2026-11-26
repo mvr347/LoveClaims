@@ -40,16 +40,23 @@ public final class IaItems {
         return null;
     }
 
+    private static volatile boolean modelFallback = false;
+
+    /** Set from config itemsadder.model-fallback when the configuration is loaded. */
+    public static void setModelFallback(boolean enabled) {
+        modelFallback = enabled;
+    }
+
     /**
-     * The ItemsAdder item for {@code id}. When ItemsAdder does not give one (not installed, still loading, or the
-     * item is not registered there) the id is used as the vanilla item model of {@code fallback}: ItemsAdder items
-     * are rendered by the resource pack model {@code namespace:id}, which a model component selects by itself, so
-     * the texture shows either way. A blank or malformed id keeps {@code fallback} untouched.
+     * The ItemsAdder item for {@code id}, or {@code fallback} when there is none. With the opt-in
+     * {@code itemsadder.model-fallback} a missing item gets the id as its vanilla item model instead: that shows the
+     * texture only when the resource pack really has a model under exactly this key, otherwise the item would look
+     * broken, so it is off by default.
      */
     public static ItemStack orElse(@Nullable String id, ItemStack fallback) {
         ItemStack item = get(id);
         if (item != null) return item;
-        if (id == null || id.isBlank()) return fallback;
+        if (!modelFallback || id == null || id.isBlank()) return fallback;
         NamespacedKey model = NamespacedKey.fromString(id.trim().toLowerCase(java.util.Locale.ROOT));
         if (model == null) return fallback;
         ItemStack copy = fallback.clone();

@@ -28,10 +28,17 @@ class IaItemsTest {
         assertNull(IaItems.get("claims:anchor_1"));
         assertSame(fallback, IaItems.orElse("", fallback));
         assertSame(fallback, IaItems.orElse("not a key!", fallback));
-        // without ItemsAdder the id still selects the resource pack model
-        ItemStack modeled = IaItems.orElse("claims:anchor_1", fallback);
-        assertEquals(Material.EMERALD, modeled.getType());
-        assertEquals("claims:anchor_1", modeled.getItemMeta().getItemModel().asString());
-        assertFalse(fallback.getItemMeta().hasItemModel(), "the fallback stays untouched");
+        // off by default: a missing ItemsAdder item keeps the vanilla look
+        assertSame(fallback, IaItems.orElse("claims:anchor_1", fallback));
+        // opt-in: the id becomes the vanilla item model
+        IaItems.setModelFallback(true);
+        try {
+            ItemStack modeled = IaItems.orElse("claims:anchor_1", fallback);
+            assertEquals(Material.EMERALD, modeled.getType());
+            assertEquals("claims:anchor_1", modeled.getItemMeta().getItemModel().asString());
+            assertFalse(fallback.getItemMeta().hasItemModel(), "the fallback stays untouched");
+        } finally {
+            IaItems.setModelFallback(false);
+        }
     }
 }

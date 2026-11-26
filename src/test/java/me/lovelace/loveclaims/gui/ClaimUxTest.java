@@ -171,12 +171,19 @@ class ClaimUxTest {
     }
 
     @Test
-    void gemItemsShowTheirTextureEvenWhenItemsAdderDoesNotProvideTheItem() {
-        var gem = plugin.getGemRegistry().createGemItem("domain", 1);
-        assertEquals("voidcore:gem_domain_base", gem.getItemMeta().getItemModel().asString());
-        var improved = plugin.getGemRegistry().createGemItem("improved_vita", 1);
-        assertEquals("voidcore:gem_vita_upgrade", improved.getItemMeta().getItemModel().asString());
-        assertTrue(plugin.getGemFactory().isGem(gem), "the model does not break gem recognition");
+    void gemItemsGetTheModelOnlyWithTheOptInFallbackWhenItemsAdderIsMissing() {
+        var plain = plugin.getGemRegistry().createGemItem("domain", 1);
+        assertFalse(plain.getItemMeta().hasItemModel(), "off by default: no broken models");
+        me.lovelace.loveclaims.util.IaItems.setModelFallback(true);
+        try {
+            var gem = plugin.getGemRegistry().createGemItem("domain", 1);
+            assertEquals("voidcore:gem_domain_base", gem.getItemMeta().getItemModel().asString());
+            var improved = plugin.getGemRegistry().createGemItem("improved_vita", 1);
+            assertEquals("voidcore:gem_vita_upgrade", improved.getItemMeta().getItemModel().asString());
+            assertTrue(plugin.getGemFactory().isGem(gem), "the model does not break gem recognition");
+        } finally {
+            me.lovelace.loveclaims.util.IaItems.setModelFallback(false);
+        }
     }
 
     @Test
