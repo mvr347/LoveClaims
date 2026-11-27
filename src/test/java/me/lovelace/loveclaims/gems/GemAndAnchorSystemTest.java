@@ -702,6 +702,12 @@ class GemAndAnchorSystemTest {
         owner.teleport(new Location(world, 0, 70, 0));
         assertEquals(1500, claim.getHomeLocation().getBlockX());
         assertEquals(1500, claim.getHomeLocation().getBlockZ());
+        // the default 10 s warm-up: nothing moves at once
+        assertTrue(server.dispatchCommand(owner, "ac home MyFarm"));
+        assertEquals(0, owner.getLocation().getBlockX());
+        plugin.getClaimTeleport().shutdown();
+        // without the warm-up the teleport runs at once
+        plugin.getConfig().set("teleport.delay-seconds", 0);
         try {
             assertTrue(server.dispatchCommand(owner, "ac home MyFarm"));
             assertEquals(1500, owner.getLocation().getBlockX());

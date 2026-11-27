@@ -40,6 +40,41 @@ public final class IaItems {
         return null;
     }
 
+    /** Step by step report of a lookup, for /loveclaimsadmin iacheck (why a configured id gives no item). */
+    public static java.util.List<String> diagnose(@Nullable String id) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        var ia = Bukkit.getPluginManager().getPlugin("ItemsAdder");
+        if (ia == null) {
+            out.add("ItemsAdder: плагин не найден");
+            return out;
+        }
+        out.add("ItemsAdder: " + (ia.isEnabled() ? "включён" : "ВЫКЛЮЧЕН") + ", версия "
+                + ia.getPluginMeta().getVersion());
+        if (id == null || id.isBlank()) {
+            out.add("id: не задан");
+            return out;
+        }
+        for (String root : ROOTS) {
+            try {
+                Class<?> clazz = Class.forName(root + ".CustomStack", true, ia.getClass().getClassLoader());
+                out.add("API " + root + ": класс найден");
+                Object stack = clazz.getMethod("getInstance", String.class).invoke(null, id.trim());
+                if (stack == null) {
+                    out.add("предмет '" + id + "': НЕ найден в ItemsAdder (не зарегистрирован или ещё не загружен)");
+                } else {
+                    Object item = clazz.getMethod("getItemStack").invoke(stack);
+                    out.add("предмет '" + id + "': найден, материал "
+                            + (item instanceof ItemStack is ? is.getType() : "?"));
+                }
+                return out;
+            } catch (ReflectiveOperationException | LinkageError e) {
+                out.add("API " + root + ": " + e.getClass().getSimpleName());
+            }
+        }
+        out.add("ни один пакет API ItemsAdder не подошёл");
+        return out;
+    }
+
     private static volatile boolean modelFallback = false;
 
     /** Set from config itemsadder.model-fallback when the configuration is loaded. */

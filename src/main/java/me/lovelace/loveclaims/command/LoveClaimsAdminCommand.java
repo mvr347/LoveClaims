@@ -34,7 +34,7 @@ import java.util.Optional;
  */
 public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "givecore", "givemergeseal", "expand", "addmembers", "access", "gem", "spawnupgrader", "help");
+    private static final List<String> SUBCOMMANDS = List.of("reload", "give", "givecore", "givemergeseal", "expand", "addmembers", "access", "gem", "spawnupgrader", "iacheck", "help");
 
     private final LoveClaims plugin;
     private final GemCommandHandler gemCommandHandler;
@@ -81,6 +81,18 @@ public class LoveClaimsAdminCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "addmembers" -> handleAddMembers(sender, args);
+            case "iacheck" -> {
+                // /loveclaimsadmin iacheck [id]: why ItemsAdder items or the confirm menu are not used
+                String id = args.length >= 2 ? args[1] : plugin.getConfigManager().getGems().getString("gems.domain.itemsadder", "");
+                sender.sendMessage(net.kyori.adventure.text.Component.text("--- Предмет гема ---"));
+                me.lovelace.loveclaims.util.IaItems.diagnose(id)
+                        .forEach(line -> sender.sendMessage(net.kyori.adventure.text.Component.text(line)));
+                if (sender instanceof Player p) {
+                    sender.sendMessage(net.kyori.adventure.text.Component.text("--- Confirm-окно ---"));
+                    me.lovelace.loveclaims.gui.ConfirmMenuLayout.diagnose(p)
+                            .forEach(line -> sender.sendMessage(net.kyori.adventure.text.Component.text(line)));
+                }
+            }
             case "access" -> handleAccess(sender, args);
             case "spawnupgrader" -> handleSpawnUpgrader(sender);
             default -> sendHelp(sender);

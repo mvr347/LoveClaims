@@ -18,6 +18,11 @@ public class GuiListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory().getHolder() instanceof AbstractGUI gui) {
+            if (event.getClickedInventory() != null
+                    && event.getClickedInventory().equals(event.getView().getBottomInventory())
+                    && gui.letsBottomClickThrough(event)) {
+                return; // plain moving of the player's own items stays possible (gem menus)
+            }
             event.setCancelled(true);
             if (event.getClickedInventory() == null) return;
             if (event.getClickedInventory().equals(event.getView().getBottomInventory())) {

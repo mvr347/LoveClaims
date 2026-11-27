@@ -77,7 +77,10 @@ public final class ClaimTeleport implements Listener {
             player.sendMessage(lang.getMessage("teleport.already-here"));
             return;
         }
-        boolean bypass = player.hasPermission("loveclaims.teleport.bypass");
+        // An undeclared permission is true for every operator, so the bypass is opt-in in the config:
+        // an owner who tests as an OP must see the real warm-up.
+        boolean bypass = plugin.getConfig().getBoolean("teleport.allow-bypass")
+                && player.hasPermission("loveclaims.teleport.bypass");
         long left = cooldownUntil.getOrDefault(player.getUniqueId(), 0L) - System.currentTimeMillis();
         if (!bypass && left > 0) {
             plugin.getEffects().playFor(player, "gui-error");

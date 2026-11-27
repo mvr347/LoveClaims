@@ -25,7 +25,7 @@
 # ====================================================== #
 
 # Версия файла: если на сервере она ниже, файл заменяется этим (старый сохраняется как lang.yml.bak-<версия>).
-lang-revision: 20261124
+lang-revision: 20261127
 
 prefix: "<gradient:#55FF55:#00AA00>Территория</gradient> <white>»</white> "
 
@@ -749,7 +749,7 @@ gemFuseGUI.t13: "<dark_gray>Ваш клейм"
 gemFuseGUI.t14: "<dark_gray>▪ <gray>Якорь:"
 gemFuseGUI.t15: "  <red>✕ Ядро якоря треснуло"
 gemFuseGUI.t16: "<green>✓ Выбран"
-gemFuseGUI.t17: "<dark_gray>Кликните по гему в своём инвентаре"
+gemFuseGUI.t17: "<dark_gray>ПКМ по гему в своём инвентаре"
 gemFuseGUI.t18: "<green>ЛКМ <dark_gray>— <gray>выбрать клейм"
 gemFuseGUI.t19: "<red>Сначала выберите клейм.</red>"
 anchorUpgradeGUI.t1: "<gold>Мастер Якорей</gold>"
@@ -784,7 +784,7 @@ gem-modify.button-lore:
   - "&7Стоимость: &f{cost}"
   - ""
   - "&8&m─────────────────────"
-  - "&aЛКМ &8— &7по улучшенному гему в инвентаре"
+  - "&aПКМ &8— &7по улучшенному гему в инвентаре"
 gem-modify.not-improved: "<red>Нужен улучшенный гем: его делают на верстаке из двух базовых."
 gem-modify.confirm-title: "&6Модифицировать гем?"
 gem-modify.confirm-name: "&aМодифицировать"

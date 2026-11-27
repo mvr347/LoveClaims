@@ -138,6 +138,21 @@ public class GemFuseGUI extends AbstractGUI {
     }
 
     @Override
+    protected boolean bottomRearrangeAllowed() {
+        return true;
+    }
+
+    /** A right click on a gem picks it for the menu; everything else in the inventory moves normally. */
+    @Override
+    protected boolean isBottomAction(InventoryClickEvent event) {
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType().isAir() || !event.getClick().isRightClick()) return false;
+        ItemStack cursor = event.getCursor();
+        if (cursor != null && !cursor.getType().isAir()) return false;
+        return plugin.getGemFactory() != null && plugin.getGemFactory().readStats(clicked).isPresent();
+    }
+
+    @Override
     public void handleBottomClick(InventoryClickEvent event) {
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType().isAir() || plugin.getGemFactory() == null) return;
