@@ -212,6 +212,22 @@ public class AnchorGemsGUI extends AbstractGUI {
     }
 
     @Override
+    protected boolean bottomRearrangeAllowed() {
+        return true;
+    }
+
+    /** A right click on a gem or an anchor core inserts it; everything else in the inventory moves normally. */
+    @Override
+    protected boolean isBottomAction(InventoryClickEvent event) {
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType().isAir() || !event.getClick().isRightClick()) return false;
+        ItemStack cursor = event.getCursor();
+        if (cursor != null && !cursor.getType().isAir()) return false;
+        return me.lovelace.loveclaims.gems.AnchorCores.readTier(plugin, clicked).isPresent()
+                || (plugin.getGemFactory() != null && plugin.getGemFactory().readStats(clicked).isPresent());
+    }
+
+    @Override
     public void handleBottomClick(InventoryClickEvent event) {
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType().isAir()) return;

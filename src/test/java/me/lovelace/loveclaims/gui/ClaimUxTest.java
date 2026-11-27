@@ -195,4 +195,37 @@ class ClaimUxTest {
         assertEquals("voidcore:gem_demos_legendary", gems.getString("gems.imperium_demos.itemsadder"));
         assertEquals("voidcore:gem_domain_ceres_hybrid", gems.getString("hybrids.hybrid_domain_ceres.itemsadder"));
     }
+
+    @Test
+    void anOperatorStillWaitsBeforeTheTeleport() {
+        owner.setOp(true);
+        Claim far = claim(owner, 200, 210);
+        owner.teleport(new Location(world, 0, 64, 0));
+        plugin.getClaimTeleport().request(owner, far);
+        server.getScheduler().performTicks(5);
+        assertEquals(0.0, owner.getLocation().getX(), 1e-6, "no instant teleport");
+        assertEquals(0, plugin.getClaimTeleport().cooldownLeft(owner.getUniqueId()), "nothing teleported yet");
+    }
+
+    @Test
+    void gemsInTheOwnInventoryCanBeMovedWhileAGemMenuIsOpen() {
+        Claim c = claim(owner, 0, 10);
+        c.setAnchorTierId("tier-3");
+        var gem = plugin.getGemRegistry().createGemItem("domain", 1);
+        owner.getInventory().setItem(0, gem);
+        var gui = new AnchorGemsGUI(plugin, owner, c);
+        var view = owner.openInventory(gui.getInventory());
+        int bottom = gui.getInventory().getSize();
+        // a plain left click only moves the gem: the event is not cancelled and nothing is inserted
+        var left = new InventoryClickEvent(view, InventoryType.SlotType.CONTAINER, bottom,
+                ClickType.LEFT, InventoryAction.PICKUP_ALL);
+        org.bukkit.Bukkit.getPluginManager().callEvent(left);
+        assertFalse(left.isCancelled());
+        assertTrue(c.getInstalledGems().isEmpty());
+        // a shift click could reach the menu's slots and stays cancelled
+        var shift = new InventoryClickEvent(view, InventoryType.SlotType.CONTAINER, bottom,
+                ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
+        org.bukkit.Bukkit.getPluginManager().callEvent(shift);
+        assertTrue(shift.isCancelled());
+    }
 }

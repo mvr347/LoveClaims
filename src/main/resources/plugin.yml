@@ -26,6 +26,9 @@ permissions:
   loveclaims.admin.gems:
     description: Управление гемами (/loveclaims gem)
     default: op
+  loveclaims.teleport.bypass:
+    description: Телепорт на клейм без ожидания и паузы (нужен teleport.allow-bypass в config.yml)
+    default: false
   loveclaims.bypass:
     description: Игнорирование защиты ВСЕХ клеймов (выдаётся явно, включая операторов)
     default: false

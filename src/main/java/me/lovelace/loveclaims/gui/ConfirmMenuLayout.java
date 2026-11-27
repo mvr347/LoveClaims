@@ -64,6 +64,15 @@ public final class ConfirmMenuLayout {
         return null;
     }
 
+    /** Report for /loveclaimsadmin iacheck: why the server's confirm menu is or is not used. */
+    public static List<String> diagnose(Player viewer) {
+        List<String> out = new java.util.ArrayList<>(me.lovelace.loveclaims.util.IaItems.diagnose(INVISIBLE_ITEM));
+        String resolved = resolveBackground(viewer);
+        out.add("фон confirm-окна (" + TITLE + "): " + (backgroundResolved(resolved) ? "получен" : "НЕ получен (нужен рабочий font image и PlaceholderAPI/ItemsAdder)"));
+        out.add("итог: " + (available(viewer) ? "confirm-окно ItemsAdder будет использовано" : "будет рисованое окно на 9 слотов"));
+        return out;
+    }
+
     /**
      * True when the background glyph and the invisible item can both be produced for this viewer. The title is
      * resolved here too: if the font image is missing or its placeholder stays unresolved, the invisible buttons

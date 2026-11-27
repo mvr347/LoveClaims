@@ -76,6 +76,30 @@ public abstract class AbstractGUI implements InventoryHolder {
 
     public abstract void handleClick(InventoryClickEvent event);
     public void handleBottomClick(InventoryClickEvent event) {}
+
+    /**
+     * True for menus in which the player may still rearrange their own inventory with the mouse (the gem menus):
+     * only clicks that are menu actions ({@link #isBottomAction}) and clicks that could reach the menu's own slots
+     * (shift click, double click) are cancelled.
+     */
+    protected boolean bottomRearrangeAllowed() {
+        return false;
+    }
+
+    /** In menus that allow rearranging: whether this click on the player's inventory is a menu action. */
+    protected boolean isBottomAction(InventoryClickEvent event) {
+        return true;
+    }
+
+    /** True when the click on the player's own inventory is plain item moving and must not be cancelled. */
+    public final boolean letsBottomClickThrough(InventoryClickEvent event) {
+        if (!bottomRearrangeAllowed() || isBottomAction(event)) return false;
+        return switch (event.getAction()) {
+            case PICKUP_ALL, PICKUP_HALF, PICKUP_ONE, PICKUP_SOME, PLACE_ALL, PLACE_ONE, PLACE_SOME,
+                 SWAP_WITH_CURSOR, HOTBAR_SWAP, NOTHING -> true;
+            default -> false;
+        };
+    }
     protected abstract void setMenuItems();
 
     // Генератор кастомных голов через Paper API
